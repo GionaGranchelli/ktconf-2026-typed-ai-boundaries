@@ -1,0 +1,43 @@
+# Claims boundary
+
+What this demo proves — and what it deliberately does **not** claim.
+
+## Proved (deterministic, reproducible, tested)
+
+- TramAI structured output turns a valid model response into a typed
+  `InvoiceAssessment` — no manual JSON mapping in application code.
+- TramAI's structured-output engine rejects invalid model output
+  (`StructuredOutputException`, repair attempts exhausted) and no side
+  effect executes.
+- TramAI's classification-aware routing denies a `RESTRICTED` document on a
+  `GLOBAL_CLOUD` provider **before** provider invocation (invocation count
+  stays 0) and allows an allowed `LOCAL` provider.
+- TramAI's approval machinery suspends a HIGH-risk tool request before
+  execution; resume goes through the real continuation mechanism.
+- Exactly-once in the demo scope: after approval the ledger executes once,
+  and a duplicate resume attempt is rejected without double execution. The
+  ledger deduplicates on the engine-supplied idempotency key.
+- Denial keeps the ledger at zero.
+- TramAI emits hash-chained audit records; the chain verifies
+  (`AuditChainVerifier`), and a machine-readable evidence pack is written.
+
+## NOT claimed
+
+- **No globally exactly-once distributed execution.** The demo proves
+  exactly-once for this single-process, single-ledger scenario only.
+- **No real LLM behavior.** The model provider is deterministic and
+  scripted. Nothing here evaluates model quality, prompting, or
+  nondeterminism of real outputs.
+- **No automatic provider rerouting.** RESTRICTED → LOCAL is demonstrated
+  as two separate configurations; the demo does not claim TramAI
+  auto-reroutes.
+- **No production audit infrastructure.** Stores are in-memory for the
+  demo; they are real TramAI stores, not fakes, but they are not durable.
+- **No claim that these TramAI APIs are stable.** The exact API surface is
+  pinned to a specific revision (`docs/TRAMAI-INTEGRATION.md`).
+
+## Rule
+
+Every row printed by the evidence scenario derives from a real audit record.
+Nothing is invented for the show. If a scenario cannot be demonstrated with
+real TramAI behavior, it is not demonstrated.

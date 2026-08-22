@@ -1,0 +1,3 @@
+[submodule "vendor/tramai"]
+	path = vendor/tramai
+	url = https://github.com/GionaGranchelli/tramAI.git

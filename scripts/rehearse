@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Full rehearsal: clean state, then every scenario in one pass.
+# Non-interactive — the approval scenario auto-approves.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+./scripts/demo reset
+./scripts/demo all

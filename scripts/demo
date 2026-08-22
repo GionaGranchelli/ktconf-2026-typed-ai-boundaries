@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Stage API — stable commands, never change the interface.
+#   ./scripts/demo <command>   (see `./scripts/demo` for the list)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ -z "${JAVA_HOME:-}" ] && [ -d /usr/lib/jvm/java-21-openjdk-amd64 ]; then
+  export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+fi
+
+BIN="app/build/install/ktconf-demo/bin/ktconf-demo"
+if [ ! -x "$BIN" ]; then
+  ./gradlew :app:installDist -q
+fi
+
+exec "$BIN" "$@"
