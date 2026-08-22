@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Conference-morning check for the real-model path (typed --real).
+# Contract: env configured -> endpoint reachable -> model reachable ->
+# typed --real MUST produce a typed InvoiceAssessment -> PASS.
+# Independent of the deterministic ./scripts/preflight.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+: "${KTCONF_DEMO_LOCAL_BASE_URL:?KTCONF_DEMO_LOCAL_BASE_URL is required (e.g. http://localhost:11434/v1 or https://api.deepseek.com)}"
+: "${KTCONF_DEMO_LOCAL_MODEL:?KTCONF_DEMO_LOCAL_MODEL is required (e.g. gemma-4-12b-it:q5_k_m or deepseek-chat)}"
+
+base="${KTCONF_DEMO_LOCAL_BASE_URL%/}"
+echo "base URL   : $base"
+echo "model      : $KTCONF_DEMO_LOCAL_MODEL"
+
+# Endpoint reachable: some servers serve /models at root, some under /v1.
+models_url=""
+for candidate in "$base/models" "$base/v1/models"; do
+  if curl -sf --max-time 10 "$candidate" >/dev/null 2>&1; then
+    models_url="$candidate"
+    break
+  fi
+done
+if [ -z "$models_url" ]; then
+  echo "FAIL: endpoint not reachable at $base/models (or $base/v1/models)." >&2
+  exit 1
+fi
+echo "endpoint   : reachable ($models_url)"
+
+# Model reachable: the configured name must be served.
+if ! curl -sf --max-time 10 "$models_url" | grep -q -- "$KTCONF_DEMO_LOCAL_MODEL"; then
+  echo "FAIL: model '$KTCONF_DEMO_LOCAL_MODEL' not served by $models_url." >&2
+  exit 1
+fi
+echo "model      : reachable"
+
+# The real requirement: the demo must produce a typed result.
+out="$(./scripts/demo typed --real 2>&1)"
+if ! grep -q "typed result escaped = YES" <<<"$out"; then
+  echo "FAIL: typed --real did not produce a typed InvoiceAssessment." >&2
+  echo "$out" | tail -15 >&2
+  exit 1
+fi
+echo "typed --real: typed result escaped = YES"
+
+echo
+echo "preflight-real OK — real-model path ready."

@@ -12,8 +12,11 @@ engineer integrating TramAI into a real application would experience it.
 
 ## What the demo proves
 
-Every scenario runs against **real TramAI behavior** — the only fake is a
-deterministic scripted model provider.
+The deterministic scenarios use a scripted model and an in-memory simulated
+payment side effect. Structured output, policy routing, tool governance,
+approval/continuation, and audit/evidence are **real TramAI behavior**. An
+optional `typed --real` scenario replaces the scripted model with an actual
+LLM.
 
 | Scenario | Command | Proves |
 |---|---|---|
@@ -49,6 +52,7 @@ git clone --recursive https://github.com/GionaGranchelli/ktconf-2026-typed-ai-bo
 cd ktconf-2026-typed-ai-boundaries
 ./scripts/preflight         # verifies pinned TramAI revision + runs the full test suite
 ./scripts/demo all          # stage: deterministic demo, offline-capable
+./scripts/preflight-real    # conference-morning check for typed --real (needs env + a model endpoint)
 ```
 
 After `preflight`, the demo runs **without** internet, GitHub, Maven Central,
@@ -84,7 +88,7 @@ app/                 conference application (Kotlin/JVM, JDK 21, Gradle)
     cli/             stable stage API
   src/test/kotlin/   semantic tests (one per proven behavior)
 docs/                architecture, demo script, integration, claims
-scripts/             demo | preflight | rehearse
+scripts/             demo | preflight | preflight-real | rehearse
 vendor/tramai/       pinned TramAI submodule (read-only)
 ```
 
