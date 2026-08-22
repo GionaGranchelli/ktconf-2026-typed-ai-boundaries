@@ -66,8 +66,8 @@ object DemoResponses {
           "amountCents": 8250000,
           "currency": "EUR",
           "risk": "HIGH",
-          "recommendedAction": "SCHEDULE_PAYMENT",
-          "rationale": "MERGER-2026 advisory services exceed threshold; high risk"
+          "recommendedAction": "REVIEW_ONLY",
+          "rationale": "MERGER-2026 advisory services require internal review; no payment scheduled"
         }
         """,
     )
@@ -87,6 +87,21 @@ object DemoResponses {
         """,
     )
 
+    /** Scenario 4/5: valid structured assessment for the payment invoice. */
+    val payAssessment: ModelResponse = json(
+        """
+        {
+          "invoiceId": "KTCONF-PAY-001",
+          "supplierName": "KTConf AV & Stage Services BV",
+          "amountCents": 1840000,
+          "currency": "EUR",
+          "risk": "HIGH",
+          "recommendedAction": "SCHEDULE_PAYMENT",
+          "rationale": "Stage and AV production invoice exceeds threshold; payment required"
+        }
+        """,
+    )
+
     /** Scenario 4/5: first a schedule-payment tool call, then the typed assessment. */
     val paymentFlow: List<ModelResponse> = listOf(
         ModelResponse(
@@ -96,12 +111,12 @@ object DemoResponses {
                     id = "call-schedule-payment-ktconf",
                     name = "schedule-payment",
                     argumentsJson =
-                        """{"invoiceId":"KTCONF-001","amountCents":42830,"currency":"EUR"}""",
+                        """{"invoiceId":"KTCONF-PAY-001","amountCents":1840000,"currency":"EUR"}""",
                 ),
             ),
             finishReason = FinishReason.OTHER,
         ),
-        cateringAssessment,
+        payAssessment,
     )
 
     private fun json(content: String): ModelResponse =

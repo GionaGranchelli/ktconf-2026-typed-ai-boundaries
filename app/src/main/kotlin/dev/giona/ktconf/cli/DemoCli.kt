@@ -13,12 +13,14 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * Stage API. Commands are stable: `./scripts/demo <command>`.
+ *
+ * The authoritative preparation check is `./scripts/preflight` (shell).
+ * This CLI deliberately has no preflight command — one truth, not two.
  */
 class DemoCli {
 
     fun run(args: Array<String>) {
         when (val command = args.firstOrNull() ?: "help") {
-            "preflight" -> preflight()
             "typed" -> runBlocking { DemoPresenter.typed(TypedBoundaryScenario().run()) }
             "invalid" -> runBlocking { DemoPresenter.invalid(InvalidOutputScenario().run()) }
             "restricted" -> runBlocking { DemoPresenter.restricted(RestrictedDataScenario().run()) }
@@ -40,19 +42,12 @@ class DemoCli {
         println("ALL SCENARIOS PASSED — deterministic demo complete.")
     }
 
-    private fun preflight() {
-        println("preflight: deterministic demo (offline-capable after preparation)")
-        println("tramai pinned = ${tramaiPinnedCommit()}")
-        println("submodule     = ${submoduleCommit()}")
-        println("match         = ${tramaiPinnedCommit() == submoduleCommit()}")
-        println("JDK           = ${System.getProperty("java.version")}")
-        println("cwd           = ${Path.of("").toAbsolutePath().normalize()}")
-    }
-
     private fun reset() {
         val dir = Path.of(".build", "demo")
         if (Files.exists(dir)) {
-            Files.walk(dir).sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
+            Files.walk(dir).use { paths ->
+                paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
+            }
         }
         println("reset: cleared $dir")
     }
@@ -64,7 +59,6 @@ class DemoCli {
 
             usage: ./scripts/demo <command>
 
-              preflight   verify pinned TramAI revision + environment
               typed       scenario 1: typed boundary (valid structured output)
               invalid     scenario 2: broken model output rejected by engine
               restricted  scenario 3: RESTRICTED data denied on cloud, LOCAL ok
@@ -72,40 +66,29 @@ class DemoCli {
               evidence    scenario 6: real audit records + verified chain
               all         run every scenario (approval auto-approves)
               reset       clear .build/demo artifacts
+
+            preparation check: ./scripts/preflight  (authoritative)
             """.trimIndent(),
         )
     }
 
+    /**
+     * Fail-closed interactive decision: an unknown key never authorizes.
+     * Invalid input reprompts; EOF (non-interactive) aborts the workflow.
+     */
     private fun readApprovalDecision(): ApprovalDecision {
-        print("[a]pprove / [d]eny / [q]uit: ")
-        return when (readLine()?.trim()?.lowercase()) {
-            "a" -> ApprovalDecision.APPROVE
-            "d" -> ApprovalDecision.DENY
-            "q", null -> ApprovalDecision.ABORT
-            else -> {
-                println("(defaulting to approve)")
-                ApprovalDecision.APPROVE
+        while (true) {
+            print("[a]pprove / [d]eny / [q]uit: ")
+            when (readLine()?.trim()?.lowercase()) {
+                "a" -> return ApprovalDecision.APPROVE
+                "d" -> return ApprovalDecision.DENY
+                "q" -> return ApprovalDecision.ABORT
+                null -> {
+                    println("(no input — aborting workflow)")
+                    return ApprovalDecision.ABORT
+                }
+                else -> println("unknown input — [a], [d] or [q]")
             }
-        }
-    }
-
-    private fun tramaiPinnedCommit(): String {
-        val properties = Path.of("gradle.properties")
-        return if (Files.exists(properties)) {
-            Files.readAllLines(properties)
-                .firstOrNull { it.startsWith("tramaiGitCommit=") }
-                ?.substringAfter("=") ?: "UNKNOWN"
-        } else {
-            "UNKNOWN"
-        }
-    }
-
-    private fun submoduleCommit(): String {
-        val head = Path.of("vendor", "tramai", ".git", "HEAD")
-        return if (Files.exists(head)) {
-            Files.readAllLines(head).firstOrNull()?.trim()?.substringAfterLast(" ") ?: "UNKNOWN"
-        } else {
-            "UNKNOWN"
         }
     }
 }

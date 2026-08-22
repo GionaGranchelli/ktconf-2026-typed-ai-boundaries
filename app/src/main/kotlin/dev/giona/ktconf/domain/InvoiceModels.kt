@@ -79,4 +79,17 @@ object DemoInvoices {
         classification = DataClassification.RESTRICTED,
         source = ClassificationSource.DECLARED,
     )
+
+    /** Scenario 4/5: payment invoice — HIGH risk, requires payment scheduling. */
+    val paymentInvoice: ClassifiedDocument<InvoiceDocument> = ClassifiedDocument(
+        payload = InvoiceDocument(
+            invoiceId = "KTCONF-PAY-001",
+            supplierName = "KTConf AV & Stage Services BV",
+            amountCents = 1_840_000,
+            currency = "EUR",
+            description = "Conference stage and AV production services",
+        ),
+        classification = DataClassification.RESTRICTED,
+        source = ClassificationSource.DECLARED,
+    )
 }

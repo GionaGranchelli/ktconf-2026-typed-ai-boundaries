@@ -22,7 +22,7 @@ cd ktconf-2026-typed-ai-boundaries
 Then run, in order:
 
 ```bash
-./scripts/demo typed          # model is nondeterministic → result is typed
+./scripts/demo typed          # provider response → typed boundary
 ./scripts/demo invalid        # model goes off-script → engine rejects, 0 side effects
 ./scripts/demo restricted     # RESTRICTED → cloud denied BEFORE invocation (count=0)
 ./scripts/demo approval       # [a]pprove / [d]eny / [q]uit — interactive

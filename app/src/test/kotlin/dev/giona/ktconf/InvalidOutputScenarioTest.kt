@@ -19,6 +19,8 @@ class InvalidOutputScenarioTest {
 
         assertTrue(result.failure is StructuredOutputException)
         assertEquals(0, result.paymentExecutionCount)
-        assertTrue(result.failure.attemptCount != null)
+        // The engine's repair loop exhausts deterministically at the pinned
+        // revision: initial attempt + two repairs. Lock the public claim.
+        assertEquals(3, result.failure.attemptCount)
     }
 }

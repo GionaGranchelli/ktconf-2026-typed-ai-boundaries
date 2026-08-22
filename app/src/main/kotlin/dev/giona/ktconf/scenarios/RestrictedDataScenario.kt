@@ -48,11 +48,12 @@ class RestrictedDataScenario(
                 "cloud provider must never be invoked; got ${cloud.invocationCount()} invocations"
             }
 
-            // Runtime B: same invoice, allowed LOCAL provider.
-            val localRuntime = factory.local(local)
-            val localAssessment = localRuntime.runtime
-                .create(InvoiceAnalysisService::class)
-                .analyze(DemoInvoices.restrictedAdvisory)
+            // Runtime B: same invoice, allowed LOCAL provider — closed like A.
+            val localAssessment = factory.local(local).use { localRuntime ->
+                localRuntime.runtime
+                    .create(InvoiceAnalysisService::class)
+                    .analyze(DemoInvoices.restrictedAdvisory)
+            }
 
             return RestrictedDataResult(
                 denial = denial,

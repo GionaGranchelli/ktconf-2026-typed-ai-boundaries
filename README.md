@@ -20,7 +20,7 @@ deterministic scripted model provider.
 | Typed boundary | `./scripts/demo typed` | valid model output → typed `InvoiceAssessment`, no manual JSON mapping |
 | Broken model | `./scripts/demo invalid` | invalid structured output rejected by the engine, zero side effects |
 | Restricted data | `./scripts/demo restricted` | RESTRICTED input denied on a cloud provider *before invocation*, LOCAL allowed |
-| Approval | `./scripts/demo approval` | HIGH-risk tool suspends, human approves/denies, exactly-once execution |
+| Approval | `./scripts/demo approval` | HIGH-risk tool suspends, human approves/denies; duplicate resume cannot double-schedule in the demo's idempotent ledger |
 | Evidence | `./scripts/demo evidence` | real hash-chained audit records, verified chain, evidence pack |
 
 Run everything in one pass:
