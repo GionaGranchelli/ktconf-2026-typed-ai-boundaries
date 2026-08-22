@@ -32,8 +32,9 @@ types policy        tools/approval
              LLM
 ```
 
-The application decides *what* the model may see and *what it may do*. TramAI
-enforces *whether that is allowed* — deterministically, every time.
+The application declares classifications, trust assumptions and
+capabilities. TramAI evaluates and enforces those rules at runtime —
+deterministically, every time.
 
 ## The six concepts
 
@@ -156,8 +157,9 @@ approval?
 
 ### 6. Audit / evidence
 
-Every enforcement decision is an audit event, hash-chained to its
-predecessor. One approval shows exactly four events:
+Governed enforcement points can emit hash-chained audit events. This demo
+proves the approval lifecycle below — one approval yields exactly four
+events, each chained to its predecessor:
 
 ```
 APPROVAL_SUSPENDED
@@ -169,6 +171,50 @@ APPROVAL_COMPLETED
 These are not strings fabricated for the presentation. They are retrieved
 from TramAI's audit store for that workflow, and their hash chain is
 verified (`GET /approvals/{id}/evidence` → `chainValid: true`).
+
+## How `@AiService` becomes executable
+
+An `@AiService` interface describes a contract. Something has to turn that
+contract into a working implementation — that is `SovereignTramai` and
+`SovereignTramaiRuntime` (both visible in
+[DemoConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/DemoConfiguration.kt)):
+
+```
+@AiService interface
+       │
+       │ describes the contract
+       ▼
+SovereignTramai
+       │
+       │ configured with:
+       │ providers
+       │ trust zones
+       │ tools
+       │ approval stores
+       │ audit store
+       ▼
+SovereignTramaiRuntime
+       │
+       ▼
+runtime.create(InvoiceAnalysisService::class)
+       │
+       ▼
+executable typed service
+```
+
+Two short definitions:
+
+> **SovereignTramai** is the configured governed environment: allowed
+> models/providers/tools, trust zones, policy infrastructure, approval and
+> audit stores.
+
+> **SovereignTramaiRuntime** is the live runtime created from that
+> configuration. It creates the executable `@AiService` implementation and
+> is also used later to resume suspended approvals.
+
+Each Spring profile builds exactly one runtime and shares it between the
+initial analysis and the approval resume — one lifecycle, one governed
+environment.
 
 ## Who is responsible for what?
 
@@ -184,7 +230,8 @@ application:
 | Call model provider | | ✅ |
 | Generate/validate structured output | | ✅ |
 | Enforce classification/provider policy | | ✅ |
-| Decide whether tool needs approval | | ✅ |
+| Declare tool permission/risk/effect/approval metadata | ✅ | |
+| Evaluate/enforce tool policy and approval requirement | | ✅ |
 | Suspend workflow | | ✅ |
 | Store HTTP mapping for pending approval | ✅ | |
 | Authorize continuation | | ✅ |
