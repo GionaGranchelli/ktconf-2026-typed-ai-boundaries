@@ -66,6 +66,23 @@ payments/        SchedulePaymentTool (security metadata on the tool)
                  InMemoryPaymentLedger (exactly-once via idempotency key)
 ```
 
+The important names, clickable:
+
+| File | Role |
+|---|---|
+| [InvoiceAnalysisService.kt](../app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt) | the `@AiService` typed boundary — typed in, typed out |
+| [InvoiceApplicationService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceApplicationService.kt) | classifies the document, catches only approval suspension |
+| [InvoiceAnalyzer.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceAnalyzer.kt) | application port; one adapter per profile |
+| [TramaiConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/TramaiConfiguration.kt) | shared singleton stores, digesters, gate coordinator |
+| [DemoConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/DemoConfiguration.kt) | one managed `SovereignTramaiRuntime` per instance |
+| [CloudRoutingConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/CloudRoutingConfiguration.kt) | the RESTRICTED + GLOBAL_CLOUD denial invariant |
+| [SchedulePaymentTool.kt](../app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt) | tool = authority: permission, risk, approval mode |
+| [ApprovalService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/ApprovalService.kt) | approve/deny via the real resume command |
+| [EvidenceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/EvidenceService.kt) | per-workflow evidence pack, chain verified |
+
+New to TramAI? [TRAMAI-PRIMER.md](TRAMAI-PRIMER.md) explains the concepts
+behind these files in ten minutes.
+
 ## The boundaries the audience should remember
 
 Two layers, deliberately distinct:
@@ -75,8 +92,9 @@ Two layers, deliberately distinct:
 - **The actual TramAI typed AI boundary:** the `@AiService`
   `InvoiceAnalysisService` contract — `ClassifiedDocument<InvoiceDocument>`
   → `InvoiceAssessment`. This is where the typed-boundary argument becomes
-  concrete: the model's nondeterminism stops at a compile-time-typed
-  surface, and the conference audience should remember THIS one.
+  concrete: application code sees a compile-time-typed surface; TramAI
+  validates model output at runtime before allowing it to cross that
+  boundary. The conference audience should remember THIS one.
 
 ```kotlin
 val assessment: InvoiceAssessment = invoiceAnalyzer.analyze(document)
