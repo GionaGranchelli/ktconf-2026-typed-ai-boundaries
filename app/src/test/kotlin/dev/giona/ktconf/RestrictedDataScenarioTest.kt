@@ -17,7 +17,8 @@ class RestrictedDataScenarioTest {
         val result = RestrictedDataScenario().run()
 
         assertEquals(0, result.cloudInvocationCount)
-        assertTrue(result.denial.decision.reasonCode.isNotBlank())
+        // The stage story claims the exact routing reason code.
+        assertEquals("classification-routing-blocked", result.denial.decision.reasonCode)
     }
 
     @Test

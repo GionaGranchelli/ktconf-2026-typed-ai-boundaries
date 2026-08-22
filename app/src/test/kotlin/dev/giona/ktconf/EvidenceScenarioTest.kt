@@ -4,6 +4,7 @@ import dev.giona.ktconf.scenarios.EvidenceScenario
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -20,5 +21,19 @@ class EvidenceScenarioTest {
         assertTrue(result.chainValid)
         assertTrue(Files.exists(result.evidenceDirectory.resolve("audit-chain.json")))
         assertTrue(Files.exists(result.evidenceDirectory.resolve("sovereign-evidence-pack-v1.json")))
+
+        // The stage story claims the exact governance timeline for one
+        // approval execution: suspend → policy gate on resume → resume →
+        // completion. Lock the enforcement-point semantics.
+        val enforcementPoints = result.auditEvents.map { it.enforcementPoint }.toSet()
+        assertEquals(
+            setOf(
+                "APPROVAL_SUSPENDED",
+                "BEFORE_WORKFLOW_RESUME",
+                "APPROVAL_RESUMED",
+                "APPROVAL_COMPLETED",
+            ),
+            enforcementPoints,
+        )
     }
 }

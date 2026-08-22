@@ -27,7 +27,7 @@ import java.time.ZoneId
  * Fixed demo clock — every scenario is deterministic and reproducible.
  */
 val demoClock: Clock = Clock.fixed(
-    Instant.parse("2026-06-11T12:00:00Z"),
+    Instant.parse("2026-09-18T10:15:00Z"),
     ZoneId.of("UTC"),
 )
 

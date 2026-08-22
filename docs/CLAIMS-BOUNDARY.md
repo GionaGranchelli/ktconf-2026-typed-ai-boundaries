@@ -41,3 +41,11 @@ What this demo proves — and what it deliberately does **not** claim.
 Every row printed by the evidence scenario derives from a real audit record.
 Nothing is invented for the show. If a scenario cannot be demonstrated with
 real TramAI behavior, it is not demonstrated.
+
+## Governance / EU AI Act note
+
+This demo shows technical controls such as runtime policy, traceability,
+human approval, provider restrictions and structured failure boundaries
+that may support organisational governance and compliance work. It does not
+establish EU AI Act compliance, conformity assessment, certification, or
+legal suitability for any specific AI system.

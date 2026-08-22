@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Deterministic rehearsal stress gate: run the full demo N times (default 20).
+# Fails immediately on the first failed iteration. Ends with a pass line.
+#
+#   ./scripts/stress-rehearse [N]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+N="${1:-20}"
+
+for i in $(seq 1 "$N"); do
+  if ! ./scripts/demo all > /tmp/ktconf-stress-run.log 2>&1; then
+    echo "FAIL: iteration $i/$N exited non-zero" >&2
+    tail -20 /tmp/ktconf-stress-run.log >&2
+    exit 1
+  fi
+  if ! grep -q "ALL SCENARIOS PASSED" /tmp/ktconf-stress-run.log; then
+    echo "FAIL: iteration $i/$N missing pass marker" >&2
+    tail -20 /tmp/ktconf-stress-run.log >&2
+    exit 1
+  fi
+  if grep -qE "^[[:space:]]+at (dev|kotlin|java)|Caused by" /tmp/ktconf-stress-run.log; then
+    echo "FAIL: iteration $i/$N contains stack trace" >&2
+    tail -20 /tmp/ktconf-stress-run.log >&2
+    exit 1
+  fi
+  printf '  iteration %2d/%d PASS\n' "$i" "$N"
+done
+
+echo
+echo "KTConf deterministic rehearsal"
+echo "$N / $N PASS"

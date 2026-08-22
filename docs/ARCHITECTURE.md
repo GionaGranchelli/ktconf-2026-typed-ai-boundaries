@@ -48,15 +48,18 @@ machines. All of that happens inside TramAI, behind the typed boundary.
 
 ## What is real vs. fake
 
-| Piece | Real TramAI | Conference fake |
+| Piece | Real TramAI | Conference simulation |
 |---|---|---|
 | Structured output engine | ✅ | |
 | Policy engine + classification routing | ✅ | |
 | Approval suspension + continuation | ✅ | |
 | Audit chain + evidence pack | ✅ | |
 | LLM | | ✅ deterministic `ScriptedProvider` |
-| Invoice data | | ✅ fictional fixtures |
+| Payment side effect | | ✅ deterministic in-memory ledger |
 
-The fake provider is the *only* fake, and it sits at the outermost edge —
-everything downstream of it is the real library. See
-[CLAIMS-BOUNDARY.md](CLAIMS-BOUNDARY.md) for what that does and doesn't prove.
+More precisely: the model and the payment side effect are deterministic
+simulations. Structured output, routing policy, tool governance,
+approval/continuation, and audit/evidence semantics are real TramAI.
+The simulations sit at the outermost edge — everything downstream of them
+is the real library. See [CLAIMS-BOUNDARY.md](CLAIMS-BOUNDARY.md) for what
+that does and doesn't prove.

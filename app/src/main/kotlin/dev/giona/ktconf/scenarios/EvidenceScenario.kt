@@ -40,7 +40,7 @@ class EvidenceScenario(
             val service = runtime.runtime.create(InvoiceAnalysisService::class)
 
             val suspension = try {
-                service.analyze(DemoInvoices.catering)
+                service.analyze(DemoInvoices.paymentInvoice)
                 error("Expected approval suspension")
             } catch (e: dev.tramai.core.exception.ApprovalSuspendedException) {
                 e
