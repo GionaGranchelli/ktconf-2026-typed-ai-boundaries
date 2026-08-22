@@ -1,0 +1,36 @@
+package dev.giona.ktconf.api
+
+import dev.giona.ktconf.application.ApprovalService
+import dev.giona.ktconf.application.DenyOutcome
+import dev.giona.ktconf.application.EvidenceResult
+import dev.giona.ktconf.application.EvidenceService
+import dev.giona.ktconf.domain.InvoiceAssessment
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+
+/**
+ * Approval lifecycle over HTTP. The challenge token stays server-side in
+ * the pending-approval registry — the client only ever holds the id.
+ */
+@RestController
+@RequestMapping("/approvals")
+class ApprovalController(
+    private val approvals: ApprovalService,
+    private val evidence: EvidenceService,
+) {
+
+    @PostMapping("/{approvalId}/approve")
+    suspend fun approve(@PathVariable approvalId: String): InvoiceAssessment =
+        approvals.approve(approvalId)
+
+    @PostMapping("/{approvalId}/deny")
+    suspend fun deny(@PathVariable approvalId: String): DenyOutcome =
+        approvals.deny(approvalId)
+
+    @GetMapping("/{approvalId}/evidence")
+    suspend fun evidence(@PathVariable approvalId: String): EvidenceResult =
+        evidence.evidenceFor(approvalId)
+}

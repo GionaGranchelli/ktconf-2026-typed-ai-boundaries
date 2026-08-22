@@ -1,7 +1,7 @@
 package dev.giona.ktconf
 
 import dev.giona.ktconf.domain.SchedulePaymentInput
-import dev.giona.ktconf.tools.InMemoryPaymentLedger
+import dev.giona.ktconf.payments.InMemoryPaymentLedger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

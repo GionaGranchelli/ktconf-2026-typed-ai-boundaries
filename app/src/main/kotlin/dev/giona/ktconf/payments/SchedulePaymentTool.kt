@@ -1,4 +1,4 @@
-package dev.giona.ktconf.tools
+package dev.giona.ktconf.payments
 
 import dev.giona.ktconf.domain.SchedulePaymentInput
 import dev.giona.ktconf.domain.SchedulePaymentResult

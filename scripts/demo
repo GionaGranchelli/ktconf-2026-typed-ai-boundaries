@@ -1,16 +1,59 @@
 #!/usr/bin/env bash
-# Stage API — stable commands, never change the interface.
-#   ./scripts/demo <command>   (see `./scripts/demo` for the list)
+# Stage API — stable commands over the running instances, never change the
+# interface. Instances are started once via ./scripts/stage-up (same bootJar,
+# one profile per port), then this script only curls them.
+#
+#   ./scripts/demo typed           -> demo (8080), KTCONF-001 -> typed 200
+#   ./scripts/demo invalid         -> broken (8081), KTCONF-001 -> 422
+#   ./scripts/demo restricted      -> cloud-routing (8082), KTCONF-RESTRICTED-001 -> 403
+#   ./scripts/demo payment         -> demo (8080), KTCONF-PAY-001 -> 202 + approvalId
+#   ./scripts/demo approve <id>    -> POST /approvals/<id>/approve
+#   ./scripts/demo deny <id>       -> POST /approvals/<id>/deny
+#   ./scripts/demo evidence <id>   -> GET /approvals/<id>/evidence
+#   ./scripts/demo stats           -> GET /governance/stats
+#   ./scripts/demo healthz [port]  -> GET /governance/healthz
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [ -z "${JAVA_HOME:-}" ] && [ -d /usr/lib/jvm/java-21-openjdk-amd64 ]; then
-  export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-fi
+D="http://localhost:${KTCONF_DEMO_PORT:-8080}"
+B="http://localhost:${KTCONF_DEMO_PORT_BROKEN:-8081}"
+C="http://localhost:${KTCONF_DEMO_PORT_CLOUD:-8082}"
 
-BIN="app/build/install/ktconf-demo/bin/ktconf-demo"
-if [ ! -x "$BIN" ]; then
-  ./gradlew :app:installDist -q
-fi
+analyze() { # $1=base  $2=json
+  curl -s -w '\nHTTP %{http_code}\n' -X POST "$1/invoices/analyze" \
+    -H 'Content-Type: application/json' -d "$2"
+}
 
-exec "$BIN" "$@"
+case "${1:-}" in
+  typed)
+    analyze "$D" '{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}'
+    ;;
+  invalid)
+    analyze "$B" '{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}'
+    ;;
+  restricted)
+    analyze "$C" '{"invoiceId":"KTCONF-RESTRICTED-001","supplierName":"ACME Acquisition Advisory","amountCents":8250000,"currency":"EUR","description":"MERGER-2026 advisory"}'
+    ;;
+  payment)
+    analyze "$D" '{"invoiceId":"KTCONF-PAY-001","supplierName":"KTConf AV & Stage Services BV","amountCents":1840000,"currency":"EUR","description":"Stage and AV production services"}'
+    ;;
+  approve)
+    curl -s -w '\nHTTP %{http_code}\n' -X POST "$D/approvals/${2:?usage: ./scripts/demo approve <approvalId>}/approve"
+    ;;
+  deny)
+    curl -s -w '\nHTTP %{http_code}\n' -X POST "$D/approvals/${2:?usage: ./scripts/demo deny <approvalId>}/deny"
+    ;;
+  evidence)
+    curl -s -w '\nHTTP %{http_code}\n' "$D/approvals/${2:?usage: ./scripts/demo evidence <approvalId>}/evidence"
+    ;;
+  stats)
+    curl -s -w '\nHTTP %{http_code}\n' "$D/governance/stats"
+    ;;
+  healthz)
+    curl -s -w '\nHTTP %{http_code}\n' "http://localhost:${2:-${KTCONF_DEMO_PORT:-8080}}/governance/healthz"
+    ;;
+  *)
+    echo "usage: ./scripts/demo {typed|invalid|restricted|payment|approve <id>|deny <id>|evidence <id>|stats|healthz [port]}" >&2
+    exit 2
+    ;;
+esac

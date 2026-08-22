@@ -1,7 +1,7 @@
 package dev.giona.ktconf
 
-import dev.giona.ktconf.tools.InMemoryPaymentLedger
-import dev.giona.ktconf.tools.SchedulePaymentTool
+import dev.giona.ktconf.payments.InMemoryPaymentLedger
+import dev.giona.ktconf.payments.SchedulePaymentTool
 import dev.tramai.core.model.SideEffectLevel
 import dev.tramai.core.policy.ApprovalMode
 import dev.tramai.core.policy.AuditDetail

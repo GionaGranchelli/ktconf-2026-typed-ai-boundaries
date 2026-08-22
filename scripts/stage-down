@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Stop every stage instance started by ./scripts/stage-up.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ -f .build/stage.pids ]; then
+  xargs kill < .build/stage.pids 2>/dev/null || true
+  rm -f .build/stage.pids
+  echo "stage-down: instances stopped."
+else
+  pkill -f "ktconf-demo.jar" 2>/dev/null || true
+  echo "stage-down: no pid file; killed lingering ktconf-demo.jar instances (if any)."
+fi
