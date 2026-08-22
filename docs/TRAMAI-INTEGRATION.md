@@ -74,4 +74,4 @@ Never silently follow upstream `master`.
 ## Known-good revision
 
 KTConf validated TramAI revision:
-`9debb0f2f17bfcb117ada757b946d4e8263c2106` (master, PR #260 merge).
+`1ce840fac7a6319e6f1ab8f9a005f92cd2acd691` (master, PR #262 merge — Kotlin enum structured-output schema fix).

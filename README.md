@@ -29,6 +29,17 @@ Run everything in one pass:
 ./scripts/rehearse          # reset + all scenarios, non-interactive
 ```
 
+Optional — prove a real LLM sits behind the same typed interface:
+
+```bash
+export KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1   # or any OpenAI-compatible endpoint
+export KTCONF_DEMO_LOCAL_MODEL=qwen3:8b                        # model name
+./scripts/demo typed --real
+```
+
+`typed --real` is the only real-model path; every governance scenario stays
+deterministic. See [docs/CLAIMS-BOUNDARY.md](docs/CLAIMS-BOUNDARY.md).
+
 ## Quick start (clean machine)
 
 Requirements: JDK 21, Git, network for the first preparation only.
@@ -48,7 +59,7 @@ into airplane mode.
 
 | | |
 |---|---|
-| Commit | `9debb0f2f17bfcb117ada757b946d4e8263c2106` |
+| Commit | `1ce840fac7a6319e6f1ab8f9a005f92cd2acd691` |
 | Artifact version | `0.5.0` (self-declared by the pinned build) |
 | Consumed via | Git submodule `vendor/tramai` + Gradle composite build |
 

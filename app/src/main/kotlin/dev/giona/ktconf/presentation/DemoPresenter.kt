@@ -3,6 +3,7 @@ package dev.giona.ktconf.presentation
 import dev.giona.ktconf.scenarios.ApprovalResult
 import dev.giona.ktconf.scenarios.EvidenceResult
 import dev.giona.ktconf.scenarios.InvalidOutputResult
+import dev.giona.ktconf.scenarios.RealTypedResult
 import dev.giona.ktconf.scenarios.RestrictedDataResult
 import dev.giona.ktconf.scenarios.TypedBoundaryResult
 import dev.tramai.security.audit.AuditEvent
@@ -70,6 +71,30 @@ object DemoPresenter {
                 println("payment after deny    = ${result.ledgerAfterDecision} (resume rejected)")
             dev.giona.ktconf.scenarios.ApprovalDecision.ABORT ->
                 println("payment (aborted)     = ${result.ledgerAfterDecision} — workflow stays suspended")
+        }
+    }
+
+    fun real(result: RealTypedResult) {
+        title("typed --real — an actual LLM behind the same typed boundary")
+        when (result) {
+            is RealTypedResult.Success -> {
+                val a = result.assessment
+                println("typed result escaped = YES (real model output → typed result)")
+                println("invoiceId           = ${a.invoiceId}")
+                println("supplierName        = ${a.supplierName}")
+                println("amountCents         = ${a.amountCents}")
+                println("currency            = ${a.currency}")
+                println("risk                = ${a.risk}")
+                println("recommendedAction   = ${a.recommendedAction}")
+            }
+            is RealTypedResult.Rejected -> {
+                println("typed result escaped = NO")
+                println("failure              = ${result.failure::class.simpleName}")
+                println("attemptCount         = ${result.failure.attemptCount ?: "n/a"}")
+                println("validationError      = ${result.failure.validationError?.take(120) ?: result.failure.message?.take(200) ?: "n/a"}")
+                println("lastRawResponse      = ${result.failure.lastRawResponse?.take(200)?.replace("\n", " ") ?: "n/a"}")
+                println("(the real model produced output the engine rejected — the boundary holds both ways)")
+            }
         }
     }
 
