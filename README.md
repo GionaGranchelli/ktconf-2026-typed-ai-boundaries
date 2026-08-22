@@ -38,6 +38,7 @@ Optional — prove a real LLM sits behind the same typed interface:
 export KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1   # or any OpenAI-compatible endpoint
 export KTCONF_DEMO_LOCAL_MODEL=qwen3:8b                        # model name
 ./scripts/demo typed --real
+./scripts/preflight-real    # conference-morning check: endpoint -> model -> typed --real must succeed
 ```
 
 `typed --real` is the only real-model path; every governance scenario stays
@@ -52,7 +53,6 @@ git clone --recursive https://github.com/GionaGranchelli/ktconf-2026-typed-ai-bo
 cd ktconf-2026-typed-ai-boundaries
 ./scripts/preflight         # verifies pinned TramAI revision + runs the full test suite
 ./scripts/demo all          # stage: deterministic demo, offline-capable
-./scripts/preflight-real    # conference-morning check for typed --real (needs env + a model endpoint)
 ```
 
 After `preflight`, the demo runs **without** internet, GitHub, Maven Central,

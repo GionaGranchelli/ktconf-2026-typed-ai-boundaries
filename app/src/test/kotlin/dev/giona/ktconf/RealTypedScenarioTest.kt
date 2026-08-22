@@ -26,6 +26,7 @@ class RealTypedScenarioTest {
                 assertEquals("KTCONF-001", result.assessment.invoiceId)
                 assertEquals("KTConf Catering BV", result.assessment.supplierName)
                 assertEquals(42_830, result.assessment.amountCents)
+                assertEquals("EUR", result.assessment.currency)
                 assertTrue(result.assessment.risk.name.isNotBlank())
                 assertTrue(result.assessment.recommendedAction.name.isNotBlank())
                 assertTrue(result.assessment.rationale.isNotBlank())
