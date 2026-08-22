@@ -46,7 +46,6 @@ class DemoConfiguration {
         continuationStore = continuationStore,
         auditStore = auditStore,
         gateCoordinator = gateCoordinator,
-        ledger = ledger,
         tool = SchedulePaymentTool(ledger),
     )
 
@@ -54,8 +53,8 @@ class DemoConfiguration {
     fun sovereignRuntime(tramaiDemo: SovereignTramai): SovereignTramaiRuntime = tramaiDemo.runtime()
 
     @Bean
-    fun invoiceAnalyzer(tramaiDemo: SovereignTramai): InvoiceAnalyzer {
-        val service = tramaiDemo.runtime().create(dev.giona.ktconf.ai.InvoiceAnalysisService::class)
+    fun invoiceAnalyzer(runtime: SovereignTramaiRuntime): InvoiceAnalyzer {
+        val service = runtime.create(dev.giona.ktconf.ai.InvoiceAnalysisService::class)
         return InvoiceAnalyzer { service.analyze(it) }
     }
 }

@@ -14,8 +14,9 @@ import org.springframework.stereotype.Component
  * The token is NEVER exposed over REST.
  *
  * Entries survive completion/denial so evidence stays resolvable per
- * workflow. One approval flow at a time per instance is a deliberate
- * demo-scope simplification (in-memory stores).
+ * workflow. Multiple workflows are isolated within one process; state is
+ * intentionally in-memory and not durable across restart (demo scope —
+ * the TramAI stores share the same property).
  */
 @Component
 class PendingApprovalRegistry {

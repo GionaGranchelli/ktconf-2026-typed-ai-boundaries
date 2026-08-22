@@ -45,7 +45,6 @@ class BrokenConfiguration {
         continuationStore = continuationStore,
         auditStore = auditStore,
         gateCoordinator = gateCoordinator,
-        ledger = ledger,
         tool = SchedulePaymentTool(ledger),
     )
 
@@ -53,8 +52,8 @@ class BrokenConfiguration {
     fun sovereignRuntimeBroken(tramaiBroken: SovereignTramai): SovereignTramaiRuntime = tramaiBroken.runtime()
 
     @Bean
-    fun invoiceAnalyzerBroken(tramaiBroken: SovereignTramai): InvoiceAnalyzer {
-        val service = tramaiBroken.runtime().create(dev.giona.ktconf.ai.InvoiceAnalysisService::class)
+    fun invoiceAnalyzerBroken(runtime: SovereignTramaiRuntime): InvoiceAnalyzer {
+        val service = runtime.create(dev.giona.ktconf.ai.InvoiceAnalysisService::class)
         return InvoiceAnalyzer { service.analyze(it) }
     }
 }

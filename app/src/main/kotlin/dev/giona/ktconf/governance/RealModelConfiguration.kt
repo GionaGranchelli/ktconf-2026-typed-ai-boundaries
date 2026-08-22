@@ -63,7 +63,6 @@ class RealModelConfiguration {
             continuationStore = continuationStore,
             auditStore = auditStore,
             gateCoordinator = gateCoordinator,
-            ledger = ledger,
             tool = null,
         )
     }
@@ -72,8 +71,8 @@ class RealModelConfiguration {
     fun sovereignRuntimeReal(tramaiReal: SovereignTramai): SovereignTramaiRuntime = tramaiReal.runtime()
 
     @Bean
-    fun invoiceAnalyzerReal(tramaiReal: SovereignTramai): InvoiceAnalyzer {
-        val service = tramaiReal.runtime().create(dev.giona.ktconf.ai.RealInvoiceAnalysisService::class)
+    fun invoiceAnalyzerReal(runtime: SovereignTramaiRuntime): InvoiceAnalyzer {
+        val service = runtime.create(dev.giona.ktconf.ai.RealInvoiceAnalysisService::class)
         return InvoiceAnalyzer { service.analyze(it) }
     }
 }

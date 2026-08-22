@@ -63,7 +63,6 @@ class CloudRoutingConfiguration {
         continuationStore = continuationStore,
         auditStore = auditStore,
         gateCoordinator = gateCoordinator,
-        ledger = ledger,
         tool = SchedulePaymentTool(ledger),
     )
 
@@ -71,8 +70,8 @@ class CloudRoutingConfiguration {
     fun sovereignRuntimeCloud(tramaiCloud: SovereignTramai): SovereignTramaiRuntime = tramaiCloud.runtime()
 
     @Bean
-    fun invoiceAnalyzerCloud(tramaiCloud: SovereignTramai): InvoiceAnalyzer {
-        val service = tramaiCloud.runtime().create(dev.giona.ktconf.ai.InvoiceAnalysisService::class)
+    fun invoiceAnalyzerCloud(runtime: SovereignTramaiRuntime): InvoiceAnalyzer {
+        val service = runtime.create(dev.giona.ktconf.ai.InvoiceAnalysisService::class)
         return InvoiceAnalyzer { service.analyze(it) }
     }
 }

@@ -47,29 +47,6 @@ kotlin {
     }
 }
 
-// ponytail: temporary — the v2 CLI packages (cli/presentation/scenarios/runtime)
-// are scheduled for deletion once the guard approves; until then they are
-// excluded from compilation instead of deleted. Remove with the deletion.
-kotlin.sourceSets.main {
-    kotlin.exclude(
-        "dev/giona/ktconf/Main.kt",
-        "dev/giona/ktconf/cli/**",
-        "dev/giona/ktconf/presentation/**",
-        "dev/giona/ktconf/scenarios/**",
-        "dev/giona/ktconf/runtime/**",
-    )
-}
-kotlin.sourceSets.test {
-    kotlin.exclude(
-        "dev/giona/ktconf/TypedBoundaryScenarioTest.kt",
-        "dev/giona/ktconf/InvalidOutputScenarioTest.kt",
-        "dev/giona/ktconf/RestrictedDataScenarioTest.kt",
-        "dev/giona/ktconf/ApprovalScenarioTest.kt",
-        "dev/giona/ktconf/EvidenceScenarioTest.kt",
-        "dev/giona/ktconf/RealTypedScenarioTest.kt",
-    )
-}
-
 tasks.bootJar {
     archiveFileName.set("ktconf-demo.jar")
 }

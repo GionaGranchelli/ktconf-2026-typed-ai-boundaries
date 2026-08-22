@@ -43,12 +43,11 @@ class ApprovalService(
             presentedToken = pending.presentedToken,
             resumedBy = "demo-operator",
         )
-        val assessment = try {
-            runtime.resumeApprovalTyped<InvoiceAssessment>(command)
-        } catch (e: Exception) {
-            registry.complete(approvalId, PendingApprovalRegistry.State.REJECTED)
-            throw e
-        }
+        // Resume through the SAME managed runtime the analyze used. On
+        // success mark COMPLETED; unexpected failures propagate loudly and
+        // do NOT rewrite registry state — the store holds the authoritative
+        // transition (APPROVED), so any retry is rejected there (409).
+        val assessment = runtime.resumeApprovalTyped<InvoiceAssessment>(command)
         registry.complete(approvalId, PendingApprovalRegistry.State.COMPLETED)
         return assessment
     }

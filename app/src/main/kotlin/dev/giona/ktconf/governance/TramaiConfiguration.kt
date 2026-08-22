@@ -53,8 +53,11 @@ class TramaiConfiguration {
             // Unique per suspension: the API hands the id to the client and
             // the client resumes BY id, so fixed ids would collide.
             approvalIdGenerator = ApprovalIdGenerator { "approval-ktconf-${UUID.randomUUID().toString().take(8)}" },
+            // Unique challenge per suspension too: two concurrent approvals
+            // must not hold interchangeable tokens. Nothing on stage prints
+            // it — it only ever lives server-side in PendingApprovalRegistry.
             approvalTokenGenerator = ApprovalTokenGenerator {
-                ApprovalToken.parsePresented("approval-token-ktconf-001")
+                ApprovalToken.parsePresented("approval-token-${UUID.randomUUID()}")
             },
             approvalTokenDigester = Sha256ApprovalTokenDigester(),
             clock = clock,
@@ -74,7 +77,6 @@ internal fun buildSovereign(
     continuationStore: InMemoryApprovalContinuationStore,
     auditStore: InMemoryAuditStore,
     gateCoordinator: DefaultApprovalGateCoordinator,
-    ledger: InMemoryPaymentLedger,
     tool: TramaiTool<*, *>?,
 ): SovereignTramai {
     require(modelProvider in providers) { "modelProvider must be one of the registered providers" }
