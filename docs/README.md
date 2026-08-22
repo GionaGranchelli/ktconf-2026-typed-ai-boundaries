@@ -71,10 +71,10 @@ operator assertion, never by URL, so a public cloud API must not be used
 here. Verified against gemma-4-12b-it:q5_k_m and gemma4:e4b (Ollama).
 
 **How do I know the stage laptop runs the verified code?**
-The freeze tag (`ktconf-2026-demo-v3` after this round) records the
-known-good combination: conference repo SHA + TramAI submodule SHA + tested
-models. `./scripts/preflight` verifies the pin and the deterministic suite;
-`./scripts/preflight-real` verifies the live model path; `./scripts/stage-up`
-verifies every instance's profile over `/healthz`. The Git checkout itself
-establishes identity: start conference morning from
+The freeze tag (`ktconf-2026-demo-v3`) records the known-good combination:
+conference repo SHA + TramAI submodule SHA + tested models. `./scripts/preflight`
+verifies the pin and the deterministic suite; `./scripts/preflight-real`
+verifies the live model path; `./scripts/stage-up` verifies every instance's
+profile over `/healthz`. The Git checkout itself establishes identity: start
+conference morning from
 `git checkout ktconf-2026-demo-v3 && git submodule update --init --recursive --checkout`.
