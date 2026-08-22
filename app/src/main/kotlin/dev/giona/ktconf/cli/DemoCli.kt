@@ -5,6 +5,7 @@ import dev.giona.ktconf.scenarios.ApprovalDecision
 import dev.giona.ktconf.scenarios.ApprovalScenario
 import dev.giona.ktconf.scenarios.EvidenceScenario
 import dev.giona.ktconf.scenarios.InvalidOutputScenario
+import dev.giona.ktconf.scenarios.RealTypedScenario
 import dev.giona.ktconf.scenarios.RestrictedDataScenario
 import dev.giona.ktconf.scenarios.TypedBoundaryScenario
 import java.nio.file.Files
@@ -21,7 +22,7 @@ class DemoCli {
 
     fun run(args: Array<String>) {
         when (val command = args.firstOrNull() ?: "help") {
-            "typed" -> runBlocking { DemoPresenter.typed(TypedBoundaryScenario().run()) }
+            "typed" -> if (args.getOrNull(1) == "--real") realTyped() else runBlocking { DemoPresenter.typed(TypedBoundaryScenario().run()) }
             "invalid" -> runBlocking { DemoPresenter.invalid(InvalidOutputScenario().run()) }
             "restricted" -> runBlocking { DemoPresenter.restricted(RestrictedDataScenario().run()) }
             "approval" -> runBlocking { DemoPresenter.approval(ApprovalScenario().run(readApprovalDecision())) }
@@ -30,6 +31,10 @@ class DemoCli {
             "reset" -> reset()
             else -> usage()
         }
+    }
+
+    private fun realTyped() = runBlocking {
+        DemoPresenter.real(RealTypedScenario().run())
     }
 
     private fun runAll() = runBlocking {
@@ -60,6 +65,7 @@ class DemoCli {
             usage: ./scripts/demo <command>
 
               typed       scenario 1: typed boundary (valid structured output)
+              typed --real scenario 1 against an actual LLM (KTCONF_DEMO_LOCAL_* env)
               invalid     scenario 2: broken model output rejected by engine
               restricted  scenario 3: RESTRICTED data denied on cloud, LOCAL ok
               approval    scenario 4/5: approve [a] / deny [d] / abort [q]

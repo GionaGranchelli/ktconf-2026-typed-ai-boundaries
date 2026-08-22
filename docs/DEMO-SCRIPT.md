@@ -28,7 +28,13 @@ Then run, in order:
 ./scripts/demo approval       # [a]pprove / [d]eny / [q]uit — interactive
 ./scripts/demo evidence       # real audit chain, verified, written to .build/demo/
 ./scripts/demo all            # (if time) full pass, auto-approve
+./scripts/demo typed --real   # optional: real LLM behind the same boundary
 ```
+
+The `--real` command needs `KTCONF_DEMO_LOCAL_BASE_URL` and
+`KTCONF_DEMO_LOCAL_MODEL` (OpenAI-compatible endpoint, e.g. Ollama).
+The real model either produces a typed result or output the engine rejects —
+both are honest; the boundary holds both ways. It is NOT part of `demo all`.
 
 ## Expected outputs (abridged)
 

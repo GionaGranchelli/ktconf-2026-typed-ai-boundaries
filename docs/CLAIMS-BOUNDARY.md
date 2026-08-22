@@ -36,6 +36,16 @@ What this demo proves — and what it deliberately does **not** claim.
 - **No claim that these TramAI APIs are stable.** The exact API surface is
   pinned to a specific revision (`docs/TRAMAI-INTEGRATION.md`).
 
+## Real-model path (`typed --real`)
+
+- Proves only: an actual LLM sits behind the same typed interface. The
+  deterministic scenarios remain the evidence for the governance guarantees.
+- The real model may produce output the structured-output engine rejects —
+  that is the boundary working, not a defect. The demo reports both outcomes
+  honestly.
+- `--real` is opt-in (env-configured), never part of `demo all`, and has no
+  effect on the deterministic default.
+
 ## Rule
 
 Every row printed by the evidence scenario derives from a real audit record.

@@ -21,6 +21,7 @@ dependencies {
     implementation("dev.tramai:tramai-security:${tramaiVersion}")
     implementation("dev.tramai:tramai-structured:${tramaiVersion}")
     implementation("dev.tramai:tramai-sovereign:${tramaiVersion}")
+    implementation("dev.tramai:tramai-openai:${tramaiVersion}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     testImplementation(kotlin("test"))
