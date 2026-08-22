@@ -10,10 +10,11 @@ import dev.tramai.core.model.ClassifiedDocument
 /**
  * AI service contract for the real-model path (`typed --real`).
  *
- * Same typed boundary as [InvoiceAnalysisService], deliberately WITHOUT
- * the schedule-payment tool: the real-model scenario proves only that a
- * real LLM sits behind the typed interface. Tool governance stays
- * deterministic (see InvoiceAnalysisService).
+ * A NARROWER real-model service preserving the same typed input/output
+ * contract as [InvoiceAnalysisService] (ClassifiedDocument<InvoiceDocument>
+ * → InvoiceAssessment), deliberately exposing NO tools: the live-model
+ * smoke test receives less authority than the deterministic governance
+ * service. Tool governance stays deterministic (see InvoiceAnalysisService).
  */
 @AiService
 fun interface RealInvoiceAnalysisService {

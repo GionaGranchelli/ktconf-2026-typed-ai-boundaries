@@ -11,8 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Deterministic model provider — the demo's stand-in for a real LLM.
  *
- * Responses are scripted (no network, no nondeterminism). The provider is
- * the ONLY fake in the demo: everything downstream of it is real TramAI.
+ * Responses are scripted (no network, no nondeterminism). Together with
+ * the in-memory payment ledger, this is one of exactly two simulations in
+ * the demo — everything downstream of the provider is real TramAI.
  *
  * [responseScript] is consumed in order; the last entry repeats, so repair
  * loops and retries stay deterministic.

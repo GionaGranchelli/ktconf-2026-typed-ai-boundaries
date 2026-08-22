@@ -27,9 +27,16 @@ import java.time.Clock
  *
  * Deliberately SEPARATE from [DemoRuntimeFactory]: the deterministic
  * Stage Candidate v1 factory stays frozen. This path wires an
- * OpenAI-compatible [OpenAiProvider] (Ollama / vLLM / llama.cpp / any
- * compatible endpoint) behind the same typed [dev.giona.ktconf.ai.InvoiceAnalysisService]
- * contract, as a LOCAL trust-zone provider, with no tools.
+ * OpenAI-compatible [OpenAiProvider] behind the same typed input/output
+ * contract (ClassifiedDocument<InvoiceDocument> → InvoiceAssessment), as a
+ * LOCAL trust-zone provider, with no tools.
+ *
+ * TRUST ZONE: this factory declares the real provider LOCAL by operator
+ * assertion — the demo does NOT infer trust from the URL. Therefore
+ * KTCONF_DEMO_LOCAL_BASE_URL must point to an endpoint the operator
+ * intentionally treats as LOCAL (Ollama on the laptop, a private LAN or
+ * self-hosted inference host). Public cloud APIs must NOT be declared
+ * LOCAL, or the RESTRICTED → LOCAL routing proof becomes a lie.
  */
 class RealModelRuntimeFactory(
     private val clock: Clock = demoClock,

@@ -31,7 +31,15 @@ fi
 echo "submodule clean      : yes"
 
 echo "running deterministic test suite…"
-./gradlew :app:test --rerun
+# Deterministic means deterministic: the real-model integration test
+# activates on KTCONF_DEMO_LOCAL_* env vars, so sanitize them here. The
+# live-model proof is preflight-real's job, never this preflight.
+(
+    unset KTCONF_DEMO_LOCAL_BASE_URL
+    unset KTCONF_DEMO_LOCAL_MODEL
+    unset KTCONF_DEMO_LOCAL_API_KEY
+    ./gradlew :app:test --rerun
+)
 echo "building stage binary…"
 ./gradlew :app:installDist
 

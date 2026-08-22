@@ -11,8 +11,10 @@ import dev.tramai.security.audit.AuditEvent
 /**
  * Concise stage formatting for each scenario result.
  *
- * Every printed line derives from a real TramAI result or a real
- * audit/evidence record — never fabricated for the show.
+ * Every printed line derives from a real scenario result or a real
+ * audit/evidence record — never fabricated for the show. Static
+ * configuration labels (e.g. HIGH, HUMAN_REQUIRED) are printed from the
+ * tool's declared metadata, not invented.
  */
 object DemoPresenter {
 
@@ -70,12 +72,12 @@ object DemoPresenter {
             dev.giona.ktconf.scenarios.ApprovalDecision.DENY ->
                 println("payment after deny    = ${result.ledgerAfterDecision} (resume rejected)")
             dev.giona.ktconf.scenarios.ApprovalDecision.ABORT ->
-                println("payment (aborted)     = ${result.ledgerAfterDecision} — workflow stays suspended")
+                println("payment (aborted)     = ${result.ledgerAfterDecision} — no resume attempted (in-memory runtime closes at scenario exit)")
         }
     }
 
     fun real(result: RealTypedResult) {
-        title("typed --real — an actual LLM behind the same typed boundary")
+        title("typed --real — an actual LLM behind the same typed input/output contract")
         when (result) {
             is RealTypedResult.Success -> {
                 val a = result.assessment
@@ -93,7 +95,7 @@ object DemoPresenter {
                 println("attemptCount         = ${result.failure.attemptCount ?: "n/a"}")
                 println("validationError      = ${result.failure.validationError?.take(120) ?: result.failure.message?.take(200) ?: "n/a"}")
                 println("lastRawResponse      = ${result.failure.lastRawResponse?.take(200)?.replace("\n", " ") ?: "n/a"}")
-                println("(the real model produced output the engine rejected — the boundary holds both ways)")
+                println("(the engine rejected the real model's output — a safe outcome; on stage continue with the deterministic scenarios)")
             }
         }
     }

@@ -24,7 +24,8 @@ model with an actual LLM. See [CLAIMS-BOUNDARY.md](CLAIMS-BOUNDARY.md).
 **Does it need internet?**
 Only once. After `./scripts/preflight`, the deterministic demo runs fully
 offline — airplane mode is the on-stage proof. `typed --real` needs your
-model endpoint (local Ollama or any OpenAI-compatible API).
+model endpoint (a LOCAL/private one you intentionally trust: Ollama on the
+laptop, a private LAN host, a self-hosted inference server).
 
 **Why is TramAI pinned as a submodule instead of a Maven dependency?**
 Maven Central 0.5.0 predates the typed-governance surface this demo uses.
@@ -44,11 +45,17 @@ No — an in-memory ledger with idempotency keys. The *behavior* it demonstrates
 (exactly-once, duplicate-resume rejection) is real; the money is not.
 
 **Can I use my own model?**
-Any OpenAI-compatible endpoint: `KTCONF_DEMO_LOCAL_BASE_URL`,
-`KTCONF_DEMO_LOCAL_MODEL`, optional `KTCONF_DEMO_LOCAL_API_KEY`. Verified
-against gemma-4-12b-it:q5_k_m and gemma4:e4b (Ollama) and deepseek-chat.
+Any OpenAI-compatible **LOCAL/private** endpoint you intentionally treat as
+LOCAL — Ollama on the laptop, a private LAN host, a self-hosted inference
+server: `KTCONF_DEMO_LOCAL_BASE_URL`, `KTCONF_DEMO_LOCAL_MODEL`, optional
+`KTCONF_DEMO_LOCAL_API_KEY`. The demo declares this provider LOCAL by
+operator assertion, never by URL, so a public cloud API must not be used
+here. Verified against gemma-4-12b-it:q5_k_m and gemma4:e4b (Ollama).
 
 **How do I know the stage laptop runs the verified code?**
-The `ktconf-2026-demo-v1` tag records the known-good combination: conference
-repo SHA + TramAI submodule SHA + tested models. `./scripts/preflight` and
-`./scripts/preflight-real` verify the current checkout against it.
+The freeze tag (`ktconf-2026-demo-v2` after the final hardening PR) records
+the known-good combination: conference repo SHA + TramAI submodule SHA +
+tested models. `./scripts/preflight` verifies the pin and the deterministic
+suite; `./scripts/preflight-real` verifies the live model path. The Git
+checkout itself establishes identity: start conference morning from
+`git checkout ktconf-2026-demo-v2 && git submodule update --init --recursive --checkout`.

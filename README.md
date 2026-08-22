@@ -32,17 +32,18 @@ Run everything in one pass:
 ./scripts/rehearse          # reset + all scenarios, non-interactive
 ```
 
-Optional — prove a real LLM sits behind the same typed interface:
+Optional — prove a real LLM sits behind the same typed input/output contract:
 
 ```bash
-export KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1   # or any OpenAI-compatible endpoint
+export KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1   # LOCAL/private endpoint you intentionally trust
 export KTCONF_DEMO_LOCAL_MODEL=qwen3:8b                        # model name
 ./scripts/demo typed --real
 ./scripts/preflight-real    # conference-morning check: endpoint -> model -> typed --real must succeed
 ```
 
 `typed --real` is the only real-model path; every governance scenario stays
-deterministic. See [docs/CLAIMS-BOUNDARY.md](docs/CLAIMS-BOUNDARY.md).
+deterministic. The endpoint is declared LOCAL by operator assertion — do not
+point it at a public cloud API. See [docs/CLAIMS-BOUNDARY.md](docs/CLAIMS-BOUNDARY.md).
 
 ## Quick start (clean machine)
 

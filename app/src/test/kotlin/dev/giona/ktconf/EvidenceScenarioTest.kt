@@ -24,16 +24,16 @@ class EvidenceScenarioTest {
 
         // The stage story claims the exact governance timeline for one
         // approval execution: suspend → policy gate on resume → resume →
-        // completion. Lock the enforcement-point semantics.
-        val enforcementPoints = result.auditEvents.map { it.enforcementPoint }.toSet()
+        // completion. Lock the exact ORDERED sequence, not set membership —
+        // duplicates or reordering must fail this test.
         assertEquals(
-            setOf(
+            listOf(
                 "APPROVAL_SUSPENDED",
                 "BEFORE_WORKFLOW_RESUME",
                 "APPROVAL_RESUMED",
                 "APPROVAL_COMPLETED",
             ),
-            enforcementPoints,
+            result.auditEvents.map { it.enforcementPoint },
         )
     }
 }

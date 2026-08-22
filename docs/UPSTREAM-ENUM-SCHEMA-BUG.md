@@ -67,11 +67,17 @@ HTTP sink — the prompt contains the full schema (enum fields as objects).
   `constructType(targetType.javaType)` — Jackson deserializes enums from
   strings by name.
 
-## Relevant TramAI tests
+## Pre-fix test gap
 
-None cover an enum-typed structured-output field against the generated
-schema (the mismatch is schema-generation vs deserialization; existing
-handler tests assert parse outcomes, not schema/parser agreement for enums).
+None of the TramAI tests covered an enum-typed structured-output field
+against the generated schema (the mismatch is schema-generation vs
+deserialization; existing handler tests assert parse outcomes, not
+schema/parser agreement for enums).
+
+**Regression coverage added in #262** (merged as `1ce840fa`, pinned here):
+root enum schema, nested enum, flat-string round trip, invalid enum value,
+nullable enum, every-value schema/parser agreement, and rejection of the old
+object representation.
 
 ## Why the conference demo requires it
 

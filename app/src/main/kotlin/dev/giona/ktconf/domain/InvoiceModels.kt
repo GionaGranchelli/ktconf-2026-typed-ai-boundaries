@@ -54,7 +54,7 @@ data class SchedulePaymentResult(
 
 /** Deterministic demo fixtures — the exact invoices used on stage. */
 object DemoInvoices {
-    /** Scenario 1/2/4/5: ordinary catering invoice, classified RESTRICTED. */
+    /** Scenario 1/2 (+ typed --real): ordinary catering invoice, classified RESTRICTED. */
     val catering: ClassifiedDocument<InvoiceDocument> = ClassifiedDocument(
         payload = InvoiceDocument(
             invoiceId = "KTCONF-001",
