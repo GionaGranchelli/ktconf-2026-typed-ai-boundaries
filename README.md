@@ -88,6 +88,7 @@ app/                 conference application (Kotlin/JVM, JDK 21, Gradle)
     cli/             stable stage API
   src/test/kotlin/   semantic tests (one per proven behavior)
 docs/                architecture, demo script, integration, claims
+                     (start at docs/README.md — index + FAQ)
 scripts/             demo | preflight | preflight-real | rehearse
 vendor/tramai/       pinned TramAI submodule (read-only)
 ```
