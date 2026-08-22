@@ -1,7 +1,10 @@
 # Upstream defect: structured-output schema for Kotlin enums contradicts the parser
 
-Status: **reported upstream** — this conference repository does not patch
-around it (see the core rule in README and TRAMAI-INTEGRATION.md).
+Status: **RESOLVED upstream** — fixed by [tramAI#262](https://github.com/GionaGranchelli/tramAI/pull/262)
+(merged as `1ce840fa`, master), issue [tramAI#261](https://github.com/GionaGranchelli/tramAI/issues/261) closed.
+This repository re-pinned to `1ce840fa`; this document remains as the record
+of the defect. The conference repository never patched around it (see the
+core rule in README and TRAMAI-INTEGRATION.md).
 
 ## Observed behavior
 
