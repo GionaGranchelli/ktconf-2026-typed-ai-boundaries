@@ -66,7 +66,17 @@ payments/        SchedulePaymentTool (security metadata on the tool)
                  InMemoryPaymentLedger (exactly-once via idempotency key)
 ```
 
-## The one boundary the audience should remember
+## The boundaries the audience should remember
+
+Two layers, deliberately distinct:
+
+- **Application port:** `InvoiceAnalyzer` — the adapter through which the
+  application service talks to AI. Good architecture, but a Spring detail.
+- **The actual TramAI typed AI boundary:** the `@AiService`
+  `InvoiceAnalysisService` contract — `ClassifiedDocument<InvoiceDocument>`
+  → `InvoiceAssessment`. This is where the typed-boundary argument becomes
+  concrete: the model's nondeterminism stops at a compile-time-typed
+  surface, and the conference audience should remember THIS one.
 
 ```kotlin
 val assessment: InvoiceAssessment = invoiceAnalyzer.analyze(document)

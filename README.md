@@ -28,8 +28,9 @@ infrastructure bean differs.
 | Real (optional) | `real` | `:8083` | a real LLM behind the same typed input/output contract, declared LOCAL by operator assertion |
 
 Structured output, policy routing, tool governance, approval/continuation,
-and audit/evidence are **real TramAI behavior**; only the model responses are
-scripted (and the real profile replaces them with an actual LLM).
+and audit/evidence are **real TramAI behavior**; the model responses and the
+payment side effect are deterministic simulations (and the real profile
+replaces the scripted model with an actual LLM).
 
 ## Quick start (clean machine)
 

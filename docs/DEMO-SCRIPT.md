@@ -41,7 +41,7 @@ Then run, in order:
 
 ```bash
 ./scripts/demo typed          # :8080  valid model output → typed InvoiceAssessment (200)
-./scripts/demo real           # :8083  same interface, real LLM — prove it isn't fake
+./scripts/demo real           # :8083  same typed input/output contract, real LLM — prove it isn't fake
 ./scripts/demo invalid        # :8081  model goes off-script → engine rejects (422), 0 side effects
 ./scripts/demo restricted     # :8082  RESTRICTED → cloud denied BEFORE invocation (count=0)
 ./scripts/demo payment        # :8080  202 AWAITING_APPROVAL — request is finished
