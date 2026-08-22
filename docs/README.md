@@ -2,9 +2,18 @@
 
 One audience each — start where you are.
 
+**Never seen TramAI?** Read these in order:
+
+1. [Root README](../README.md) — ~2 min: what the demo proves, how to run it
+2. [TRAMAI-PRIMER.md](TRAMAI-PRIMER.md) — ~8 min: what is actually happening when a request enters the system
+3. [ARCHITECTURE.md](ARCHITECTURE.md) — ~5 min: the Spring application around TramAI
+4. [CLAIMS-BOUNDARY.md](CLAIMS-BOUNDARY.md) — ~3 min: real vs simulated, exactly
+5. Run `./scripts/demo typed`
+
 | Document | Audience | Read when |
 |---|---|---|
 | [../README.md](../README.md) | Everyone (QR code) | You want the whole demo in 2 minutes: instances, stage API, quick start, pinned revision |
+| [TRAMAI-PRIMER.md](TRAMAI-PRIMER.md) | TramAI newcomers | You have never used TramAI and want the mental model: concepts, responsibilities, one request end to end |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Curious engineers | You want to see how the typed boundary, policy routing, approval and audit are wired to real TramAI |
 | [DEMO-SCRIPT.md](DEMO-SCRIPT.md) | The speaker | You are on stage, or running the conference-morning freeze check |
 | [FAILURE-RECOVERY.md](FAILURE-RECOVERY.md) | The speaker | Something on stage went wrong |
@@ -62,10 +71,10 @@ operator assertion, never by URL, so a public cloud API must not be used
 here. Verified against gemma-4-12b-it:q5_k_m and gemma4:e4b (Ollama).
 
 **How do I know the stage laptop runs the verified code?**
-The freeze tag (`ktconf-2026-demo-v3` after this round) records the
-known-good combination: conference repo SHA + TramAI submodule SHA + tested
-models. `./scripts/preflight` verifies the pin and the deterministic suite;
-`./scripts/preflight-real` verifies the live model path; `./scripts/stage-up`
-verifies every instance's profile over `/healthz`. The Git checkout itself
-establishes identity: start conference morning from
+The freeze tag (`ktconf-2026-demo-v3`) records the known-good combination:
+conference repo SHA + TramAI submodule SHA + tested models. `./scripts/preflight`
+verifies the pin and the deterministic suite; `./scripts/preflight-real`
+verifies the live model path; `./scripts/stage-up` verifies every instance's
+profile over `/healthz`. The Git checkout itself establishes identity: start
+conference morning from
 `git checkout ktconf-2026-demo-v3 && git submodule update --init --recursive --checkout`.
