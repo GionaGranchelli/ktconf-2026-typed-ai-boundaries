@@ -41,7 +41,7 @@ echo "running deterministic test suite…"
     ./gradlew :app:test --rerun
 )
 echo "building stage binary…"
-./gradlew :app:installDist
+./gradlew :app:bootJar
 
 echo
 echo "preflight OK — deterministic demo ready. A stage laptop may now go offline."

@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: ktconf-typed-ai-boundaries
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    root: WARN

@@ -1,32 +1,36 @@
 #!/usr/bin/env bash
-# Deterministic rehearsal stress gate: run the full demo N times (default 20).
-# Fails immediately on the first failed iteration. Ends with a pass line.
-#
-#   ./scripts/stress-rehearse [N]
+# Deterministic rehearsal stress gate — the conference bar, always 20/20 per
+# profile. Runs the FULL deterministic oracle 20 times on fresh contexts per
+# profile (demo: typed/deny/approve/duplicate/evidence; broken: 422; cloud:
+# 403 + count 0) and verifies the result XMLs. Ends with a pass line.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-N="${1:-20}"
+./gradlew :app:test --tests 'dev.giona.ktconf.RehearsalDemoIT' \
+                   --tests 'dev.giona.ktconf.RehearsalBrokenIT' \
+                   --tests 'dev.giona.ktconf.RehearsalCloudIT' \
+                   --rerun
 
-for i in $(seq 1 "$N"); do
-  if ! ./scripts/demo all > /tmp/ktconf-stress-run.log 2>&1; then
-    echo "FAIL: iteration $i/$N exited non-zero" >&2
-    tail -20 /tmp/ktconf-stress-run.log >&2
+verify() { # $1=class  $2=label
+  xml="app/build/test-results/test/TEST-dev.giona.ktconf.$1.xml"
+  if [ ! -f "$xml" ]; then
+    echo "FAIL: $xml not found." >&2
     exit 1
   fi
-  if ! grep -q "ALL SCENARIOS PASSED" /tmp/ktconf-stress-run.log; then
-    echo "FAIL: iteration $i/$N missing pass marker" >&2
-    tail -20 /tmp/ktconf-stress-run.log >&2
+  count="$(grep -o 'tests="[0-9]*"' "$xml" | head -1 | grep -o '[0-9]*')"
+  failures="$(grep -o 'failures="[0-9]*"' "$xml" | head -1 | grep -o '[0-9]*')"
+  if [ "$count" != "20" ] || [ "$failures" != "0" ]; then
+    echo "FAIL: $2 expected 20/20, got tests=$count failures=$failures." >&2
     exit 1
   fi
-  if grep -qE "^[[:space:]]+at (dev|kotlin|java)|Caused by" /tmp/ktconf-stress-run.log; then
-    echo "FAIL: iteration $i/$N contains stack trace" >&2
-    tail -20 /tmp/ktconf-stress-run.log >&2
-    exit 1
-  fi
-  printf '  iteration %2d/%d PASS\n' "$i" "$N"
-done
+  printf '  %-6s 20/20 PASS\n' "$2"
+}
+
+verify RehearsalDemoIT demo
+verify RehearsalBrokenIT broken
+verify RehearsalCloudIT cloud
 
 echo
 echo "KTConf deterministic rehearsal"
-echo "$N / $N PASS"
+echo "demo 20/20 · broken 20/20 · cloud 20/20"
+echo "60 / 60 PASS"

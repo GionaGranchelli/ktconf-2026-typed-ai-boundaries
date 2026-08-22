@@ -34,7 +34,7 @@ app/build.gradle.kts
     implementation("dev.tramai:tramai-security:0.5.0")        build at the
     implementation("dev.tramai:tramai-structured:0.5.0")      pinned commit
     implementation("dev.tramai:tramai-sovereign:0.5.0")
-    implementation("dev.tramai:tramai-openai:0.5.0")          (typed --real path)
+    implementation("dev.tramai:tramai-openai:0.5.0")          (real profile path)
 ```
 
 The version in the coordinates matches the version the pinned TramAI build
@@ -70,9 +70,9 @@ Never silently follow upstream `master`.
 - Preparation time (`./scripts/preflight`): needs network to fetch Gradle
   distribution, plugins, and dependencies once; the submodule is cloned
   with `git clone --recursive`.
-- Stage time (`./scripts/demo all`): everything is cached locally
-  (Gradle user home + installed distribution + built binary). The demo
-  binary itself performs zero network I/O.
+- Stage time (`./scripts/stage-up` + `./scripts/demo`): everything is
+  cached locally (Gradle user home + built bootJar). The application
+  itself performs zero network I/O in the deterministic instances.
 
 ## Known-good revision
 

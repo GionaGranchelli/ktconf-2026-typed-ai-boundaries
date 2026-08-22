@@ -50,16 +50,17 @@ echo "model      : reachable"
 # Build the exact current binary — a preflight must prove THIS source, not a
 # stale installed distribution.
 echo "building stage binary…"
-./gradlew :app:installDist -q
+./gradlew :app:bootJar -q
 
-# The real requirement: the demo must produce a typed result.
-out="$(./scripts/demo typed --real 2>&1)"
-if ! grep -q "typed result escaped = YES" <<<"$out"; then
-  echo "FAIL: typed --real did not produce a typed InvoiceAssessment." >&2
-  echo "$out" | tail -15 >&2
+# The real requirement: the real profile must produce a typed result over
+# HTTP (RealModelTest boots a real-profile instance and calls the same
+# endpoint the talk uses). Env-gated: it activates exactly when the
+# KTCONF_DEMO_LOCAL_* vars are set, which they are here.
+if ! SPRING_PROFILES_ACTIVE=real ./gradlew :app:test --tests 'dev.giona.ktconf.RealModelTest' --rerun; then
+  echo "FAIL: real profile did not produce a typed InvoiceAssessment." >&2
   exit 1
 fi
-echo "typed --real: typed result escaped = YES"
+echo "real-model HTTP: typed assessment OK"
 
 echo
 echo "preflight-real OK — real-model path ready."
