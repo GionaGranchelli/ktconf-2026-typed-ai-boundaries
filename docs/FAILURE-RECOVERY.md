@@ -9,7 +9,7 @@ Stage-safe recovery steps, shortest first.
 | `demo: command not found` or wrong output | Rebuild: `./gradlew :app:installDist` |
 | Scenario fails after code changes | `./scripts/preflight` (runs full test suite) |
 | `.build/demo/` has stale artifacts | `./scripts/demo reset` |
-| `submodule HEAD` mismatch in preflight | `git -C vendor/tramai checkout 9debb0f2…` (only if intentional) |
+| `submodule HEAD` mismatch in preflight | Restore the committed Gitlink — never guess a revision: `git submodule update --init --recursive --checkout`, then `./scripts/preflight` |
 | JDK errors / wrong Java version | Export `JAVA_HOME` pointing at a JDK 21 install |
 | Interactive approval stuck | `[q]` aborts; `[a]`/`[d]` decide. In scripts use `./scripts/demo all` |
 

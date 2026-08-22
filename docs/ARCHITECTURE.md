@@ -26,7 +26,8 @@ become library APIs.
 domain/          InvoiceDocument, InvoiceAssessment, DemoInvoices
                  ↑ typed input / typed result — the audience sees THIS
 ai/              InvoiceAnalysisService (@AiService boundary)
-                 ScriptedProvider / DemoResponses (the only fakes)
+                 ScriptedProvider / DemoResponses (deterministic model simulation)
+                 RealInvoiceAnalysisService / RealModelRuntimeFactory (optional real-LLM path)
 runtime/         DemoRuntimeFactory — real SovereignTramai wiring
 tools/           SchedulePaymentTool (security metadata on the tool)
                  InMemoryPaymentLedger (exactly-once via idempotency key)
