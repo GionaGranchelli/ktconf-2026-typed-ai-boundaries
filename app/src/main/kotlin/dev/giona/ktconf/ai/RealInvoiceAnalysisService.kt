@@ -24,12 +24,6 @@ fun interface RealInvoiceAnalysisService {
         Analyze this classified invoice document.
         Return a typed assessment.
 
-        Respond with ONLY the raw JSON object matching the schema —
-        no markdown, no code fences, no commentary.
-        risk must be exactly the string "LOW" or "HIGH".
-        recommendedAction must be exactly the string "REVIEW_ONLY" or
-        "SCHEDULE_PAYMENT". Do not nest values inside objects.
-
         Invoice:
         {document}
         """,
