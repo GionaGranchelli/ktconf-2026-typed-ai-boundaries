@@ -31,12 +31,12 @@ class ApprovalScenarioTest {
         val result: ApprovalResult = ApprovalScenario().run(ApprovalDecision.APPROVE)
 
         assertEquals(1, result.ledgerAfterDecision)
-        assertNotNull(result.assessment)
+        val assessment = assertNotNull(result.assessment)
         // The payment invoice story: the final assessment must agree with
         // the payment action the model requested.
-        assertEquals("KTCONF-PAY-001", result.assessment!!.invoiceId)
-        assertEquals(InvoiceAction.SCHEDULE_PAYMENT, result.assessment.recommendedAction)
-        assertEquals(InvoiceRisk.HIGH, result.assessment.risk)
+        assertEquals("KTCONF-PAY-001", assessment.invoiceId)
+        assertEquals(InvoiceAction.SCHEDULE_PAYMENT, assessment.recommendedAction)
+        assertEquals(InvoiceRisk.HIGH, assessment.risk)
     }
 
     @Test

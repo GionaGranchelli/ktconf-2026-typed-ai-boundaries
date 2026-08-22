@@ -8,12 +8,14 @@ import dev.tramai.core.annotations.User
 import dev.tramai.core.model.ClassifiedDocument
 
 /**
- * AI service contract — the ONLY AI boundary the application sees.
+ * Primary governed AI service boundary used by the deterministic scenarios.
  *
  * Business code calls [analyze] with a typed classified document and gets
  * a typed assessment back. Prompt construction, schema generation, model
  * routing, policy enforcement and approval suspension all happen inside
- * TramAI, behind this interface.
+ * TramAI, behind this interface. The real-model path uses the narrower
+ * [RealInvoiceAnalysisService] with the same typed input/output contract
+ * but no tools.
  */
 @AiService
 fun interface InvoiceAnalysisService {

@@ -15,6 +15,8 @@ cd ktconf-2026-typed-ai-boundaries
 ## Conference morning (freeze check)
 
 ```bash
+git checkout ktconf-2026-demo-v2   # the Git checkout establishes identity
+git submodule update --init --recursive --checkout
 ./scripts/preflight          # pinned TramAI revision + full deterministic suite
 ./scripts/stress-rehearse 20 # 20/20 pass
 ./scripts/preflight-real     # env -> endpoint -> model -> typed --real MUST succeed
@@ -45,12 +47,14 @@ Then run, in order:
 ```
 
 The `--real` command needs `KTCONF_DEMO_LOCAL_BASE_URL` and
-`KTCONF_DEMO_LOCAL_MODEL` (OpenAI-compatible endpoint, e.g. Ollama; add
-`KTCONF_DEMO_LOCAL_API_KEY` for authenticated endpoints). Since the upstream
-enum-schema fix (tramAI #261/#262, pinned here), the real path is expected
-to SUCCEED — a rejection on stage would signal a regression, not a feature.
-The deterministic `invalid` scenario is where rejection is demonstrated on
-purpose. `--real` is NOT part of `demo all`.
+`KTCONF_DEMO_LOCAL_MODEL` (OpenAI-compatible endpoint the operator
+intentionally treats as LOCAL — e.g. Ollama on the laptop, a private LAN
+host; add `KTCONF_DEMO_LOCAL_API_KEY` for authenticated endpoints). Since
+the upstream enum-schema fix (tramAI #261/#262, pinned here), the real path
+is expected to SUCCEED. A rejection on stage is a safe outcome but means the
+live-model demo failed: state that the live-model path is optional and
+continue with the deterministic scenarios (the `invalid` scenario
+demonstrates rejection on purpose). `--real` is NOT part of `demo all`.
 
 ## Expected outputs (abridged)
 

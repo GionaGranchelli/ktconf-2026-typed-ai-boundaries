@@ -8,9 +8,11 @@ it is.
 The demo needs capabilities that only exist on TramAI `master` (the typed
 security surface: `ClassifiedDocument`, `ToolSecurityMetadata`,
 `ApprovalSuspendedException`, classification-aware provider routing, audit
-chain verification, evidence packs). The latest published artifact on Maven
-Central (`0.5.0`, 2026-07-18) does **not** contain them — verified by
-inspecting the published jars.
+chain verification, evidence packs). When this demo was frozen, the
+published `0.5.0` artifacts (2026-07-18) did **not** contain them —
+verified by inspecting the published jars. The conference artifact remains
+pinned to a validated source revision for reproducibility, even if newer
+releases exist.
 
 Strategy chosen (evaluated in order):
 
@@ -32,6 +34,7 @@ app/build.gradle.kts
     implementation("dev.tramai:tramai-security:0.5.0")        build at the
     implementation("dev.tramai:tramai-structured:0.5.0")      pinned commit
     implementation("dev.tramai:tramai-sovereign:0.5.0")
+    implementation("dev.tramai:tramai-openai:0.5.0")          (typed --real path)
 ```
 
 The version in the coordinates matches the version the pinned TramAI build

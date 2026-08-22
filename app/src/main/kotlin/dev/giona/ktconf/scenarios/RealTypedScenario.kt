@@ -7,17 +7,21 @@ import dev.giona.ktconf.runtime.RealModelRuntimeFactory
 import dev.tramai.core.exception.StructuredOutputException
 
 /**
- * typed --real: the same typed boundary against an actual LLM.
+ * typed --real: the same typed input/output contract against an actual LLM.
  *
  * Configuration comes from the environment (never hardcoded, never
  * printed):
- *   KTCONF_DEMO_LOCAL_BASE_URL  — OpenAI-compatible endpoint (e.g. Ollama)
+ *   KTCONF_DEMO_LOCAL_BASE_URL  — OpenAI-compatible endpoint the operator
+ *                                 intentionally treats as LOCAL (Ollama on
+ *                                 the laptop, private LAN, self-hosted)
  *   KTCONF_DEMO_LOCAL_MODEL     — model name
  *   KTCONF_DEMO_LOCAL_API_KEY   — optional (local servers usually need none)
  *
- * The real model may produce a valid typed result OR output the engine
- * rejects — both outcomes are honest demonstrations of the boundary.
- * Default demo execution is unaffected and stays deterministic.
+ * At runtime, a structured rejection is a legitimate safe outcome. For the
+ * conference success path, typed --real must produce a typed result; if it
+ * rejects on stage, treat the live-model demo as failed and continue with
+ * the deterministic scenarios. Default demo execution is unaffected and
+ * stays deterministic.
  */
 class RealTypedScenario(
     private val env: Map<String, String> = System.getenv(),
