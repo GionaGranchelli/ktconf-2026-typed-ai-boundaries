@@ -61,18 +61,25 @@ Key line for the room: *"The HTTP request is finished. The workflow isn't."*
 Then: *"And suddenly this doesn't look like an AI problem anymore. It looks
 like distributed systems."*
 
-Optional real-model proof — explicitly off-stage, never part of the talk
+Optional real-provider proof — explicitly off-stage, never part of the talk
 and never part of the deterministic gate:
 
 ```bash
-KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1 \
-KTCONF_DEMO_LOCAL_MODEL=gemma-4-12b-it:q5_k_m \
-./scripts/preflight-real      # env → endpoint → model → typed result MUST succeed
+# LOCAL  = Qwen3.8-27B-UD-Q6_K on the z840 over Tailscale
+# CLOUD  = DeepSeek V4 Flash
+KTCONF_DEMO_LOCAL_BASE_URL=http://<z840-tailscale>:8088/v1 \
+KTCONF_DEMO_LOCAL_MODEL=Qwen3.8-27B-UD-Q6_K \
+KTCONF_DEMO_CLOUD_API_KEY=<deepseek-key> \
+./scripts/preflight-real
+# → LOCAL (real Qwen) RESTRICTED 200 · CLOUD (real DeepSeek) PUBLIC 200
+#   · forced RESTRICTED→cloud 403 BEFORE DeepSeek is called (delta 0)
 ```
 
-The real path is opt-in and independent. `stage-up` always starts the
-deterministic app (it unsets the real-model env). The endpoint is declared
-LOCAL by operator assertion — never by URL, hostname or provider type.
+At least one real provider is required; DeepSeek is only contacted when its
+key is deliberately supplied. The real path never touches the
+payment/approval oracle and never runs in deterministic CI. `stage-up`
+always starts the deterministic app (it unsets BOTH provider env families).
+Trust zones are operator assertions — never inferred from URLs.
 
 ## Expected outputs (abridged)
 

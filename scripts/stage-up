@@ -41,9 +41,10 @@ mkdir -p .build
 rm -f .build/stage.pid
 
 echo "starting ktconf-demo.jar on :8080 (deterministic providers) …"
-# Deterministic means deterministic: never let a real-model env var leak
-# into the stage process and swap the local provider for a network client.
+# Deterministic means deterministic: never let a real-provider env var leak
+# into the stage process and swap either identity for a network client.
 env -u KTCONF_DEMO_LOCAL_BASE_URL -u KTCONF_DEMO_LOCAL_MODEL -u KTCONF_DEMO_LOCAL_API_KEY \
+    -u KTCONF_DEMO_CLOUD_BASE_URL -u KTCONF_DEMO_CLOUD_MODEL -u KTCONF_DEMO_CLOUD_API_KEY \
   SERVER_PORT=8080 nohup java -jar "$JAR" > .build/stage.log 2>&1 &
 echo "$!" > .build/stage.pid
 PID="$(cat .build/stage.pid)"

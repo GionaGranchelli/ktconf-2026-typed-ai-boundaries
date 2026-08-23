@@ -1,6 +1,7 @@
 server:
   port: 8080
 
+# tramai.sovereign.*  = governance truth (trust zones, allowed models/providers/tools)
 tramai:
   sovereign:
     enabled: true
@@ -26,3 +27,24 @@ tramai:
 
     allowed-permissions:
       - payment.schedule
+
+# ktconf.providers.*  = deployment configuration ONLY (which real endpoint serves
+# each identity). In the deterministic conference run both stay empty and both
+# providers are scripted. When configured, the SAME identities become real
+# OpenAI-compatible endpoints:
+#   LOCAL  = Qwen3.8-27B-UD-Q6_K on the z840, reached over Tailscale
+#   CLOUD  = DeepSeek V4 Flash (https://api.deepseek.com)
+# Endpoints/keys are operator-supplied via environment; nothing private is
+# committed. The governance configuration above does not change.
+ktconf:
+  providers:
+    local:
+      # Qwen3.8-27B-UD-Q6_K served by the z840 over Tailscale.
+      base-url: ${KTCONF_DEMO_LOCAL_BASE_URL:}
+      model: ${KTCONF_DEMO_LOCAL_MODEL:Qwen3.8-27B-UD-Q6_K}
+      api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
+    cloud:
+      # DeepSeek's OpenAI-compatible API.
+      base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com}
+      model: ${KTCONF_DEMO_CLOUD_MODEL:deepseek-v4-flash}
+      api-key: ${KTCONF_DEMO_CLOUD_API_KEY:}

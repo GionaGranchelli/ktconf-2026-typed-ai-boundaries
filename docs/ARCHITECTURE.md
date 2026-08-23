@@ -70,9 +70,13 @@ application/     InvoiceService (routing when + suspension mapping)
 api/             InvoiceController (+ demo-only /boundary/restricted-cloud)
                  ApprovalController, GovernanceStatsController (+ /healthz),
                  ApiExceptionAdvice (readable error mapping)
-governance/      ProvidersConfiguration (local + cloud deterministic
-                   providers; optional real local provider via env —
-                   wrapped in ModelAliasProvider for the real endpoint id)
+governance/      ProvidersConfiguration (local + cloud identities; each
+                   becomes a real OpenAI-compatible endpoint when its
+                   ktconf.providers.* config is set, else deterministic;
+                   cloud always wrapped in CountingModelProvider)
+                 ProviderEndpoints (@ConfigurationProperties, ktconf.providers.*)
+                 CountingModelProvider (invocation counter decorator — the
+                   delta-0 oracle works for deterministic AND real cloud)
                  ModelAliasProvider (provider adapter: logical model name →
                    actual endpoint model id; no sovereign config touched)
 demo/            DeterministicProvider (input-driven script)

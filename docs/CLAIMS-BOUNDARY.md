@@ -65,24 +65,29 @@ What this demo proves — and what it deliberately does **not** claim.
 
 ## Real-model path (optional, opt-in, off-stage)
 
-- Proves: an actual LLM sits behind the same typed input/output contract
-  (`ClassifiedDocument<InvoiceDocument>` → `InvoiceAssessment`), with the
-  same structured-output validation. `KTCONF_DEMO_LOCAL_MODEL` is mapped to
-  the real endpoint model id via `ModelAliasProvider` (the logical route
-  name `local-invoice-model` is never sent to the model).
-- **Trust zone is an operator assertion, not a URL property.** This repo
-  declares the real provider LOCAL by configuration, so
-  `KTCONF_DEMO_LOCAL_BASE_URL` must point to an endpoint the operator
-  intentionally treats as LOCAL (Ollama on the laptop, private LAN,
-  self-hosted inference). Public cloud APIs must not be declared LOCAL.
-- `preflight` and `stage-up` **unset** the real-model environment variables,
-  so the deterministic oracle never silently depends on a network model.
-  `preflight-real` is the ONLY entry point that requires them and is the
-  only place the real path is exercised (off-stage; there is no
-  `demo real` command).
-- The real-model path proves only the typed contract against a real model.
-  It is NOT needed to demonstrate payment, approval, denial, evidence or
-  exactly-once behavior — those remain deterministic.
+- Proves: the actual two-provider architecture behind the SAME typed
+  contract (`ClassifiedDocument<InvoiceDocument>` → `InvoiceAssessment`),
+  with the same structured-output validation:
+  - `LOCAL` → Qwen3.8-27B-UD-Q6_K on the z840 (Tailscale), `KTCONF_DEMO_LOCAL_*`
+  - `CLOUD` → DeepSeek V4 Flash, `KTCONF_DEMO_CLOUD_*`
+  `ModelAliasProvider` maps each logical route name to the real endpoint
+  model id; the logical names (`local-invoice-model`/`cloud-invoice-model`)
+  are never sent to the models.
+- **Trust zone is an operator assertion, not a URL property.** The repo
+  declares the z840 endpoint LOCAL and DeepSeek GLOBAL_CLOUD by
+  configuration, never from URLs or provider types.
+- `preflight`, `rehearse`, `stress-rehearse` and `stage-up` **unset BOTH**
+  provider env families, so the deterministic oracle never silently depends
+  on a network model — a stray DeepSeek key in the operator's shell cannot
+  reach the conference stage.
+- `preflight-real` is the ONLY entry point that exercises the real path
+  (off-stage): it proves each configured identity produces a typed 200 with
+  the expected selectedRoute, and — when cloud is real — that a RESTRICTED
+  request forced to cloud is denied BEFORE DeepSeek is called (cloud
+  invocation delta 0).
+- The real path proves only the typed contract and the boundary against real
+  models. It is NOT needed to demonstrate payment, approval, denial,
+  evidence or exactly-once behavior — those remain deterministic.
 
 ## Rule
 

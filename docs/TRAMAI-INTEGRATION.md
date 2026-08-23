@@ -70,10 +70,11 @@ The pinned revision is the known-good combination:
 `tramaiGitCommit=9b56530c549ef80c0aa9f4ffb034abc1cf5d769d`
 (PR #268 — sovereign starter collects `TramaiTool` beans — on top of the
 enum-schema fix from #261/#262 and the structured-output TCK from #266).
-Real-model path verified against gemma-4-12b-it:q5_k_m and gemma4:e4b
-(Ollama). The freeze tag `ktconf-2026-demo-v4` records this known-good
-combination; `ktconf-2026-demo-v3` records the previous four-profile
-combination (fallback only).
+Optional real-provider path verified against Qwen3.8-27B-UD-Q6_K on the
+z840 (Tailscale, LOCAL) and DeepSeek V4 Flash (GLOBAL_CLOUD). The freeze
+tag `ktconf-2026-demo-v4` records this known-good combination;
+`ktconf-2026-demo-v3` records the previous four-profile combination
+(fallback only).
 
 ## How to repin (documented procedure — never silently)
 

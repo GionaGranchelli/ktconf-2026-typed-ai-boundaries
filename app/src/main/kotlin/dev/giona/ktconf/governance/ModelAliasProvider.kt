@@ -17,8 +17,8 @@ import dev.tramai.core.provider.ProviderCapability
  * No sovereign configuration is touched — this is purely a provider adapter.
  */
 class ModelAliasProvider(
-    private val delegate: ModelProvider,
-    private val actualModel: String,
+    internal val delegate: ModelProvider,
+    internal val actualModel: String,
 ) : ModelProvider {
 
     override fun providerId(): String = delegate.providerId()

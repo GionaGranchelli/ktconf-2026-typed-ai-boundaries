@@ -1,6 +1,6 @@
 package dev.giona.ktconf.api
 
-import dev.giona.ktconf.demo.DeterministicProvider
+import dev.giona.ktconf.governance.CountingModelProvider
 import dev.giona.ktconf.payments.InMemoryPaymentLedger
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.web.bind.annotation.GetMapping
@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.RestController
 
 /**
  * Observable governance counters — the proofs become visible on stage:
- * the cloud provider was NEVER invoked for RESTRICTED data, and the
- * payment executed exactly once after approval.
+ * the cloud provider was NEVER invoked for RESTRICTED data (invocation
+ * delta 0), and the payment executed exactly once after approval.
  */
 @RestController
 @RequestMapping("/governance")
 class GovernanceStatsController(
-    @Qualifier("cloudProvider") private val cloudProvider: DeterministicProvider,
+    @Qualifier("cloudProvider") private val cloudProvider: CountingModelProvider,
     private val ledger: InMemoryPaymentLedger,
 ) {
 

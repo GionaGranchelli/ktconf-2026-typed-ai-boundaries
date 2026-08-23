@@ -6,11 +6,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Deterministic means deterministic: sanitize the real-model env.
+# Deterministic means deterministic: sanitize the real-provider env
+# (local z840/Qwen AND cloud DeepSeek).
 (
   unset KTCONF_DEMO_LOCAL_BASE_URL
   unset KTCONF_DEMO_LOCAL_MODEL
   unset KTCONF_DEMO_LOCAL_API_KEY
+  unset KTCONF_DEMO_CLOUD_BASE_URL
+  unset KTCONF_DEMO_CLOUD_MODEL
+  unset KTCONF_DEMO_CLOUD_API_KEY
   ./gradlew :app:test --tests 'dev.giona.ktconf.RehearsalIT' --rerun
 )
 

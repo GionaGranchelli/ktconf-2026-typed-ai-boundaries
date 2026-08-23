@@ -107,14 +107,17 @@ like distributed systems."*
   provider policy enforcement (denial BEFORE invocation), tool governance, approval
   suspension/continuation, hash-chained audit evidence.
 - **Deterministic simulation**: the model responses (input-driven scripted
-  providers) and the payment side effect (in-memory ledger).
-- **Optional real model**: `KTCONF_DEMO_LOCAL_BASE_URL` +
-  `KTCONF_DEMO_LOCAL_MODEL` swap the local provider for a real
-  OpenAI-compatible endpoint (`ModelAliasProvider` maps the logical model
-  name to the real endpoint model id). The proof is `./scripts/preflight-real`,
-  explicitly opt-in and off-stage. `stage-up` always starts the deterministic
-  app and **unsets** the real-model variables. The endpoint is declared
-  LOCAL by **operator assertion**, never by URL.
+  providers) and the payment side effect (in-memory ledger). This is the
+  conference stage: it cannot fail because of Wi-Fi, Tailscale, DeepSeek or
+  model behavior.
+- **Optional real providers** (off-stage, `./scripts/preflight-real`): the
+  SAME identities become real OpenAI-compatible endpoints when configured:
+  - `LOCAL` → Qwen3.8-27B-UD-Q6_K on the z840, reached over Tailscale
+  - `CLOUD` → DeepSeek V4 Flash (`https://api.deepseek.com`)
+  The governance configuration does NOT change — only the provider
+  implementations behind those identities. Trust zones are operator
+  assertions, never URLs. `preflight`/`stage-up` unset BOTH provider env
+  families, so the deterministic oracle never silently calls a real model.
 
 The `invalid` proof runs through the SAME application and SAME runtime:
 nothing about the application changed, only the model response.

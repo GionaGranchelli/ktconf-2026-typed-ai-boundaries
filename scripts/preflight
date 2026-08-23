@@ -30,14 +30,16 @@ if [ -n "$dirty" ]; then
 fi
 echo "submodule clean      : yes"
 
-echo "running deterministic test suite…"
-# Deterministic means deterministic: the real-model integration test
-# activates on KTCONF_DEMO_LOCAL_* env vars, so sanitize them here. The
-# live-model proof is preflight-real's job, never this preflight.
+# Deterministic means deterministic: sanitize BOTH real-provider families
+# (local z840/Qwen AND cloud DeepSeek). A DeepSeek API key accidentally
+# present in the operator's shell must never reach the conference stage.
 (
     unset KTCONF_DEMO_LOCAL_BASE_URL
     unset KTCONF_DEMO_LOCAL_MODEL
     unset KTCONF_DEMO_LOCAL_API_KEY
+    unset KTCONF_DEMO_CLOUD_BASE_URL
+    unset KTCONF_DEMO_CLOUD_MODEL
+    unset KTCONF_DEMO_CLOUD_API_KEY
     ./gradlew :app:test --rerun
 )
 echo "building stage binary…"

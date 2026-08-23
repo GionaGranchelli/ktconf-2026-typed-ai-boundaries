@@ -8,5 +8,8 @@ cd "$(dirname "$0")/.."
   unset KTCONF_DEMO_LOCAL_BASE_URL
   unset KTCONF_DEMO_LOCAL_MODEL
   unset KTCONF_DEMO_LOCAL_API_KEY
+  unset KTCONF_DEMO_CLOUD_BASE_URL
+  unset KTCONF_DEMO_CLOUD_MODEL
+  unset KTCONF_DEMO_CLOUD_API_KEY
   ./gradlew :app:test --rerun
 )

@@ -1,6 +1,7 @@
 package dev.giona.ktconf
 
 import dev.giona.ktconf.demo.DeterministicProvider
+import dev.giona.ktconf.governance.CountingModelProvider
 import dev.giona.ktconf.payments.SchedulePaymentTool
 import dev.tramai.core.model.TramaiTool
 import dev.tramai.core.provider.ModelProvider
@@ -56,11 +57,12 @@ class ApplicationContextIT {
 
     @Test
     fun `both providers are deterministic in a clean environment`() {
-        // KTCONF_DEMO_LOCAL_BASE_URL is unset in CI/tests, so the local
-        // provider must be the deterministic script (never a network client).
+        // KTCONF_DEMO_* (local AND cloud) are unset in CI/tests, so both
+        // identities must be deterministic (never network clients).
         val local = context.getBean("localProvider") as ModelProvider
         val cloud = context.getBean("cloudProvider") as ModelProvider
         assertTrue(local is DeterministicProvider, "local provider must be deterministic when no real-model env is set")
-        assertTrue(cloud is DeterministicProvider)
+        assertTrue(cloud is CountingModelProvider)
+        assertTrue((cloud as CountingModelProvider).delegate is DeterministicProvider)
     }
 }
