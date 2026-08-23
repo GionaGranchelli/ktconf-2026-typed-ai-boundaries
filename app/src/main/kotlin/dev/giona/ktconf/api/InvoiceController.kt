@@ -25,7 +25,7 @@ class InvoiceController(
     private val app: InvoiceService,
 ) {
 
-    /** Normal route: the application selects local for RESTRICTED, cloud otherwise. */
+    /** Normal route: exhaustive when — PUBLIC/INTERNAL → cloud, CONFIDENTIAL/RESTRICTED → local. */
     @PostMapping("/analyze")
     suspend fun analyze(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
         when (val outcome = app.analyze(request)) {

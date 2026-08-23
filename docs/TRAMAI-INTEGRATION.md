@@ -7,11 +7,12 @@ it is.
 
 The demo needs capabilities that only exist on TramAI `master` (the typed
 security surface: `ClassifiedDocument`, `ToolSecurityMetadata`,
-`ApprovalSuspendedException`, classification-aware provider routing, audit
-chain verification, evidence packs, and the sovereign Spring Boot starter).
-When this demo was frozen, the published `0.5.0` artifacts (2026-07-18) did
-**not** contain them. The conference artifact remains pinned to a validated
-source revision for reproducibility, even if newer releases exist.
+`ApprovalSuspendedException`, classification-aware provider policy
+enforcement, audit chain verification, evidence packs, and the sovereign
+Spring Boot starter). When this demo was frozen, the published `0.5.0`
+artifacts (2026-07-18) did **not** contain them. The conference artifact
+remains pinned to a validated source revision for reproducibility, even if
+newer releases exist.
 
 Strategy chosen (evaluated in order):
 
@@ -70,9 +71,9 @@ The pinned revision is the known-good combination:
 (PR #268 — sovereign starter collects `TramaiTool` beans — on top of the
 enum-schema fix from #261/#262 and the structured-output TCK from #266).
 Real-model path verified against gemma-4-12b-it:q5_k_m and gemma4:e4b
-(Ollama). The freeze tag `ktconf-2026-demo-v3` records the previous
-known-good combination; this refactor is the new stage candidate and will
-receive its own freeze tag after review.
+(Ollama). The freeze tag `ktconf-2026-demo-v4` records this known-good
+combination; `ktconf-2026-demo-v3` records the previous four-profile
+combination (fallback only).
 
 ## How to repin (documented procedure — never silently)
 

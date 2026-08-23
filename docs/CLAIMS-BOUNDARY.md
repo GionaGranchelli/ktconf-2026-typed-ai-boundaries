@@ -6,7 +6,7 @@ What this demo proves — and what it deliberately does **not** claim.
 
 - TramAI structured output turns a valid model response into a typed
   `InvoiceAssessment` — no manual JSON mapping in application code.
-- TramAI's classification-aware routing matrix **denies** a `RESTRICTED`
+- TramAI's classification-aware provider policy enforcement **denies** a `RESTRICTED`
   document on a `GLOBAL_CLOUD` provider BEFORE provider invocation (HTTP 403,
   `reasonCode=classification-routing-blocked`, cloud invocation **delta** 0 —
   even after the same provider was used by earlier requests) and allows the

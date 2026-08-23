@@ -32,7 +32,7 @@ classification/DLP step.
 |---|---|---|
 | 1 | `app/src/main/resources/application.yml` | all policy configuration: allowed models, providers, trust zones, tools, permissions |
 | 2 | `app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt` | the typed `@AiService` boundary — `analyzeLocal` / `analyzeCloud` |
-| 3 | `app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt` | routing: `when (classification) RESTRICTED -> local else -> cloud` |
+| 3 | `app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt` | routing: exhaustive `when` — PUBLIC/INTERNAL → cloud, CONFIDENTIAL/RESTRICTED → local |
 | 4 | `app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt` | tool = authority: permission, risk, approval mode on the tool itself |
 
 Everything else is ordinary Spring infrastructure (providers, controllers,
@@ -104,7 +104,7 @@ like distributed systems."*
 ## What is real vs simulated
 
 - **Real TramAI behavior**: structured-output validation, classification-aware
-  provider routing (denial BEFORE invocation), tool governance, approval
+  provider policy enforcement (denial BEFORE invocation), tool governance, approval
   suspension/continuation, hash-chained audit evidence.
 - **Deterministic simulation**: the model responses (input-driven scripted
   providers) and the payment side effect (in-memory ledger).
@@ -121,8 +121,10 @@ nothing about the application changed, only the model response.
 
 ## History & fallback
 
-- `ktconf-2026-demo-v3` — the frozen four-profile Spring implementation
-  (immutable fallback; this refactor replaces it as the stage candidate).
+- `ktconf-2026-demo-v4` — the ONE-app Spring conference freeze (this
+  architecture; will be tagged after merge).
+- `ktconf-2026-demo-v3` — the old four-profile Spring implementation
+  (fallback only; do not rehearse with it).
 - `ktconf-2026-demo-v2` — the frozen CLI implementation (historical).
 
 ## More

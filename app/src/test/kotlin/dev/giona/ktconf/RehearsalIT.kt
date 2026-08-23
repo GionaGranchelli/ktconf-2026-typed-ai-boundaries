@@ -24,10 +24,10 @@ import kotlin.test.assertTrue
  * per repetition — one application, one runtime, every proof in sequence:
  *
  *   typed (PUBLIC → cloud 200) → restricted (RESTRICTED → local 200) →
- *   restricted-cloud (forced → 403, cloud 0) → invalid (422, payment 0) →
- *   payment (202, payment 0) → deny oracle (deny 200 → resume 409,
- *   payment 0) → approve (200, payment 1) → duplicate (409, payment 1) →
- *   evidence (4 ordered events, chain valid).
+ *   restricted-cloud (forced → 403, cloud invocation delta 0) → invalid
+ *   (422, payment 0) → payment (202, payment 0) → deny oracle (deny 200 →
+ *   resume 409, payment 0) → approve (200, payment 1) → duplicate (409,
+ *   payment 1) → evidence (4 ordered events, chain valid).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)

@@ -34,7 +34,9 @@ jobs:
           ./scripts/stage-up
           ./scripts/demo typed            | grep -q '"selectedRoute":"CLOUD"' 
           ./scripts/demo restricted       | grep -q '"selectedRoute":"LOCAL"' 
-          ./scripts/demo restricted-cloud | grep -q 'classification-routing-blocked'
+          ./scripts/demo restricted-cloud | tee /tmp/restricted-cloud.out
+          grep -q 'classification-routing-blocked' /tmp/restricted-cloud.out
+          grep -q 'cloud invocation delta   = 0' /tmp/restricted-cloud.out
           ./scripts/demo invalid          | grep -q 'structured-output-rejected'
           ./scripts/demo healthz          | grep -q '"status":"ok"'
           ./scripts/stage-down

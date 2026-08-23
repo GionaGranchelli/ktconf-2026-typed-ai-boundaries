@@ -56,19 +56,15 @@ echo "building stage binary…"
 mkdir -p .build
 # Only set the API key when it was supplied — an empty value must NOT become
 # a blank bearer token (the provider defaults to a local-dev placeholder).
-if [ -n "${KTCONF_DEMO_LOCAL_API_KEY:-}" ]; then
-  env KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
-    KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
-    KTCONF_DEMO_LOCAL_API_KEY="$KTCONF_DEMO_LOCAL_API_KEY" \
-    SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
-    > .build/stage-real.log 2>&1 &
-else
-  env KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
-    KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
-    -u KTCONF_DEMO_LOCAL_API_KEY \
-    SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
-    > .build/stage-real.log 2>&1 &
+api_key="${KTCONF_DEMO_LOCAL_API_KEY:-}"
+unset KTCONF_DEMO_LOCAL_API_KEY
+if [ -n "$api_key" ]; then
+  KTCONF_DEMO_LOCAL_API_KEY="$api_key"
 fi
+KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
+KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
+  > .build/stage-real.log 2>&1 &
 echo "$!" > .build/stage.pid
 
 cleanup() { ./scripts/stage-down >/dev/null 2>&1 || true; }

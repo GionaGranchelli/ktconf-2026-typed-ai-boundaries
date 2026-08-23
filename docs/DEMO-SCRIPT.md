@@ -16,7 +16,7 @@ cd ktconf-2026-typed-ai-boundaries
 ## Conference morning (freeze check)
 
 ```bash
-git checkout ktconf-2026-demo-v3   # the freeze tag establishes identity
+git checkout ktconf-2026-demo-v4   # the freeze tag establishes identity
 git submodule update --init --recursive --checkout
 ./scripts/preflight          # pinned TramAI revision + full deterministic suite + jar
 ./scripts/stress-rehearse    # the conference gate: the full oracle 20/20
@@ -28,6 +28,9 @@ git submodule update --init --recursive --checkout
 ```
 
 After this: no pulls, no dependency updates, no TramAI repins.
+
+Fallback only (old four-profile implementation, do NOT rehearse with it):
+`git checkout ktconf-2026-demo-v3`.
 
 ## The talk
 
