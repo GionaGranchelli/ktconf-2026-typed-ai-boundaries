@@ -32,8 +32,8 @@ jobs:
       - name: Stage smoke (one app on :8080, all stable commands)
         run: |
           ./scripts/stage-up
-          ./scripts/demo typed            | grep -q '"selectedModel":"cloud-invoice-model"' 
-          ./scripts/demo restricted       | grep -q '"selectedModel":"local-invoice-model"' 
+          ./scripts/demo typed            | grep -q '"selectedRoute":"CLOUD"' 
+          ./scripts/demo restricted       | grep -q '"selectedRoute":"LOCAL"' 
           ./scripts/demo restricted-cloud | grep -q 'classification-routing-blocked'
           ./scripts/demo invalid          | grep -q 'structured-output-rejected'
           ./scripts/demo healthz          | grep -q '"status":"ok"'
