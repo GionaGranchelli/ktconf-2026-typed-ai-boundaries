@@ -32,7 +32,7 @@ if [ "$local_real" != 1 ] && [ "$cloud_real" != 1 ]; then
   exit 1
 fi
 
-[ "$local_real" = 1 ] && echo "LOCAL  = real (z840 Qwen via Tailscale): ${KTCONF_DEMO_LOCAL_BASE_URL} model=${KTCONF_DEMO_LOCAL_MODEL:-Qwen3.8-27B-UD-Q6_K}"
+[ "$local_real" = 1 ] && echo "LOCAL  = real (z840 Qwen via Tailscale): ${KTCONF_DEMO_LOCAL_BASE_URL} model=${KTCONF_DEMO_LOCAL_MODEL:-/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}"
 [ "$cloud_real" = 1 ] && echo "CLOUD  = real (DeepSeek): ${KTCONF_DEMO_CLOUD_BASE_URL:-https://api.deepseek.com} model=${KTCONF_DEMO_CLOUD_MODEL:-deepseek-v4-flash}"
 
 # Build the exact current binary — a preflight must prove THIS source.

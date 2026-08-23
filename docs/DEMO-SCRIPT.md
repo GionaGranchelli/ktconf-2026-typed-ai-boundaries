@@ -68,7 +68,7 @@ and never part of the deterministic gate:
 # LOCAL  = Qwen3.8-27B-UD-Q6_K on the z840 over Tailscale
 # CLOUD  = DeepSeek V4 Flash
 KTCONF_DEMO_LOCAL_BASE_URL=http://<z840-tailscale>:8088/v1 \
-KTCONF_DEMO_LOCAL_MODEL=Qwen3.8-27B-UD-Q6_K \
+KTCONF_DEMO_LOCAL_MODEL=/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf \
 KTCONF_DEMO_CLOUD_API_KEY=<deepseek-key> \
 ./scripts/preflight-real
 # → LOCAL (real Qwen) RESTRICTED 200 · CLOUD (real DeepSeek) PUBLIC 200

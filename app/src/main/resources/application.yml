@@ -39,9 +39,11 @@ tramai:
 ktconf:
   providers:
     local:
-      # Qwen3.8-27B-UD-Q6_K served by the z840 over Tailscale.
+      # Qwen3.8-27B-UD-Q6_K served by llama.cpp on the z840 over Tailscale.
+      # The served model id is the full GGUF path (verified live); override
+      # with KTCONF_DEMO_LOCAL_MODEL if the z840's serving setup changes.
       base-url: ${KTCONF_DEMO_LOCAL_BASE_URL:}
-      model: ${KTCONF_DEMO_LOCAL_MODEL:Qwen3.8-27B-UD-Q6_K}
+      model: ${KTCONF_DEMO_LOCAL_MODEL:/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}
       api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
     cloud:
       # DeepSeek's OpenAI-compatible API.
