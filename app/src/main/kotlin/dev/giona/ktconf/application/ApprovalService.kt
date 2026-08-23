@@ -1,12 +1,11 @@
 package dev.giona.ktconf.application
 
 import dev.giona.ktconf.domain.InvoiceAssessment
-import dev.giona.ktconf.payments.InMemoryPaymentLedger
+import dev.tramai.core.approval.ApprovalStore
 import dev.tramai.core.approval.ApprovalTransition
 import dev.tramai.core.exception.ApprovalAuthorizationException
-import dev.tramai.core.exception.ApprovalTokenRejectedException
+import dev.tramai.core.exception.ApprovalNotFoundException
 import dev.tramai.engine.ResumeApprovalCommand
-import dev.tramai.security.approval.InMemoryApprovalStore
 import dev.tramai.sovereign.SovereignTramaiRuntime
 import org.springframework.stereotype.Service
 
@@ -15,17 +14,19 @@ import org.springframework.stereotype.Service
  * mechanism. The registry supplies the server-side challenge token; nothing
  * token-shaped ever crosses the REST boundary.
  *
- * Deny preserves the v2 oracle: transition DENIED → resume attempted →
- * TramAI itself refuses continuation ([ApprovalAuthorizationException]) →
- * payment remains 0. That proves the RUNTIME refused, not merely that we
- * skipped execution.
+ * The approval store and the runtime are beans auto-configured by the
+ * sovereign starter — the application only orchestrates the HTTP lifecycle.
+ *
+ * Deny: transition DENIED → resume attempted → TramAI itself refuses
+ * continuation ([ApprovalAuthorizationException]) → the application marks
+ * the approval denied and returns. The ledger assertion (payment remained
+ * unchanged) lives in the tests, not here.
  */
 @Service
 class ApprovalService(
     private val registry: PendingApprovalRegistry,
-    private val approvalStore: InMemoryApprovalStore,
+    private val approvalStore: ApprovalStore,
     private val runtime: SovereignTramaiRuntime,
-    private val ledger: InMemoryPaymentLedger,
 ) {
 
     suspend fun approve(approvalId: String): InvoiceAssessment {
@@ -67,25 +68,18 @@ class ApprovalService(
             presentedToken = pending.presentedToken,
             resumedBy = "demo-operator",
         )
-        // v2 oracle: resume after deny must be REJECTED by TramAI, and the
-        // ledger must not gain an entry for this workflow (per-workflow proof:
-        // count before the resume attempt is preserved after the rejection).
-        val executionsBeforeResume = ledger.executionCount()
-        val rejected = try {
+        // The runtime itself must refuse continuation after a deny. If it
+        // does not, that is a TramAI contract violation — fail loudly.
+        try {
             runtime.resumeApprovalTyped<InvoiceAssessment>(command)
-            false
+            throw IllegalStateException("resume after deny must be rejected by TramAI")
         } catch (_: ApprovalAuthorizationException) {
-            true
-        }
-        check(rejected) { "resume after deny must be rejected by TramAI" }
-        check(ledger.executionCount() == executionsBeforeResume) {
-            "denied approval must not execute payment (count ${ledger.executionCount()} != $executionsBeforeResume)"
+            // Expected: the runtime refuses the denied continuation.
         }
         registry.complete(approvalId, PendingApprovalRegistry.State.DENIED)
         return DenyOutcome(
             approvalId = approvalId,
             status = "DENIED",
-            paymentExecutionCount = ledger.executionCount(),
         )
     }
 }
@@ -93,5 +87,4 @@ class ApprovalService(
 data class DenyOutcome(
     val approvalId: String,
     val status: String,
-    val paymentExecutionCount: Int,
 )

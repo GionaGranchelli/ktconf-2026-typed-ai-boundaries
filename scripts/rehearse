@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-# Full rehearsal: the entire deterministic suite in one pass, fresh
-# contexts per test (the approval flow is exercised over real HTTP).
+# The whole deterministic suite, once. The 20/20 gate lives in
+# ./scripts/stress-rehearse.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-./gradlew :app:test --rerun
+(
+  unset KTCONF_DEMO_LOCAL_BASE_URL
+  unset KTCONF_DEMO_LOCAL_MODEL
+  unset KTCONF_DEMO_LOCAL_API_KEY
+  unset KTCONF_DEMO_CLOUD_BASE_URL
+  unset KTCONF_DEMO_CLOUD_MODEL
+  unset KTCONF_DEMO_CLOUD_API_KEY
+  ./gradlew :app:test --rerun
+)

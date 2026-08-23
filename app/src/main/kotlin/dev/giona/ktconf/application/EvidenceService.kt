@@ -2,7 +2,7 @@ package dev.giona.ktconf.application
 
 import dev.tramai.security.audit.AuditChainVerifier
 import dev.tramai.security.audit.AuditEvent
-import dev.tramai.security.audit.InMemoryAuditStore
+import dev.tramai.security.audit.AuditStore
 import dev.tramai.security.audit.toCanonicalJson
 import dev.tramai.sovereign.SovereignTramai
 import dev.tramai.sovereign.evidence.AuditChainEvidenceV1
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service
 @Service
 class EvidenceService(
     private val registry: PendingApprovalRegistry,
-    private val auditStore: InMemoryAuditStore,
+    private val auditStore: AuditStore,
     private val tramai: SovereignTramai,
 ) {
 

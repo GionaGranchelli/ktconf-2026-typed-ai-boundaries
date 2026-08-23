@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
-# Deterministic rehearsal stress gate — the conference bar, always 20/20 per
-# profile. Runs the FULL deterministic oracle 20 times on fresh contexts per
-# profile (demo: typed/deny/approve/duplicate/evidence; broken: 422; cloud:
-# 403 + count 0) and verifies the result XMLs. Ends with a pass line.
+# Deterministic rehearsal stress gate — the conference bar: the FULL
+# deterministic oracle 20/20 on fresh contexts. Runs RehearsalIT (which
+# repeats the complete storyline 20 times) and verifies the result XML.
+# Ends with a pass line.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-./gradlew :app:test --tests 'dev.giona.ktconf.RehearsalDemoIT' \
-                   --tests 'dev.giona.ktconf.RehearsalBrokenIT' \
-                   --tests 'dev.giona.ktconf.RehearsalCloudIT' \
-                   --rerun
+# Deterministic means deterministic: sanitize the real-provider env
+# (local z840/Qwen AND cloud DeepSeek).
+(
+  unset KTCONF_DEMO_LOCAL_BASE_URL
+  unset KTCONF_DEMO_LOCAL_MODEL
+  unset KTCONF_DEMO_LOCAL_API_KEY
+  unset KTCONF_DEMO_CLOUD_BASE_URL
+  unset KTCONF_DEMO_CLOUD_MODEL
+  unset KTCONF_DEMO_CLOUD_API_KEY
+  ./gradlew :app:test --tests 'dev.giona.ktconf.RehearsalIT' --rerun
+)
 
-verify() { # $1=class  $2=label
-  xml="app/build/test-results/test/TEST-dev.giona.ktconf.$1.xml"
-  if [ ! -f "$xml" ]; then
-    echo "FAIL: $xml not found." >&2
-    exit 1
-  fi
-  count="$(grep -o 'tests="[0-9]*"' "$xml" | head -1 | grep -o '[0-9]*')"
-  failures="$(grep -o 'failures="[0-9]*"' "$xml" | head -1 | grep -o '[0-9]*')"
-  if [ "$count" != "20" ] || [ "$failures" != "0" ]; then
-    echo "FAIL: $2 expected 20/20, got tests=$count failures=$failures." >&2
-    exit 1
-  fi
-  printf '  %-6s 20/20 PASS\n' "$2"
-}
-
-verify RehearsalDemoIT demo
-verify RehearsalBrokenIT broken
-verify RehearsalCloudIT cloud
+xml="app/build/test-results/test/TEST-dev.giona.ktconf.RehearsalIT.xml"
+if [ ! -f "$xml" ]; then
+  echo "FAIL: $xml not found." >&2
+  exit 1
+fi
+count="$(grep -o 'tests="[0-9]*"' "$xml" | head -1 | grep -o '[0-9]*')"
+failures="$(grep -o 'failures="[0-9]*"' "$xml" | head -1 | grep -o '[0-9]*')"
+if [ "$count" != "20" ] || [ "$failures" != "0" ]; then
+  echo "FAIL: RehearsalIT expected 20/20, got tests=$count failures=$failures." >&2
+  exit 1
+fi
 
 echo
 echo "KTConf deterministic rehearsal"
-echo "demo 20/20 · broken 20/20 · cloud 20/20"
-echo "60 / 60 PASS"
+echo "oracle 20/20 (typed · restricted · restricted-cloud · invalid · payment · approve · deny · evidence)"
+echo "20 / 20 PASS"

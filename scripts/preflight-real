@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
-# Conference-morning check for the real-model path (typed --real).
-# Contract: env configured -> endpoint reachable -> model reachable ->
-# exact current binary built -> typed --real MUST produce a typed
-# InvoiceAssessment -> PASS. Independent of the deterministic ./scripts/preflight.
+# Optional OFF-STAGE proof of the real two-provider architecture.
+#
+#   LOCAL  = Qwen3.8-27B-UD-Q6_K on the z840 (KTCONF_DEMO_LOCAL_BASE_URL)
+#   CLOUD  = DeepSeek V4 Flash (KTCONF_DEMO_CLOUD_API_KEY)
+#
+# Contract:
+#   - At least ONE real provider must be configured (local base-url or
+#     cloud api-key). DeepSeek is only required when its key is supplied.
+#   - For each configured real identity, the SAME typed contract must
+#     produce a 200 with the expected selectedRoute.
+#   - When cloud is real, the boundary proof must deny BEFORE DeepSeek is
+#     called (cloud invocation delta 0).
+#
+# Completely independent of ./scripts/preflight: never runs from
+# deterministic CI, and never touches the payment/approval oracle.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -10,57 +21,97 @@ if [ -z "${JAVA_HOME:-}" ] && [ -d /usr/lib/jvm/java-21-openjdk-amd64 ]; then
   export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 fi
 
-: "${KTCONF_DEMO_LOCAL_BASE_URL:?KTCONF_DEMO_LOCAL_BASE_URL is required (e.g. http://localhost:11434/v1 or https://api.deepseek.com)}"
-: "${KTCONF_DEMO_LOCAL_MODEL:?KTCONF_DEMO_LOCAL_MODEL is required (e.g. gemma-4-12b-it:q5_k_m or deepseek-chat)}"
-
-base="${KTCONF_DEMO_LOCAL_BASE_URL%/}"
-echo "base URL   : $base"
-echo "model      : $KTCONF_DEMO_LOCAL_MODEL"
-
-# Auth: honor the same key the demo uses (never echoed).
-curl_args=(-sf --max-time 10)
-if [ -n "${KTCONF_DEMO_LOCAL_API_KEY:-}" ]; then
-  curl_args+=(-H "Authorization: Bearer $KTCONF_DEMO_LOCAL_API_KEY")
-  echo "auth       : bearer token configured"
-else
-  echo "auth       : none"
-fi
-
-# Endpoint reachable: some servers serve /models at root, some under /v1.
-models_url=""
-for candidate in "$base/models" "$base/v1/models"; do
-  if curl "${curl_args[@]}" "$candidate" >/dev/null 2>&1; then
-    models_url="$candidate"
-    break
-  fi
-done
-if [ -z "$models_url" ]; then
-  echo "FAIL: endpoint not reachable at $base/models (or $base/v1/models)." >&2
+local_real=0
+cloud_real=0
+[ -n "${KTCONF_DEMO_LOCAL_BASE_URL:-}" ] && local_real=1
+[ -n "${KTCONF_DEMO_CLOUD_API_KEY:-}" ] && cloud_real=1
+if [ "$local_real" != 1 ] && [ "$cloud_real" != 1 ]; then
+  echo "FAIL: configure at least one real provider:" >&2
+  echo "  KTCONF_DEMO_LOCAL_BASE_URL (z840 Qwen) and/or" >&2
+  echo "  KTCONF_DEMO_CLOUD_API_KEY   (DeepSeek)." >&2
   exit 1
 fi
-echo "endpoint   : reachable ($models_url)"
 
-# Model reachable: the configured name must be served (literal match).
-if ! curl "${curl_args[@]}" "$models_url" | grep -Fq -- "$KTCONF_DEMO_LOCAL_MODEL"; then
-  echo "FAIL: model '$KTCONF_DEMO_LOCAL_MODEL' not served by $models_url." >&2
-  exit 1
-fi
-echo "model      : reachable"
+[ "$local_real" = 1 ] && echo "LOCAL  = real (z840 Qwen via Tailscale): ${KTCONF_DEMO_LOCAL_BASE_URL} model=${KTCONF_DEMO_LOCAL_MODEL:-/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}"
+[ "$cloud_real" = 1 ] && echo "CLOUD  = real (DeepSeek): ${KTCONF_DEMO_CLOUD_BASE_URL:-https://api.deepseek.com} model=${KTCONF_DEMO_CLOUD_MODEL:-deepseek-v4-flash}"
 
-# Build the exact current binary — a preflight must prove THIS source, not a
-# stale installed distribution.
+# Build the exact current binary — a preflight must prove THIS source.
 echo "building stage binary…"
 ./gradlew :app:bootJar -q
 
-# The real requirement: the real profile must produce a typed result over
-# HTTP (RealModelTest boots a real-profile instance and calls the same
-# endpoint the talk uses). Env-gated: it activates exactly when the
-# KTCONF_DEMO_LOCAL_* vars are set, which they are here.
-if ! SPRING_PROFILES_ACTIVE=real ./gradlew :app:test --tests 'dev.giona.ktconf.RealModelTest' --rerun; then
-  echo "FAIL: real profile did not produce a typed InvoiceAssessment." >&2
-  exit 1
+# Boot the ONE app with the real providers. The Java child simply INHERITS
+# whatever provider variables the operator supplied — nothing is unset or
+# reconstructed here, so:
+#   - a supplied KTCONF_DEMO_CLOUD_API_KEY actually reaches the app
+#   - omitted variables fall through to the YAML defaults (DeepSeek
+#     base-url/model, Qwen GGUF model) instead of being forced to ""
+./scripts/stage-down
+mkdir -p .build
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
+  > .build/stage-real.log 2>&1 &
+echo "$!" > .build/stage.pid
+
+cleanup() { ./scripts/stage-down >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+for i in $(seq 1 60); do
+  if ! kill -0 "$(cat .build/stage.pid)" 2>/dev/null; then
+    echo "FAIL: app died during real-provider startup." >&2
+    tail -20 .build/stage-real.log >&2
+    exit 1
+  fi
+  if curl -sf --max-time 2 "http://localhost:8080/governance/healthz" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+CATERING='{"classification":"PUBLIC","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
+CATERING_RESTRICTED='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
+BASE="http://localhost:8080"
+
+check_typed() { # $1=label  $2=payload  $3=expected_route
+  http_code="$(curl -s -o .build/real-response.json -w '%{http_code}' --max-time 120 \
+    -X POST "$BASE/invoices/analyze" -H 'Content-Type: application/json' -d "$2")"
+  if [ "$http_code" != "200" ]; then
+    echo "FAIL: $1 returned HTTP $http_code (expected 200)." >&2
+    cat .build/real-response.json >&2
+    exit 1
+  fi
+  if ! grep -Fq "\"selectedRoute\":\"$3\"" .build/real-response.json; then
+    echo "FAIL: $1 did not route to $3." >&2
+    cat .build/real-response.json >&2
+    exit 1
+  fi
+  if ! grep -Fq '"invoiceId":"KTCONF-001"' .build/real-response.json; then
+    echo "FAIL: $1 response is not a typed InvoiceAssessment." >&2
+    cat .build/real-response.json >&2
+    exit 1
+  fi
+  echo "$1: HTTP 200, typed, selectedRoute=$3"
+}
+
+if [ "$local_real" = 1 ]; then
+  check_typed "LOCAL (real Qwen on z840)" "$CATERING_RESTRICTED" "LOCAL"
 fi
-echo "real-model HTTP: typed assessment OK"
+if [ "$cloud_real" = 1 ]; then
+  check_typed "CLOUD (real DeepSeek)" "$CATERING" "CLOUD"
+  # Boundary proof against the REAL cloud: denied before DeepSeek is called.
+  before="$(curl -s "$BASE/governance/stats" | python3 -c "import sys,json; print(json.load(sys.stdin)['cloudInvocationCount'])")"
+  http_code="$(curl -s -o .build/real-boundary.json -w '%{http_code}' --max-time 30 \
+    -X POST "$BASE/invoices/boundary/restricted-cloud" -H 'Content-Type: application/json' -d "$CATERING_RESTRICTED")"
+  after="$(curl -s "$BASE/governance/stats" | python3 -c "import sys,json; print(json.load(sys.stdin)['cloudInvocationCount'])")"
+  echo "cloud invocations before = $before"
+  echo "HTTP $http_code"
+  grep -Fq '"classification-routing-blocked"' .build/real-boundary.json
+  echo "cloud invocations after  = $after"
+  echo "cloud invocation delta   = $((after - before))"
+  if [ "$http_code" != "403" ] || [ "$after" != "$before" ]; then
+    echo "FAIL: RESTRICTED forced to real cloud was not denied before invocation." >&2
+    exit 1
+  fi
+fi
 
 echo
-echo "preflight-real OK — real-model path ready."
+echo "preflight-real OK — real two-provider architecture ready (same typed contract, real models)."
+echo "Deterministic stage is untouched: ./scripts/preflight + ./scripts/stage-up stay fully offline."

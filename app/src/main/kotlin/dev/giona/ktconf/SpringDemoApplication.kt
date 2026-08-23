@@ -4,19 +4,20 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 /**
- * KTConf 2026 — Typed AI Boundaries, Spring Boot variant.
+ * KTConf 2026 — Typed AI Boundaries.
  *
- * The SAME demo as the frozen v2 CLI (main), rebuilt as an ordinary Kotlin
- * backend: profiles select the model infrastructure bean, the REST surface
- * exposes the typed boundary, and every governance guarantee from v2 is
- * preserved as acceptance criteria. See docs/DEMO-SCRIPT.md.
+ * ONE Spring Boot application, ONE process, ONE port, ONE
+ * SovereignTramaiRuntime with TWO model/provider routes (local + cloud).
+ * The TramAI integration is visible in four places:
+ *  1. application.yml                  — policy configuration
+ *  2. ai/InvoiceAnalysisService.kt     — the typed @AiService boundary
+ *  3. application/InvoiceService.kt    — routing (when classification)
+ *  4. payments/SchedulePaymentTool.kt  — tool = authority
+ * Everything else is ordinary Spring.
  */
 @SpringBootApplication
 class SpringDemoApplication
 
 fun main(args: Array<String>) {
-    // Default profile is demo; SPRING_PROFILES_ACTIVE (stage-up) overrides it
-    // for the broken / cloud-routing / real instances.
-    System.setProperty("spring.profiles.default", "demo")
     runApplication<SpringDemoApplication>(*args)
 }

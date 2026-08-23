@@ -45,9 +45,11 @@ A typed Kotlin contract describing how application code interacts with AI.
 ```kotlin
 @AiService
 interface InvoiceAnalysisService {
-    suspend fun analyze(
-        document: ClassifiedDocument<InvoiceDocument>
-    ): InvoiceAssessment
+    @Operation(model = "local-invoice-model", tools = ["schedule-payment"])
+    suspend fun analyzeLocal(document: ClassifiedDocument<InvoiceDocument>): InvoiceAssessment
+
+    @Operation(model = "cloud-invoice-model")
+    suspend fun analyzeCloud(document: ClassifiedDocument<InvoiceDocument>): InvoiceAssessment
 }
 ```
 
@@ -81,9 +83,9 @@ DECLARED
 
 TramAI does **not** magically discover that an invoice is confidential. The
 application supplies the classification; TramAI deterministically enforces
-consequences from it. The demo enforces one such consequence in
-`CloudRoutingConfiguration.kt`: RESTRICTED data may not be sent to a
-`GLOBAL_CLOUD` provider.
+consequences from it. In this demo every request carries an explicit
+classification. In production it could come from upstream metadata, DLP, a
+deterministic classifier, a policy engine, or explicit workflow state.
 
 ### 3. Provider trust zone
 
@@ -101,9 +103,8 @@ provider invocation = 0
 ```
 
 Trust zones are **application/operator assertions**, not values inferred
-from URLs. `demo real` demonstrates this: the real-model provider is LOCAL
-because the operator declares it LOCAL, never because of the endpoint
-string.
+from URLs. The sovereign policy matrix (from `application.yml`'s
+`provider-zones`) enforces: RESTRICTED → LOCAL only.
 
 ### 4. Tool
 
@@ -119,9 +120,9 @@ approval   = HUMAN_REQUIRED
 ```
 
 The model may *request* this capability. It does not thereby receive
-permission to *execute* it. The application declares the capability in
-`SchedulePaymentTool.kt`; TramAI decides whether the model's request may
-proceed.
+permission to *execute* it. `SchedulePaymentTool` is a normal Spring bean
+implementing `TramaiTool`; the sovereign starter collects it automatically
+(upstream tramAI PR #268).
 
 ### 5. Approval / continuation
 
@@ -174,26 +175,23 @@ verified (`GET /approvals/{id}/evidence` → `chainValid: true`).
 
 ## How `@AiService` becomes executable
 
-An `@AiService` interface describes a contract. Something has to turn that
-contract into a working implementation — that is `SovereignTramai` and
-`SovereignTramaiRuntime` (both visible in
-[DemoConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/DemoConfiguration.kt)):
+An `@AiService` interface describes a contract. The Spring Boot sovereign
+starter turns it into a working implementation:
 
 ```
 @AiService interface
        │
        │ describes the contract
        ▼
-SovereignTramai
+application.yml (tramai.sovereign.*)
        │
-       │ configured with:
-       │ providers
-       │ trust zones
-       │ tools
-       │ approval stores
-       │ audit store
+       │ allowed models, providers, zones, tools, permissions
        ▼
-SovereignTramaiRuntime
+sovereign starter auto-configuration
+       │
+       │ collects ModelProvider beans + TramaiTool beans
+       ▼
+SovereignTramaiRuntime (auto-configured Spring bean)
        │
        ▼
 runtime.create(InvoiceAnalysisService::class)
@@ -212,9 +210,9 @@ Two short definitions:
 > configuration. It creates the executable `@AiService` implementation and
 > is also used later to resume suspended approvals.
 
-Each Spring profile builds exactly one runtime and shares it between the
-initial analysis and the approval resume — one lifecycle, one governed
-environment.
+The conference application constructs **zero** of these classes: the starter
+owns them all (`SovereignTramaiProperties` in `application.yml`). There is
+exactly ONE runtime bean per Spring context.
 
 ## Who is responsible for what?
 
@@ -223,15 +221,15 @@ application:
 
 | Concern | Spring application | TramAI |
 |---|---|---|
-| Decide invoice classification | ✅ | |
+| Supply data classification | ✅ | |
 | Declare provider trust zone | ✅ | |
 | Define typed service contract | ✅ | |
-| Configure tool capability | ✅ | |
+| Declare tool permission/risk/effect/approval metadata | ✅ | |
+| Choose the normal model route (exhaustive when) | ✅ | |
+| Evaluate/enforce tool policy and approval requirement | | ✅ |
 | Call model provider | | ✅ |
 | Generate/validate structured output | | ✅ |
 | Enforce classification/provider policy | | ✅ |
-| Declare tool permission/risk/effect/approval metadata | ✅ | |
-| Evaluate/enforce tool policy and approval requirement | | ✅ |
 | Suspend workflow | | ✅ |
 | Store HTTP mapping for pending approval | ✅ | |
 | Authorize continuation | | ✅ |
@@ -242,7 +240,8 @@ application:
 
 TramAI is the governance engine. The application still owns everything that
 is business-specific: classification, contracts, trust-zone assertions,
-tool implementations, and the HTTP mapping of pending approvals.
+route choice, tool implementations, and the HTTP mapping of pending
+approvals.
 
 ## One request, end to end
 
@@ -251,22 +250,19 @@ file.
 
 | # | Step | Where |
 |---|---|---|
-| 1 | `POST /invoices/analyze` | [InvoiceController.kt](../app/src/main/kotlin/dev/giona/ktconf/api/InvoiceController.kt) |
-| 2 | Application service classifies + delegates | [InvoiceApplicationService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceApplicationService.kt) |
-| 3 | Application port | [InvoiceAnalyzer.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceAnalyzer.kt) |
-| 4 | Typed `@AiService` boundary | [InvoiceAnalysisService.kt](../app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt) |
-| 5 | TramAI invokes the provider | [ScriptedProvider.kt](../app/src/main/kotlin/dev/giona/ktconf/demo/ScriptedProvider.kt) |
-| 6 | Model result: `HIGH` / `SCHEDULE_PAYMENT` | [DemoResponses.kt](../app/src/main/kotlin/dev/giona/ktconf/demo/DemoResponses.kt) |
-| 7 | Tool requested | [SchedulePaymentTool.kt](../app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt) |
-| 8 | TramAI sees `HIGH` + `HUMAN_REQUIRED` | policy inside TramAI |
-| 9 | Workflow suspended | approval/continuation stores in [TramaiConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/TramaiConfiguration.kt) |
-| 10 | Application service catches suspension → HTTP 202 | [InvoiceApplicationService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceApplicationService.kt) |
-| 11 | Server retains challenge token | [PendingApprovalRegistry.kt](../app/src/main/kotlin/dev/giona/ktconf/application/PendingApprovalRegistry.kt) |
-| 12 | `POST /approvals/{id}/approve` | [ApprovalController.kt](../app/src/main/kotlin/dev/giona/ktconf/api/ApprovalController.kt) |
-| 13 | `ResumeApprovalCommand` constructed | [ApprovalService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/ApprovalService.kt) |
-| 14 | TramAI validates + resumes continuation | same runtime as step 5 |
-| 15 | `SchedulePaymentTool` executes | [SchedulePaymentTool.kt](../app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt) |
-| 16 | HTTP 200 `InvoiceAssessment` | back through the typed boundary |
+| 1 | `POST /invoices/analyze` with explicit `classification=RESTRICTED` | [InvoiceController.kt](../app/src/main/kotlin/dev/giona/ktconf/api/InvoiceController.kt) |
+| 2 | Request → `ClassifiedDocument` (DECLARED) | [InvoiceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt) |
+| 3 | Routing `when`: PUBLIC/INTERNAL → `analyzeCloud`, CONFIDENTIAL/RESTRICTED → `analyzeLocal` | [InvoiceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt) |
+| 4 | Typed `@AiService` boundary (model=local-invoice-model, tools=[schedule-payment]) | [InvoiceAnalysisService.kt](../app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt) |
+| 5 | TramAI validates the route, then invokes the provider | policy inside TramAI |
+| 6 | Model result: tool call `schedule-payment` | [DemoResponses.kt](../app/src/main/kotlin/dev/giona/ktconf/demo/DemoResponses.kt) |
+| 7 | TramAI sees `HIGH` + `HUMAN_REQUIRED` → workflow suspended | approval machinery inside TramAI |
+| 8 | Application registers the pending approval (server-side token) | [PendingApprovalRegistry.kt](../app/src/main/kotlin/dev/giona/ktconf/application/PendingApprovalRegistry.kt) |
+| 9 | HTTP 202 `{approvalId, workflowRunId}` — no token | [InvoiceController.kt](../app/src/main/kotlin/dev/giona/ktconf/api/InvoiceController.kt) |
+| 10 | `POST /approvals/{id}/approve` | [ApprovalController.kt](../app/src/main/kotlin/dev/giona/ktconf/api/ApprovalController.kt) |
+| 11 | Transition + real `ResumeApprovalCommand` through the SAME runtime | [ApprovalService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/ApprovalService.kt) |
+| 12 | `SchedulePaymentTool` executes (ledger exactly-once) | [SchedulePaymentTool.kt](../app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt) |
+| 13 | HTTP 200 `InvoiceAssessment` | back through the typed boundary |
 
 The trace shows the two systems the talk is built on:
 
@@ -285,7 +281,23 @@ compile time:  application expects InvoiceAssessment
 runtime:       LLM output → schema validation → deserialization → InvoiceAssessment
 ```
 
-The `broken` instance proves the runtime half: the model produces garbage,
-TramAI rejects it (HTTP 422), and no side effect executes. The boundary
-holds even when the model misbehaves — which is exactly the claim of the
-talk.
+The `invalid` scenario proves the runtime half through the SAME
+application: the model produces garbage, TramAI rejects it (HTTP 422), and
+no side effect executes. The boundary holds even when the model misbehaves —
+which is exactly the claim of the talk.
+
+## What 0.6.x does and does not do
+
+TramAI 0.6.x **validates** whether the selected route/provider is allowed
+for the classification. It does **NOT** automatically select LOCAL for
+RESTRICTED input — the application chooses the route (an exhaustive `when`
+over all four classifications), and the `restricted-cloud` fault injection
+proves TramAI is the independent enforcement backstop when the application's
+choice is wrong. Policy-aware provider selection is future (0.7) roadmap
+work.
+
+One caveat for honest stage storytelling: in this demo the request's
+classification is a **trusted upstream governance fact**. An arbitrary
+external caller could say PUBLIC; the demo assumes a trusted component
+already decided the classification. TramAI enforces what the classification
+implies — it is not a substitute for a separate classification/DLP step.

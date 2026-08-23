@@ -5,3 +5,7 @@ build/
 *.iml
 .idea/
 .DS_Store
+# Local provider credentials / private endpoints — keep .env.example tracked.
+.env
+.env.local
+.env.*.local

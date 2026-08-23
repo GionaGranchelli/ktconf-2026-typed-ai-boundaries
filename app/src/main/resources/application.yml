@@ -1,10 +1,52 @@
-spring:
-  application:
-    name: ktconf-typed-ai-boundaries
-
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
 
-logging:
-  level:
-    root: WARN
+# tramai.sovereign.*  = governance truth (trust zones, allowed models/providers/tools)
+tramai:
+  sovereign:
+    enabled: true
+
+    allowed-models:
+      - local-invoice-model
+      - cloud-invoice-model
+
+    allowed-providers:
+      - local-provider
+      - cloud-provider
+
+    provider-zones:
+      local-provider: LOCAL
+      cloud-provider: GLOBAL_CLOUD
+
+    models:
+      local-invoice-model: local-provider
+      cloud-invoice-model: cloud-provider
+
+    allowed-tools:
+      - schedule-payment
+
+    allowed-permissions:
+      - payment.schedule
+
+# ktconf.providers.*  = deployment configuration ONLY (which real endpoint serves
+# each identity). In the deterministic conference run both stay empty and both
+# providers are scripted. When configured, the SAME identities become real
+# OpenAI-compatible endpoints:
+#   LOCAL  = Qwen3.8-27B-UD-Q6_K on the z840, reached over Tailscale
+#   CLOUD  = DeepSeek V4 Flash (https://api.deepseek.com)
+# Endpoints/keys are operator-supplied via environment; nothing private is
+# committed. The governance configuration above does not change.
+ktconf:
+  providers:
+    local:
+      # Qwen3.8-27B-UD-Q6_K served by llama.cpp on the z840 over Tailscale.
+      # The served model id is the full GGUF path (verified live); override
+      # with KTCONF_DEMO_LOCAL_MODEL if the z840's serving setup changes.
+      base-url: ${KTCONF_DEMO_LOCAL_BASE_URL:}
+      model: ${KTCONF_DEMO_LOCAL_MODEL:/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}
+      api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
+    cloud:
+      # DeepSeek's OpenAI-compatible API.
+      base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com}
+      model: ${KTCONF_DEMO_CLOUD_MODEL:deepseek-v4-flash}
+      api-key: ${KTCONF_DEMO_CLOUD_API_KEY:}
