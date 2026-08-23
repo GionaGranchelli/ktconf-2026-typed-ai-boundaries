@@ -20,11 +20,21 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Preflight (pinned revision + full test suite + stage binary)
+      - name: Preflight (pinned revision + full deterministic suite + stage binary)
         run: ./scripts/preflight
 
-      - name: Deterministic rehearsal
+      - name: Deterministic rehearsal (full suite once)
         run: ./scripts/rehearse
 
-      - name: Stress rehearsal (20 consecutive full runs)
-        run: ./scripts/stress-rehearse 20
+      - name: Stress rehearsal (20 consecutive full oracle runs)
+        run: ./scripts/stress-rehearse
+
+      - name: Stage smoke (one app on :8080, all stable commands)
+        run: |
+          ./scripts/stage-up
+          ./scripts/demo typed            | grep -q '"selectedModel":"cloud-invoice-model"' 
+          ./scripts/demo restricted       | grep -q '"selectedModel":"local-invoice-model"' 
+          ./scripts/demo restricted-cloud | grep -q 'classification-routing-blocked'
+          ./scripts/demo invalid          | grep -q 'structured-output-rejected'
+          ./scripts/demo healthz          | grep -q '"status":"ok"'
+          ./scripts/stage-down

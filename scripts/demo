@@ -1,64 +1,74 @@
 #!/usr/bin/env bash
-# Stage API — stable commands over the running instances, never change the
-# interface. Instances are started once via ./scripts/stage-up (same bootJar,
-# one profile per port), then this script only curls them.
+# Stage API — stable commands over the ONE running application.
+# Instances are started once via ./scripts/stage-up (one process on :8080),
+# then this script only curls it. No ports/profiles to remember.
 #
-#   ./scripts/demo typed           -> demo (8080), KTCONF-001 -> typed 200
-#   ./scripts/demo real            -> real (8083), KTCONF-001 -> typed 200 (when started)
-#   ./scripts/demo invalid         -> broken (8081), KTCONF-001 -> 422
-#   ./scripts/demo restricted      -> cloud-routing (8082), KTCONF-RESTRICTED-001 -> 403
-#   ./scripts/demo payment         -> demo (8080), KTCONF-PAY-001 -> 202 + approvalId
+#   ./scripts/demo typed           -> PUBLIC  KTCONF-001       -> cloud route, 200 typed
+#   ./scripts/demo restricted      -> RESTRICTED KTCONF-001    -> local route, 200 typed
+#   ./scripts/demo restricted-cloud-> RESTRICTED forced cloud  -> 403 (boundary proof)
+#   ./scripts/demo invalid         -> PUBLIC  KTCONF-INVALID   -> 422 (same app/runtime)
+#   ./scripts/demo payment         -> RESTRICTED KTCONF-PAY-001-> 202 + approvalId
 #   ./scripts/demo approve <id>    -> POST /approvals/<id>/approve
 #   ./scripts/demo deny <id>       -> POST /approvals/<id>/deny
 #   ./scripts/demo evidence <id>   -> GET /approvals/<id>/evidence
 #   ./scripts/demo stats           -> GET /governance/stats
-#   ./scripts/demo healthz [port]  -> GET /governance/healthz
+#   ./scripts/demo healthz         -> GET /governance/healthz
+#   ./scripts/demo real            -> RESTRICTED KTCONF-001 against the REAL local
+#                                     provider (only when KTCONF_DEMO_LOCAL_BASE_URL
+#                                     was set at stage-up; otherwise identical to
+#                                     restricted — the deterministic oracle).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-D="http://localhost:${KTCONF_DEMO_PORT:-8080}"
-B="http://localhost:${KTCONF_DEMO_PORT_BROKEN:-8081}"
-C="http://localhost:${KTCONF_DEMO_PORT_CLOUD:-8082}"
-R="http://localhost:${KTCONF_DEMO_PORT_REAL:-8083}"
+BASE="http://localhost:${KTCONF_DEMO_PORT:-8080}"
 
-analyze() { # $1=base  $2=json
-  curl -s -w '\nHTTP %{http_code}\n' -X POST "$1/invoices/analyze" \
-    -H 'Content-Type: application/json' -d "$2"
+analyze() { # $1=json
+  curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/invoices/analyze" \
+    -H 'Content-Type: application/json' -d "$1"
 }
+
+CATERING='{"classification":"PUBLIC","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
+CATERING_RESTRICTED='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
+INVALID='{"classification":"PUBLIC","invoice":{"invoiceId":"KTCONF-INVALID-001","supplierName":"KTConf","amountCents":42830,"currency":"EUR","description":"Broken"}}'
+PAYMENT='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-PAY-001","supplierName":"KTConf AV & Stage Services BV","amountCents":1840000,"currency":"EUR","description":"Stage and AV production services"}}'
 
 case "${1:-}" in
   typed)
-    analyze "$D" '{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}'
-    ;;
-  real)
-    analyze "$R" '{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}'
-    ;;
-  invalid)
-    analyze "$B" '{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}'
+    analyze "$CATERING"
     ;;
   restricted)
-    analyze "$C" '{"invoiceId":"KTCONF-RESTRICTED-001","supplierName":"ACME Acquisition Advisory","amountCents":8250000,"currency":"EUR","description":"MERGER-2026 advisory"}'
+    analyze "$CATERING_RESTRICTED"
+    ;;
+  restricted-cloud)
+    curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/invoices/boundary/restricted-cloud" \
+      -H 'Content-Type: application/json' -d "$CATERING_RESTRICTED"
+    ;;
+  invalid)
+    analyze "$INVALID"
     ;;
   payment)
-    analyze "$D" '{"invoiceId":"KTCONF-PAY-001","supplierName":"KTConf AV & Stage Services BV","amountCents":1840000,"currency":"EUR","description":"Stage and AV production services"}'
+    analyze "$PAYMENT"
+    ;;
+  real)
+    analyze "$CATERING_RESTRICTED"
     ;;
   approve)
-    curl -s -w '\nHTTP %{http_code}\n' -X POST "$D/approvals/${2:?usage: ./scripts/demo approve <approvalId>}/approve"
+    curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/approvals/${2:?usage: ./scripts/demo approve <approvalId>}/approve"
     ;;
   deny)
-    curl -s -w '\nHTTP %{http_code}\n' -X POST "$D/approvals/${2:?usage: ./scripts/demo deny <approvalId>}/deny"
+    curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/approvals/${2:?usage: ./scripts/demo deny <approvalId>}/deny"
     ;;
   evidence)
-    curl -s -w '\nHTTP %{http_code}\n' "$D/approvals/${2:?usage: ./scripts/demo evidence <approvalId>}/evidence"
+    curl -s -w '\nHTTP %{http_code}\n' "$BASE/approvals/${2:?usage: ./scripts/demo evidence <approvalId>}/evidence"
     ;;
   stats)
-    curl -s -w '\nHTTP %{http_code}\n' "$D/governance/stats"
+    curl -s -w '\nHTTP %{http_code}\n' "$BASE/governance/stats"
     ;;
   healthz)
-    curl -s -w '\nHTTP %{http_code}\n' "http://localhost:${2:-${KTCONF_DEMO_PORT:-8080}}/governance/healthz"
+    curl -s -w '\nHTTP %{http_code}\n' "$BASE/governance/healthz"
     ;;
   *)
-    echo "usage: ./scripts/demo {typed|real|invalid|restricted|payment|approve <id>|deny <id>|evidence <id>|stats|healthz [port]}" >&2
+    echo "usage: ./scripts/demo {typed|restricted|restricted-cloud|invalid|payment|real|approve <id>|deny <id>|evidence <id>|stats|healthz}" >&2
     exit 2
     ;;
 esac

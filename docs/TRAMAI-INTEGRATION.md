@@ -8,16 +8,15 @@ it is.
 The demo needs capabilities that only exist on TramAI `master` (the typed
 security surface: `ClassifiedDocument`, `ToolSecurityMetadata`,
 `ApprovalSuspendedException`, classification-aware provider routing, audit
-chain verification, evidence packs). When this demo was frozen, the
-published `0.5.0` artifacts (2026-07-18) did **not** contain them —
-verified by inspecting the published jars. The conference artifact remains
-pinned to a validated source revision for reproducibility, even if newer
-releases exist.
+chain verification, evidence packs, and the sovereign Spring Boot starter).
+When this demo was frozen, the published `0.5.0` artifacts (2026-07-18) did
+**not** contain them. The conference artifact remains pinned to a validated
+source revision for reproducibility, even if newer releases exist.
 
 Strategy chosen (evaluated in order):
 
 1. **A — published immutable artifacts**: ✗ not viable. `0.5.0` on Maven
-   Central predates the typed security surface.
+   Central predates the typed security surface and the starter.
 2. **B — pinned submodule + composite build**: ✓ chosen and verified. The
    submodule is pinned to an exact commit and wired via `includeBuild`.
 3. C — bootstrap local publication: not needed.
@@ -29,18 +28,22 @@ ktconf-2026-typed-ai-boundaries/settings.gradle.kts
     includeBuild("vendor/tramai")
 
 app/build.gradle.kts
-    implementation("dev.tramai:tramai-core:0.5.0")        ← substituted by
-    implementation("dev.tramai:tramai-engine:0.5.0")          the included
-    implementation("dev.tramai:tramai-security:0.5.0")        build at the
-    implementation("dev.tramai:tramai-structured:0.5.0")      pinned commit
-    implementation("dev.tramai:tramai-sovereign:0.5.0")
-    implementation("dev.tramai:tramai-openai:0.5.0")          (real profile path)
+    implementation("dev.tramai:tramai-spring-boot-starter-sovereign:0.5.0")
+    implementation("dev.tramai:tramai-openai:0.5.0")   (optional real-model adapter)
 ```
 
-The version in the coordinates matches the version the pinned TramAI build
-declares for itself (`tramaiVersion=0.5.0` in its `gradle.properties`); the
-composite build substitutes the included projects. The `gradle.properties`
-field `tramaiGitCommit` records the authoritative pinned SHA.
+The starter (`tramai-spring-boot-starter-sovereign`) api-exposes the
+sovereign, security and core modules and auto-configures ALL default
+sovereign infrastructure: model registry (from `tramai.sovereign.models`),
+in-memory audit/approval/continuation stores, approval gate coordinator,
+token generator/digesters, `SovereignTramai` and `SovereignTramaiRuntime`.
+It collects `ModelProvider` beans and — since upstream tramAI PR #268 —
+`TramaiTool` Spring beans from the application context. The version in the
+coordinates matches the version the pinned TramAI build declares for itself
+(`tramaiVersion=0.5.0`); the composite build substitutes the included
+projects. `gradle.properties` field `tramaiGitCommit` records the
+authoritative pinned SHA — currently **9b56530c549ef80c0aa9f4ffb034abc1cf5d769d**
+(the merge of PR #268, sovereign-starter tool collection).
 
 ## Immutability
 
@@ -48,22 +51,8 @@ field `tramaiGitCommit` records the authoritative pinned SHA.
 
 ```bash
 git -C vendor/tramai status --short    # must be empty
-git submodule status                   # SHA must match gradle.properties
+git -C vendor/tramai rev-parse HEAD    # must equal tramaiGitCommit
 ```
-
-`./scripts/preflight` enforces both. If the submodule is accidentally
-modified, revert the changes — never commit inside it.
-
-## Updating the pinned revision (intentional, documented)
-
-1. `git -C vendor/tramai fetch origin && git -C vendor/tramai checkout <NEW-SHA>`
-2. Update `tramaiGitCommit` in `gradle.properties` (and `tramaiVersion` if it changed)
-3. Run the full deterministic test suite: `./scripts/preflight`
-4. Run the rehearsal: `./scripts/rehearse`
-5. Update this doc + README (the "Pinned TramAI revision" table)
-6. Commit the dependency revision change as its own commit
-
-Never silently follow upstream `master`.
 
 ## Offline story
 
@@ -76,5 +65,20 @@ Never silently follow upstream `master`.
 
 ## Known-good revision
 
-KTConf validated TramAI revision:
-`1ce840fac7a6319e6f1ab8f9a005f92cd2acd691` (master, PR #262 merge — Kotlin enum structured-output schema fix).
+The pinned revision is the known-good combination:
+`tramaiGitCommit=9b56530c549ef80c0aa9f4ffb034abc1cf5d769d`
+(PR #268 — sovereign starter collects `TramaiTool` beans — on top of the
+enum-schema fix from #261/#262 and the structured-output TCK from #266).
+Real-model path verified against gemma-4-12b-it:q5_k_m and gemma4:e4b
+(Ollama). The freeze tag `ktconf-2026-demo-v3` records the previous
+known-good combination; this refactor is the new stage candidate and will
+receive its own freeze tag after review.
+
+## How to repin (documented procedure — never silently)
+
+1. Create the upstream TramAI change as a PR, review it, merge it.
+2. `git -C vendor/tramai fetch && git -C vendor/tramai checkout <merge-sha>`
+3. Update `gradle.properties`: `tramaiGitCommit=<merge-sha>`
+4. `git add vendor/tramai gradle.properties && git commit`
+5. `./scripts/preflight` + `./scripts/stress-rehearse` + live stage smoke.
+6. Re-tag the freeze point.

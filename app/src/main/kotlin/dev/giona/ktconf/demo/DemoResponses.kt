@@ -4,7 +4,7 @@ import dev.tramai.core.model.FinishReason
 import dev.tramai.core.model.ModelResponse
 import dev.tramai.core.model.ToolCall
 
-/** Scripted responses backing the deterministic provider. */
+/** Input-driven responses backing the deterministic providers. */
 object DemoResponses {
 
     /** KTCONF-001: valid structured assessment for the catering invoice. */
@@ -37,8 +37,8 @@ object DemoResponses {
         """,
     )
 
-    /** Broken profile: deliberately invalid structured output — the model goes off-script. */
-    val brokenAssessment: ModelResponse = json(
+    /** KTCONF-INVALID-001: deliberately invalid structured output — the model goes off-script. */
+    val invalidOutput: ModelResponse = json(
         """
         {
           "invoiceId": "KTCONF-INVALID-001",
@@ -52,27 +52,27 @@ object DemoResponses {
         """,
     )
 
-    /** KTCONF-PAY-001, turn 1: request the HIGH-risk schedule-payment tool. */
-    val paymentToolCall: ModelResponse = ModelResponse(
+    /** KTCONF-PAY-00x, turn 1: request the HIGH-risk schedule-payment tool. */
+    fun paymentToolCall(invoiceId: String, amountCents: Long): ModelResponse = ModelResponse(
         content = "I need to schedule the payment for this invoice.",
         toolCalls = listOf(
             ToolCall(
                 id = "call-schedule-payment-ktconf",
                 name = "schedule-payment",
                 argumentsJson =
-                    """{"invoiceId":"KTCONF-PAY-001","amountCents":1840000,"currency":"EUR"}""",
+                    """{"invoiceId":"$invoiceId","amountCents":$amountCents,"currency":"EUR"}""",
             ),
         ),
         finishReason = FinishReason.OTHER,
     )
 
-    /** KTCONF-PAY-001, turn 2 (after the tool result): the typed assessment. */
-    val payAssessment: ModelResponse = json(
+    /** KTCONF-PAY-00x, turn 2 (after the tool result): the typed assessment. */
+    fun payAssessment(invoiceId: String, amountCents: Long): ModelResponse = json(
         """
         {
-          "invoiceId": "KTCONF-PAY-001",
+          "invoiceId": "$invoiceId",
           "supplierName": "KTConf AV & Stage Services BV",
-          "amountCents": 1840000,
+          "amountCents": $amountCents,
           "currency": "EUR",
           "risk": "HIGH",
           "recommendedAction": "SCHEDULE_PAYMENT",

@@ -1,10 +1,28 @@
-spring:
-  application:
-    name: ktconf-typed-ai-boundaries
-
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
 
-logging:
-  level:
-    root: WARN
+tramai:
+  sovereign:
+    enabled: true
+
+    allowed-models:
+      - local-invoice-model
+      - cloud-invoice-model
+
+    allowed-providers:
+      - local-provider
+      - cloud-provider
+
+    provider-zones:
+      local-provider: LOCAL
+      cloud-provider: GLOBAL_CLOUD
+
+    models:
+      local-invoice-model: local-provider
+      cloud-invoice-model: cloud-provider
+
+    allowed-tools:
+      - schedule-payment
+
+    allowed-permissions:
+      - payment.schedule

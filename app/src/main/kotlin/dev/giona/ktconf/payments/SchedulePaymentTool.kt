@@ -12,6 +12,7 @@ import dev.tramai.core.policy.RiskLevel
 import dev.tramai.core.policy.ToolSecurityMetadata
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
+import org.springframework.stereotype.Component
 
 /**
  * In-memory payment ledger with exactly-once idempotency.
@@ -20,6 +21,7 @@ import kotlin.reflect.KClass
  * so approval resume cannot double-schedule a payment within this demo's
  * single-process ledger (same idempotency key → one entry).
  */
+@Component
 class InMemoryPaymentLedger {
     private val executions = ConcurrentHashMap<String, SchedulePaymentResult>()
 
@@ -40,6 +42,10 @@ class InMemoryPaymentLedger {
 /**
  * HIGH-risk payment tool that requires human approval before execution.
  *
+ * This is a normal Spring bean implementing [TramaiTool]. The sovereign
+ * starter collects it automatically (upstream tramAI PR #268) — the
+ * conference application does NOT register it with the runtime manually.
+ *
  * The security metadata is part of the TOOL, not of conference code:
  * - permission = payment.schedule
  * - risk = HIGH  (sovereign policy: approvals required for HIGH+)
@@ -48,6 +54,7 @@ class InMemoryPaymentLedger {
  * - managed network egress = DENY
  * - audit = FULL
  */
+@Component
 class SchedulePaymentTool(
     private val ledger: InMemoryPaymentLedger,
 ) : TramaiTool<SchedulePaymentInput, SchedulePaymentResult> {

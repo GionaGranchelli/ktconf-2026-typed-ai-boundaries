@@ -19,11 +19,14 @@ val tramaiVersion: String by project
 
 dependencies {
     implementation(platform("dev.tramai:tramai-bom:${tramaiVersion}"))
-    implementation("dev.tramai:tramai-core:${tramaiVersion}")
-    implementation("dev.tramai:tramai-engine:${tramaiVersion}")
-    implementation("dev.tramai:tramai-security:${tramaiVersion}")
-    implementation("dev.tramai:tramai-structured:${tramaiVersion}")
-    implementation("dev.tramai:tramai-sovereign:${tramaiVersion}")
+    // The sovereign Spring Boot starter owns ALL default sovereign
+    // infrastructure (model registry, audit/approval/continuation stores,
+    // approval gate coordinator, digesters, SovereignTramaiRuntime) and
+    // collects ModelProvider + TramaiTool beans from the application
+    // context (upstream tramAI PR #268).
+    implementation("dev.tramai:tramai-spring-boot-starter-sovereign:${tramaiVersion}")
+    // OpenAI-compatible provider adapter — used only for the OPTIONAL
+    // real-model path (KTCONF_DEMO_LOCAL_BASE_URL set).
     implementation("dev.tramai:tramai-openai:${tramaiVersion}")
 
     implementation("org.springframework.boot:spring-boot-starter-web")

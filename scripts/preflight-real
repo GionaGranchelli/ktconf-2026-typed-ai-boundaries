@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Conference-morning check for the real-model path (typed --real).
-# Contract: env configured -> endpoint reachable -> model reachable ->
-# exact current binary built -> typed --real MUST produce a typed
-# InvoiceAssessment -> PASS. Independent of the deterministic ./scripts/preflight.
+# Conference-morning check for the OPTIONAL real-model path.
+# Contract: env configured -> exact current binary built -> app started with
+# the real local provider -> RESTRICTED KTCONF-001 MUST produce a typed
+# InvoiceAssessment over HTTP -> PASS.
+# Completely independent of ./scripts/preflight: this never runs unless the
+# KTCONF_DEMO_LOCAL_* vars are set explicitly.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -10,23 +12,22 @@ if [ -z "${JAVA_HOME:-}" ] && [ -d /usr/lib/jvm/java-21-openjdk-amd64 ]; then
   export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 fi
 
-: "${KTCONF_DEMO_LOCAL_BASE_URL:?KTCONF_DEMO_LOCAL_BASE_URL is required (e.g. http://localhost:11434/v1 or https://api.deepseek.com)}"
-: "${KTCONF_DEMO_LOCAL_MODEL:?KTCONF_DEMO_LOCAL_MODEL is required (e.g. gemma-4-12b-it:q5_k_m or deepseek-chat)}"
+: "${KTCONF_DEMO_LOCAL_BASE_URL:?KTCONF_DEMO_LOCAL_BASE_URL is required (e.g. http://localhost:11434/v1)}"
+: "${KTCONF_DEMO_LOCAL_MODEL:?KTCONF_DEMO_LOCAL_MODEL is required (e.g. gemma-4-12b-it:q5_k_m)}"
 
 base="${KTCONF_DEMO_LOCAL_BASE_URL%/}"
-echo "base URL   : $base"
+echo "base URL   : $base (declared LOCAL by operator assertion, never by URL)"
 echo "model      : $KTCONF_DEMO_LOCAL_MODEL"
 
-# Auth: honor the same key the demo uses (never echoed).
+# Endpoint reachable: some servers serve /models at root, some under /v1.
 curl_args=(-sf --max-time 10)
 if [ -n "${KTCONF_DEMO_LOCAL_API_KEY:-}" ]; then
-  curl_args+=(-H "Authorization: Bearer $KTCONF_DEMO_LOCAL_API_KEY")
+  curl_args+=(-H "Authorization: Bearer ${KTCONF_DEMO_LOCAL_API_KEY}")
   echo "auth       : bearer token configured"
 else
   echo "auth       : none"
 fi
 
-# Endpoint reachable: some servers serve /models at root, some under /v1.
 models_url=""
 for candidate in "$base/models" "$base/v1/models"; do
   if curl "${curl_args[@]}" "$candidate" >/dev/null 2>&1; then
@@ -40,27 +41,57 @@ if [ -z "$models_url" ]; then
 fi
 echo "endpoint   : reachable ($models_url)"
 
-# Model reachable: the configured name must be served (literal match).
 if ! curl "${curl_args[@]}" "$models_url" | grep -Fq -- "$KTCONF_DEMO_LOCAL_MODEL"; then
   echo "FAIL: model '$KTCONF_DEMO_LOCAL_MODEL' not served by $models_url." >&2
   exit 1
 fi
 echo "model      : reachable"
 
-# Build the exact current binary — a preflight must prove THIS source, not a
-# stale installed distribution.
+# Build the exact current binary — a preflight must prove THIS source.
 echo "building stage binary…"
 ./gradlew :app:bootJar -q
 
-# The real requirement: the real profile must produce a typed result over
-# HTTP (RealModelTest boots a real-profile instance and calls the same
-# endpoint the talk uses). Env-gated: it activates exactly when the
-# KTCONF_DEMO_LOCAL_* vars are set, which they are here.
-if ! SPRING_PROFILES_ACTIVE=real ./gradlew :app:test --tests 'dev.giona.ktconf.RealModelTest' --rerun; then
-  echo "FAIL: real profile did not produce a typed InvoiceAssessment." >&2
+# Boot the ONE app with the real local provider and prove the typed contract.
+./scripts/stage-down
+mkdir -p .build
+env KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
+  KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
+  KTCONF_DEMO_LOCAL_API_KEY="${KTCONF_DEMO_LOCAL_API_KEY:-}" \
+  SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
+  > .build/stage-real.log 2>&1 &
+echo "$!" > .build/stage.pid
+
+cleanup() { ./scripts/stage-down >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+for i in $(seq 1 60); do
+  if ! kill -0 "$(cat .build/stage.pid)" 2>/dev/null; then
+    echo "FAIL: app died during real-model startup." >&2
+    tail -20 .build/stage-real.log >&2
+    exit 1
+  fi
+  if curl -sf --max-time 2 "http://localhost:8080/governance/healthz" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+payload='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
+http_code="$(curl -s -o .build/real-response.json -w '%{http_code}' --max-time 90 \
+  -X POST "http://localhost:8080/invoices/analyze" \
+  -H 'Content-Type: application/json' -d "$payload")"
+
+if [ "$http_code" != "200" ]; then
+  echo "FAIL: real-model analyze returned HTTP $http_code (expected 200)." >&2
+  cat .build/real-response.json >&2
   exit 1
 fi
-echo "real-model HTTP: typed assessment OK"
+if ! grep -Fq '"invoiceId":"KTCONF-001"' .build/real-response.json; then
+  echo "FAIL: real-model response is not a typed InvoiceAssessment." >&2
+  cat .build/real-response.json >&2
+  exit 1
+fi
 
+echo "real-model HTTP: typed assessment OK"
 echo
-echo "preflight-real OK — real-model path ready."
+echo "preflight-real OK — real-model path ready (same typed contract, real LLM)."

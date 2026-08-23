@@ -1,82 +1,65 @@
 #!/usr/bin/env bash
-# Bring the conference stage up: the SAME bootJar, one profile per port.
-#   demo :8080   broken :8081   cloud-routing :8082   real :8083 (optional)
-# All instances start BEFORE the talk and stay up; the talk never restarts
-# Spring Boot.
+# Bring the conference stage up: ONE application, ONE process, ONE port.
+# The deterministic oracle is sacred: KTCONF_DEMO_LOCAL_* are UNSET for the
+# launched process so the stage always runs the deterministic providers,
+# regardless of what is running on the network.
 #
-# Hardened sequence: stop stale instances -> verify ports are free -> ALWAYS
-# build the current bootJar -> start instances -> verify every launched PID
-# stays alive -> healthz must report the EXPECTED PROFILE on its port (a
-# stale process on the same port can never produce a false PASS).
+# Hardened sequence: stop stale instances -> verify port 8080 free -> verify
+# the pinned submodule -> ALWAYS build the current bootJar -> start ONE app
+# -> verify the launched PID stays alive -> /healthz must answer.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ./scripts/stage-down
 
+expected="$(grep '^tramaiGitCommit=' gradle.properties | cut -d= -f2)"
+actual="$(git -C vendor/tramai rev-parse HEAD 2>/dev/null || echo MISSING)"
+if [ "$expected" != "$actual" ]; then
+  echo "FAIL: vendor/tramai is not at the pinned revision ($expected)." >&2
+  exit 1
+fi
+
 echo "building current bootJar…"
 ./gradlew :app:bootJar -q
 JAR="app/build/libs/ktconf-demo.jar"
 
-# Ports must be free before we start anything (stage-down kills, then java
-# needs a moment to release the socket).
-for port in 8080 8081 8082 8083; do
-  for i in $(seq 1 30); do
-    if ! curl -sf --max-time 1 "http://localhost:$port/governance/healthz" >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
-  if curl -sf --max-time 1 "http://localhost:$port/governance/healthz" >/dev/null 2>&1; then
-    echo "FAIL: port $port still responds after stage-down." >&2
-    exit 1
+# Port 8080 must be free before we start (stage-down kills, then java needs
+# a moment to release the socket).
+for i in $(seq 1 30); do
+  if ! curl -sf --max-time 1 "http://localhost:8080/governance/healthz" >/dev/null 2>&1; then
+    break
   fi
+  sleep 1
 done
-echo "ports 8080-8083 free"
+if curl -sf --max-time 1 "http://localhost:8080/governance/healthz" >/dev/null 2>&1; then
+  echo "FAIL: port 8080 still responds after stage-down." >&2
+  exit 1
+fi
+echo "port 8080 free"
 
 mkdir -p .build
-rm -f .build/stage.pids
+rm -f .build/stage.pid
 
-start() { # $1=profile  $2=port
-  echo "starting $1 on :$2 …"
-  SPRING_PROFILES_ACTIVE="$1" SERVER_PORT="$2" nohup java -jar "$JAR" \
-    > ".build/stage-$1.log" 2>&1 &
-  echo "$!" >> .build/stage.pids
-}
+echo "starting ktconf-demo.jar on :8080 (deterministic providers) …"
+# Deterministic means deterministic: never let a real-model env var leak
+# into the stage process and swap the local provider for a network client.
+env -u KTCONF_DEMO_LOCAL_BASE_URL -u KTCONF_DEMO_LOCAL_MODEL -u KTCONF_DEMO_LOCAL_API_KEY \
+  SERVER_PORT=8080 nohup java -jar "$JAR" > .build/stage.log 2>&1 &
+echo "$!" > .build/stage.pid
+PID="$(cat .build/stage.pid)"
 
-start demo 8080
-start broken 8081
-start cloud-routing 8082
-real_started=0
-if [ -n "${KTCONF_DEMO_LOCAL_BASE_URL:-}" ]; then
-  start real 8083
-  real_started=1
-fi
-
-# Wait until the EXPECTED profile answers on each port, and the PID we
-# launched is the one that is still alive.
-wait_for() { # $1=profile  $2=port  $3=pid
-  for i in $(seq 1 60); do
-    if ! kill -0 "$3" 2>/dev/null; then
-      echo "FAIL: $1 on :$2 died during startup." >&2
-      tail -20 ".build/stage-$1.log" >&2
-      exit 1
-    fi
-    if curl -sf --max-time 2 "http://localhost:$2/governance/healthz" 2>/dev/null | grep -Fq "\"profile\":\"$1\""; then
-      echo "  $1 :$2 responding (profile verified)"
-      return 0
-    fi
-    sleep 1
-  done
-  echo "FAIL: $1 on :$2 did not report profile '$1' within 60s." >&2
-  tail -20 ".build/stage-$1.log" >&2
-  exit 1
-}
-
-wait_for demo 8080 "$(sed -n 1p .build/stage.pids)"
-wait_for broken 8081 "$(sed -n 2p .build/stage.pids)"
-wait_for cloud-routing 8082 "$(sed -n 3p .build/stage.pids)"
-[ "$real_started" = 1 ] && wait_for real 8083 "$(sed -n 4p .build/stage.pids)"
-
-echo
-echo "stage-up OK — instances are up, profiles verified, talk away."
-echo "logs in .build/stage-*.log; stop with ./scripts/stage-down"
+for i in $(seq 1 60); do
+  if ! kill -0 "$PID" 2>/dev/null; then
+    echo "FAIL: stage process died during startup." >&2
+    tail -20 .build/stage.log >&2
+    exit 1
+  fi
+  if curl -sf --max-time 2 "http://localhost:8080/governance/healthz" 2>/dev/null | grep -Fq '"status":"ok"'; then
+    echo "  demo :8080 responding"
+    exit 0
+  fi
+  sleep 1
+done
+echo "FAIL: app did not report healthy within 60s." >&2
+tail -20 .build/stage.log >&2
+exit 1

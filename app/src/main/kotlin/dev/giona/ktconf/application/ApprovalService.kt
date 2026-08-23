@@ -2,11 +2,11 @@ package dev.giona.ktconf.application
 
 import dev.giona.ktconf.domain.InvoiceAssessment
 import dev.giona.ktconf.payments.InMemoryPaymentLedger
+import dev.tramai.core.approval.ApprovalStore
 import dev.tramai.core.approval.ApprovalTransition
 import dev.tramai.core.exception.ApprovalAuthorizationException
-import dev.tramai.core.exception.ApprovalTokenRejectedException
+import dev.tramai.core.exception.ApprovalNotFoundException
 import dev.tramai.engine.ResumeApprovalCommand
-import dev.tramai.security.approval.InMemoryApprovalStore
 import dev.tramai.sovereign.SovereignTramaiRuntime
 import org.springframework.stereotype.Service
 
@@ -15,7 +15,10 @@ import org.springframework.stereotype.Service
  * mechanism. The registry supplies the server-side challenge token; nothing
  * token-shaped ever crosses the REST boundary.
  *
- * Deny preserves the v2 oracle: transition DENIED → resume attempted →
+ * The approval store and the runtime are beans auto-configured by the
+ * sovereign starter — the application only orchestrates the HTTP lifecycle.
+ *
+ * Deny preserves the v3 oracle: transition DENIED → resume attempted →
  * TramAI itself refuses continuation ([ApprovalAuthorizationException]) →
  * payment remains 0. That proves the RUNTIME refused, not merely that we
  * skipped execution.
@@ -23,7 +26,7 @@ import org.springframework.stereotype.Service
 @Service
 class ApprovalService(
     private val registry: PendingApprovalRegistry,
-    private val approvalStore: InMemoryApprovalStore,
+    private val approvalStore: ApprovalStore,
     private val runtime: SovereignTramaiRuntime,
     private val ledger: InMemoryPaymentLedger,
 ) {

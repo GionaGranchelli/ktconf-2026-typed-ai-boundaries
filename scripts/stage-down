@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Stop every stage instance started by ./scripts/stage-up.
+# Stop the ONE stage application started by ./scripts/stage-up (PID file
+# only — no broad pkill patterns).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [ -f .build/stage.pids ]; then
-  xargs kill < .build/stage.pids 2>/dev/null || true
-  rm -f .build/stage.pids
-  echo "stage-down: instances stopped."
+if [ -f .build/stage.pid ]; then
+  pid="$(cat .build/stage.pid)"
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid"
+    echo "stage-down: stopped stage process $pid."
+  else
+    echo "stage-down: pid $pid not running."
+  fi
+  rm -f .build/stage.pid
 else
-  pkill -f "ktconf-demo.jar" 2>/dev/null || true
-  echo "stage-down: no pid file; killed lingering ktconf-demo.jar instances (if any)."
+  echo "stage-down: no pid file; nothing to stop."
 fi

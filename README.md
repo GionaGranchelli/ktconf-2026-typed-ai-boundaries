@@ -1,142 +1,122 @@
 # KTConf 2026 — Typed AI Boundaries
 
-**«The model may be nondeterministic. The boundaries around it should not be.»**
+*"The model may be nondeterministic. The boundaries around it should not be."*
 
-Standalone conference demo repository for the KTConf 2026 talk
-*Typed AI Boundaries: A Kotlin Approach to Production AI Systems*.
+An ordinary Spring Boot application demonstrating TramAI: one process, one
+port, one governed runtime, two model routes — and a security boundary that
+holds even when the application's own routing is wrong.
 
-This repository is **not** part of the TramAI source tree. It is an external
-Kotlin/Spring Boot application that consumes
-[TramAI](https://github.com/GionaGranchelli/tramAI) as an immutable, pinned
-library dependency — exactly the way a backend engineer integrating TramAI
-into a real application would experience it.
+## The demo in one paragraph
 
-The demo is an ordinary Kotlin backend. Watch what happens when AI is treated
-as governed infrastructure rather than magic.
+The application receives an invoice with an **explicit classification**.
+A tiny `when` in `InvoiceService` chooses the normal route: RESTRICTED →
+local model, everything else → cloud model. TramAI then **independently
+enforces** whether that route is allowed for the classification — and this
+repo proves it with a deliberately misrouted request that TramAI must stop
+before any provider is invoked.
 
-## What the demo proves
+> Classification is supplied. Routing chooses. Policy enforces.
+>
+> The application chooses a route. TramAI decides whether that route is allowed.
 
-One application, one bootable jar, four runtime configurations. The same
-`InvoiceApplicationService` runs behind every profile — only the model
-infrastructure bean differs.
+## Understand the integration in four files
 
-| Instance | Profile | Port | Proves |
-|---|---|---|---|
-| Demo | `demo` | `:8080` | valid model output → typed `InvoiceAssessment`; HIGH-risk tool suspends → human approve/deny; hash-chained evidence |
-| Broken | `broken` | `:8081` | garbage model output rejected by the engine (422), zero side effects — the boundary holds, not the prompt |
-| Cloud-routing | `cloud-routing` | `:8082` | RESTRICTED input denied on a `GLOBAL_CLOUD` provider *before invocation* (counter stays 0) |
-| Real (optional) | `real` | `:8083` | a real LLM behind the same typed input/output contract, declared LOCAL by operator assertion |
+| # | File | What it shows |
+|---|---|---|
+| 1 | `app/src/main/resources/application.yml` | all policy configuration: allowed models, providers, trust zones, tools, permissions |
+| 2 | `app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt` | the typed `@AiService` boundary — `analyzeLocal` / `analyzeCloud` |
+| 3 | `app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt` | routing: `when (classification) RESTRICTED -> local else -> cloud` |
+| 4 | `app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt` | tool = authority: permission, risk, approval mode on the tool itself |
 
-Structured output, policy routing, tool governance, approval/continuation,
-and audit/evidence are **real TramAI behavior**; the model responses and the
-payment side effect are deterministic simulations (and the real profile
-replaces the scripted model with an actual LLM).
+Everything else is ordinary Spring infrastructure (providers, controllers,
+a small in-memory approval registry for the HTTP lifecycle).
 
-## Quick start (clean machine)
+## One app, two routes
 
-Requirements: JDK 21, Git, network for the first preparation only.
+```
+ONE SPRING APP (one process, one port 8080)
+          │
+   explicit classification
+          │
+   application routing
+     /          \
+    /            \
+local model    cloud model
+ LOCAL        GLOBAL_CLOUD
+    \            /
+     \          /
+    TramAI policy
+          │
+       provider
+          │
+  typed structured result
+```
+
+- `local-invoice-model` → `local-provider` → trust zone **LOCAL**
+- `cloud-invoice-model` → `cloud-provider` → trust zone **GLOBAL_CLOUD**
+
+Both live in the same Spring context and the same `SovereignTramaiRuntime`.
+The sovereign starter (`tramai-spring-boot-starter-sovereign`) auto-configures
+the runtime, the model registry, approval/continuation/audit stores and the
+approval gate; it collects the `ModelProvider` beans and the
+`SchedulePaymentTool` bean from the application context. The conference
+application constructs **zero** TramAI infrastructure.
+
+TramAI 0.6.x **validates** whether the selected route is allowed. It does
+**not** automatically choose LOCAL for RESTRICTED input — policy-aware
+provider selection is future (0.7) roadmap, deliberately not implemented here.
+
+## Quick start
 
 ```bash
 git clone --recursive https://github.com/GionaGranchelli/ktconf-2026-typed-ai-boundaries
 cd ktconf-2026-typed-ai-boundaries
-./scripts/preflight         # verifies pinned TramAI revision + runs the full test suite + builds the jar
-./scripts/stage-up          # starts demo :8080, broken :8081, cloud-routing :8082 (waits for each)
-./scripts/demo typed        # POST /invoices/analyze -> typed InvoiceAssessment, HTTP 200
+./scripts/preflight     # pin check + full deterministic suite + bootJar
+./scripts/stage-up      # ONE app on :8080
 ```
 
-After `preflight` and `stage-up`, the demo runs **without** internet, GitHub,
-Maven Central, cloud providers, Tailscale, Docker, or a database — a stage
-laptop can go into airplane mode. `scripts/stage-down` stops the instances.
-
-### The stable stage API
-
-`./scripts/demo <command>` curls the running instances (never restarts them):
-
-```
-./scripts/demo typed           # demo :8080, KTCONF-001         -> 200 typed
-./scripts/demo real            # real :8083, KTCONF-001         -> 200 typed (when started)
-./scripts/demo invalid         # broken :8081, KTCONF-001       -> 422 structured-output-rejected
-./scripts/demo restricted      # cloud :8082, KTCONF-RESTRICTED -> 403 classification-routing-blocked
-./scripts/demo payment         # demo :8080, KTCONF-PAY-001     -> 202 AWAITING_APPROVAL
-./scripts/demo approve <id>    # POST /approvals/<id>/approve   -> 200, payment 0 -> 1
-./scripts/demo deny <id>       # POST /approvals/<id>/deny      -> 200 DENIED, payment stays 0
-./scripts/demo evidence <id>   # GET /approvals/<id>/evidence   -> 4-event chain, verified
-./scripts/demo stats           # GET /governance/stats          -> cloud + payment counters
-./scripts/demo healthz [port]  # GET /governance/healthz        -> {status, profile}
-```
-
-The approval token never leaves the server; the API only exposes
-`approvalId` + `workflowRunId`. See [docs/DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md)
-for the conference narrative.
-
-## Real-model path (optional, opt-in)
+Then, on the stage:
 
 ```bash
-export KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1   # LOCAL/private endpoint you intentionally trust
-export KTCONF_DEMO_LOCAL_MODEL=qwen3:8b                        # model name
-./scripts/stage-up            # also starts real :8083
-./scripts/demo real           # the real LLM behind the typed boundary
-./scripts/preflight-real      # conference-morning check: endpoint -> model -> real-profile test must pass
+./scripts/demo typed            # PUBLIC  KTCONF-001   → cloud route   → 200 typed
+./scripts/demo restricted       # RESTRICTED KTCONF-001 → local route  → 200 typed
+./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, cloud NOT invoked
+./scripts/demo invalid          # PUBLIC  KTCONF-INVALID → 422, no side effects
+./scripts/demo payment          # RESTRICTED KTCONF-PAY → 202, awaiting approval
+./scripts/demo approve <id>     # resume → payment executed exactly once
+./scripts/demo approve <id>     # again → 409, payment still 1
+./scripts/demo deny <id>        # deny → no payment, continuation refused
+./scripts/demo evidence <id>    # 4 ordered audit events, chain valid
+./scripts/demo stats            # cloudInvocationCount / paymentExecutionCount
 ```
 
-The `real` profile is the only real-model path; every governance scenario
-stays deterministic. The endpoint is declared LOCAL by operator assertion —
-do not point it at a public cloud API. See
-[docs/CLAIMS-BOUNDARY.md](docs/CLAIMS-BOUNDARY.md).
+Key line for the room: *"The HTTP request is finished. The workflow isn't."*
+Then: *"And suddenly this doesn't look like an AI problem anymore. It looks
+like distributed systems."*
 
-## Rehearsal gates
+## What is real vs simulated
 
-```bash
-./scripts/rehearse          # full deterministic suite, fresh contexts
-./scripts/stress-rehearse   # the conference gate: full oracle 20/20 per profile
-```
+- **Real TramAI behavior**: structured-output validation, classification-aware
+  provider routing (denial BEFORE invocation), tool governance, approval
+  suspension/continuation, hash-chained audit evidence.
+- **Deterministic simulation**: the model responses (input-driven scripted
+  providers) and the payment side effect (in-memory ledger).
+- **Optional real model**: setting `KTCONF_DEMO_LOCAL_BASE_URL` +
+  `KTCONF_DEMO_LOCAL_MODEL` swaps the local provider for a real
+  OpenAI-compatible endpoint, proving the same typed contract works against
+  a real LLM. It is declared LOCAL by **operator assertion**, never by URL.
+  The deterministic stage oracle never sets these variables.
 
-`stress-rehearse` runs the complete deterministic oracle twenty times on
-fresh application contexts per profile (demo: typed → deny → approve →
-duplicate → evidence; broken: 422; cloud: 403 + zero invocations) and
-verifies the result XMLs — `60 / 60 PASS`.
+The `invalid` proof runs through the SAME application and SAME runtime:
+nothing about the application changed, only the model response.
 
-## Pinned TramAI revision
+## History & fallback
 
-| | |
-|---|---|
-| Commit | `1ce840fac7a6319e6f1ab8f9a005f92cd2acd691` |
-| Artifact version | `0.5.0` (self-declared by the pinned build) |
-| Consumed via | Git submodule `vendor/tramai` + Gradle composite build |
+- `ktconf-2026-demo-v3` — the frozen four-profile Spring implementation
+  (immutable fallback; this refactor replaces it as the stage candidate).
+- `ktconf-2026-demo-v2` — the frozen CLI implementation (historical).
 
-The submodule is **read-only**: if the demo exposes a defect or missing
-capability in TramAI, the conference repository does not patch around it —
-the defect is reported as a separate upstream TramAI task.
+## More
 
-See [docs/TRAMAI-INTEGRATION.md](docs/TRAMAI-INTEGRATION.md) for the
-dependency strategy, upgrade procedure, and offline story.
-
-## Repository layout
-
-```
-app/                 conference application (Kotlin/JVM, JDK 21, Spring Boot, Gradle)
-  src/main/kotlin/dev/giona/ktconf/
-    domain/          fictional invoice domain + demo fixtures
-    ai/              @AiService boundaries (compile-time typed surface)
-    application/     InvoiceApplicationService + InvoiceAnalyzer port,
-                     PendingApprovalRegistry, ApprovalService, EvidenceService
-    api/             REST controllers + error mapping (200/202/403/409/422)
-    governance/      Spring profiles -> TramAI infrastructure beans
-    demo/            scripted deterministic provider + responses
-    payments/        schedule-payment tool + exactly-once ledger
-  src/main/resources/ application.yml
-  src/test/kotlin/   semantic tests (one per proven behavior) + 20/20 rehearsals
-docs/                architecture, demo script, integration, claims
-                     (start at docs/README.md — index + FAQ)
-scripts/             demo | stage-up | stage-down | preflight |
-                     preflight-real | rehearse | stress-rehearse
-vendor/tramai/       pinned TramAI submodule (read-only)
-```
-
-## Core rule
-
-> If the demo exposes a defect or missing capability in TramAI, do not patch
-> TramAI from this repository. Stop and report a separate upstream TramAI task.
-
-See [docs/CLAIMS-BOUNDARY.md](docs/CLAIMS-BOUNDARY.md) for exactly what this
-demo does and does not claim.
+- [docs/](docs/README.md) — full documentation index, including a
+  zero-context TramAI walkthrough (`docs/TRAMAI-PRIMER.md`).
