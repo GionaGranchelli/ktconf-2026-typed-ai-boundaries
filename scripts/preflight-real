@@ -39,19 +39,14 @@ fi
 echo "building stage binary…"
 ./gradlew :app:bootJar -q
 
-# Boot the ONE app with the configured real providers.
+# Boot the ONE app with the real providers. The Java child simply INHERITS
+# whatever provider variables the operator supplied — nothing is unset or
+# reconstructed here, so:
+#   - a supplied KTCONF_DEMO_CLOUD_API_KEY actually reaches the app
+#   - omitted variables fall through to the YAML defaults (DeepSeek
+#     base-url/model, Qwen GGUF model) instead of being forced to ""
 ./scripts/stage-down
 mkdir -p .build
-# Never export empty keys as blank bearer tokens.
-api_key_local="${KTCONF_DEMO_LOCAL_API_KEY:-}"
-api_key_cloud="${KTCONF_DEMO_CLOUD_API_KEY:-}"
-unset KTCONF_DEMO_LOCAL_API_KEY KTCONF_DEMO_CLOUD_API_KEY
-[ -n "$api_key_local" ] && KTCONF_DEMO_LOCAL_API_KEY="$api_key_local"
-[ -n "$api_key_cloud" ] && KTCONF_DEMO_CLOUD_API_KEY="$api_key_cloud"
-KTCONF_DEMO_LOCAL_BASE_URL="${KTCONF_DEMO_LOCAL_BASE_URL:-}" \
-KTCONF_DEMO_LOCAL_MODEL="${KTCONF_DEMO_LOCAL_MODEL:-}" \
-KTCONF_DEMO_CLOUD_BASE_URL="${KTCONF_DEMO_CLOUD_BASE_URL:-}" \
-KTCONF_DEMO_CLOUD_MODEL="${KTCONF_DEMO_CLOUD_MODEL:-}" \
 SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
   > .build/stage-real.log 2>&1 &
 echo "$!" > .build/stage.pid
