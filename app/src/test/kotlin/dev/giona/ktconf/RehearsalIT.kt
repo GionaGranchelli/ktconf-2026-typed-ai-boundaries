@@ -52,13 +52,13 @@ class RehearsalIT {
         // 1. Typed: PUBLIC → cloud route → typed result.
         val typed = analyze(DemoRequests.typed())
         assertEquals(HttpStatus.OK, typed.statusCode)
-        assertEquals("cloud-invoice-model", typed.body!!.selectedModel)
+        assertEquals("CLOUD", typed.body!!.selectedRoute.name)
         assertEquals("KTCONF-001", typed.body!!.assessment.invoiceId)
 
         // 2. Restricted: RESTRICTED → local route → typed result, cloud untouched.
         val restricted = analyze(DemoRequests.restricted())
         assertEquals(HttpStatus.OK, restricted.statusCode)
-        assertEquals("local-invoice-model", restricted.body!!.selectedModel)
+        assertEquals("LOCAL", restricted.body!!.selectedRoute.name)
         assertEquals(1, stats().cloudInvocationCount, "cloud invoked exactly once (the PUBLIC call)")
 
         // 3. Forced RESTRICTED → cloud: policy denies BEFORE provider invocation.
@@ -91,7 +91,6 @@ class RehearsalIT {
         val denied = post("/approvals/$deniedId/deny", null, DenyView::class.java)
         assertEquals(HttpStatus.OK, denied.statusCode)
         assertEquals("DENIED", (denied.body as DenyView).status)
-        assertEquals(0, (denied.body as DenyView).paymentExecutionCount)
         val resumeAfterDeny = post("/approvals/$deniedId/approve", null, ErrorResponse::class.java)
         assertEquals(HttpStatus.CONFLICT, resumeAfterDeny.statusCode)
         assertEquals(0, stats().paymentExecutionCount)

@@ -9,15 +9,22 @@ holds even when the application's own routing is wrong.
 ## The demo in one paragraph
 
 The application receives an invoice with an **explicit classification**.
-A tiny `when` in `InvoiceService` chooses the normal route: RESTRICTED →
-local model, everything else → cloud model. TramAI then **independently
-enforces** whether that route is allowed for the classification — and this
-repo proves it with a deliberately misrouted request that TramAI must stop
-before any provider is invoked.
+An exhaustive `when` in `InvoiceService` chooses the normal route:
+PUBLIC/INTERNAL → cloud model, CONFIDENTIAL/RESTRICTED → local model.
+TramAI then **independently enforces** whether that route is allowed for the
+classification — and this repo proves it with a deliberately misrouted
+request that TramAI must stop before any provider is invoked (cloud
+invocation delta = 0).
 
 > Classification is supplied. Routing chooses. Policy enforces.
 >
 > The application chooses a route. TramAI decides whether that route is allowed.
+
+Note: the request's classification represents a **trusted upstream
+governance fact** in this demo — the caller is expected to be a trusted
+component that already decided the classification. TramAI enforces what the
+classification *implies*; it is not a substitute for an external
+classification/DLP step.
 
 ## Understand the integration in four files
 
@@ -78,9 +85,9 @@ cd ktconf-2026-typed-ai-boundaries
 Then, on the stage:
 
 ```bash
-./scripts/demo typed            # PUBLIC  KTCONF-001   → cloud route   → 200 typed
-./scripts/demo restricted       # RESTRICTED KTCONF-001 → local route  → 200 typed
-./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, cloud NOT invoked
+./scripts/demo typed            # PUBLIC  KTCONF-001   → cloud route  → 200 typed
+./scripts/demo restricted       # RESTRICTED KTCONF-001 → local route → 200 typed
+./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, delta 0
 ./scripts/demo invalid          # PUBLIC  KTCONF-INVALID → 422, no side effects
 ./scripts/demo payment          # RESTRICTED KTCONF-PAY → 202, awaiting approval
 ./scripts/demo approve <id>     # resume → payment executed exactly once
@@ -101,11 +108,13 @@ like distributed systems."*
   suspension/continuation, hash-chained audit evidence.
 - **Deterministic simulation**: the model responses (input-driven scripted
   providers) and the payment side effect (in-memory ledger).
-- **Optional real model**: setting `KTCONF_DEMO_LOCAL_BASE_URL` +
-  `KTCONF_DEMO_LOCAL_MODEL` swaps the local provider for a real
-  OpenAI-compatible endpoint, proving the same typed contract works against
-  a real LLM. It is declared LOCAL by **operator assertion**, never by URL.
-  The deterministic stage oracle never sets these variables.
+- **Optional real model**: `KTCONF_DEMO_LOCAL_BASE_URL` +
+  `KTCONF_DEMO_LOCAL_MODEL` swap the local provider for a real
+  OpenAI-compatible endpoint (`ModelAliasProvider` maps the logical model
+  name to the real endpoint model id). The proof is `./scripts/preflight-real`,
+  explicitly opt-in and off-stage. `stage-up` always starts the deterministic
+  app and **unsets** the real-model variables. The endpoint is declared
+  LOCAL by **operator assertion**, never by URL.
 
 The `invalid` proof runs through the SAME application and SAME runtime:
 nothing about the application changed, only the model response.

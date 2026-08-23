@@ -54,11 +54,21 @@ echo "building stage binary…"
 # Boot the ONE app with the real local provider and prove the typed contract.
 ./scripts/stage-down
 mkdir -p .build
-env KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
-  KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
-  KTCONF_DEMO_LOCAL_API_KEY="${KTCONF_DEMO_LOCAL_API_KEY:-}" \
-  SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
-  > .build/stage-real.log 2>&1 &
+# Only set the API key when it was supplied — an empty value must NOT become
+# a blank bearer token (the provider defaults to a local-dev placeholder).
+if [ -n "${KTCONF_DEMO_LOCAL_API_KEY:-}" ]; then
+  env KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
+    KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
+    KTCONF_DEMO_LOCAL_API_KEY="$KTCONF_DEMO_LOCAL_API_KEY" \
+    SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
+    > .build/stage-real.log 2>&1 &
+else
+  env KTCONF_DEMO_LOCAL_BASE_URL="$KTCONF_DEMO_LOCAL_BASE_URL" \
+    KTCONF_DEMO_LOCAL_MODEL="$KTCONF_DEMO_LOCAL_MODEL" \
+    -u KTCONF_DEMO_LOCAL_API_KEY \
+    SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar \
+    > .build/stage-real.log 2>&1 &
+fi
 echo "$!" > .build/stage.pid
 
 cleanup() { ./scripts/stage-down >/dev/null 2>&1 || true; }

@@ -1,8 +1,9 @@
 package dev.giona.ktconf.api
 
 import dev.giona.ktconf.application.AnalyzeOutcome
-import dev.giona.ktconf.application.AnalyzeInvoiceRequest
+import dev.giona.ktconf.application.InvoiceRoute
 import dev.giona.ktconf.application.InvoiceService
+import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.domain.InvoiceAssessment
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -31,8 +32,7 @@ class InvoiceController(
             is AnalyzeOutcome.Typed -> ResponseEntity.ok(
                 AnalyzeResponse(
                     assessment = outcome.assessment,
-                    selectedModel = outcome.selectedModel,
-                    selectedProviderZone = outcome.selectedProviderZone,
+                    selectedRoute = outcome.selectedRoute,
                 ),
             )
 
@@ -61,8 +61,7 @@ class InvoiceController(
 /** 200 envelope: the typed result plus the route the application chose. */
 data class AnalyzeResponse(
     val assessment: InvoiceAssessment,
-    val selectedModel: String,
-    val selectedProviderZone: String,
+    val selectedRoute: InvoiceRoute,
 )
 
 data class AwaitingApprovalResponse(

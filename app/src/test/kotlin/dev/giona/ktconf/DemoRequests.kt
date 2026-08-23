@@ -49,7 +49,6 @@ object DemoRequests {
 data class DenyView(
     val approvalId: String,
     val status: String,
-    val paymentExecutionCount: Int,
 )
 
 /** HTTP view of the evidence response. */

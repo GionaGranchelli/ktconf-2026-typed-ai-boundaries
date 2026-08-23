@@ -34,32 +34,36 @@ class ProvidersConfiguration {
     fun localProvider(environment: Environment): ModelProvider {
         val baseUrl = environment.getProperty("KTCONF_DEMO_LOCAL_BASE_URL")
         if (baseUrl != null) {
-            val model = environment.getProperty("KTCONF_DEMO_LOCAL_MODEL")
-                ?: throw IllegalStateException("KTCONF_DEMO_LOCAL_MODEL is required when KTCONF_DEMO_LOCAL_BASE_URL is set")
-            return realLocalProvider(environment, baseUrl, model)
+            return realLocalProvider(environment, baseUrl)
         }
         return DeterministicProvider(providerId = "local-provider", script = ::localScript)
     }
 
+    // Deliberately the concrete type: GovernanceStatsController injects this
+    // bean to expose its invocation counter on /governance/stats.
     @Bean
-    fun cloudProvider(): ModelProvider =
+    fun cloudProvider(): DeterministicProvider =
         DeterministicProvider(providerId = "cloud-provider", script = ::cloudScript)
 
     private fun realLocalProvider(
         environment: Environment,
         baseUrl: String,
-        model: String,
-    ): OpenAiCompatibleProvider {
-        // The model name is passed through the environment; the provider
-        // itself is declared LOCAL by the operator (application.yml).
-        // `model` is intentionally referenced so a missing value fails fast.
-        if (model.isBlank()) {
-            throw IllegalStateException("KTCONF_DEMO_LOCAL_MODEL must not be blank")
-        }
-        return OpenAiCompatibleProvider.bearerToken(
-            bearerToken = environment.getProperty("KTCONF_DEMO_LOCAL_API_KEY") ?: "local-dev",
-            baseUrl = baseUrl,
-            providerName = "local-provider",
+    ): ModelProvider {
+        val actualModel = environment.getProperty("KTCONF_DEMO_LOCAL_MODEL")
+            ?: throw IllegalStateException(
+                "KTCONF_DEMO_LOCAL_MODEL is required when KTCONF_DEMO_LOCAL_BASE_URL is set",
+            )
+        val apiKey = environment.getProperty("KTCONF_DEMO_LOCAL_API_KEY")
+        // The logical route name stays "local-provider"; the alias swaps the
+        // actual model id into every request (Ollama does not know
+        // "local-invoice-model"). Trust zone LOCAL is an operator assertion.
+        return ModelAliasProvider(
+            delegate = OpenAiCompatibleProvider.bearerToken(
+                bearerToken = apiKey?.takeIf { it.isNotBlank() } ?: "local-dev",
+                baseUrl = baseUrl,
+                providerName = "local-provider",
+            ),
+            actualModel = actualModel,
         )
     }
 }

@@ -5,9 +5,11 @@
 ```
 incoming request
       ↓
-explicit classification      ← 1. CLASSIFICATION  (supplied, never inferred)
+explicit classification      ← 1. CLASSIFICATION  (supplied, never inferred;
+                               trusted upstream governance fact in this demo)
       ↓
-application route selection  ← 2. ROUTING  (tiny when: RESTRICTED → local)
+application route selection  ← 2. ROUTING  (exhaustive when: PUBLIC/INTERNAL
+                               → CLOUD, CONFIDENTIAL/RESTRICTED → LOCAL)
       ↓
 TramAI policy check          ← 3. POLICY ENFORCEMENT  (independent backstop)
       ↓
@@ -21,9 +23,13 @@ typed structured result
 
 The routing `when` stays visible in the application on purpose: it makes the
 independent enforcement backstop demonstrable. If the application misroutes
-RESTRICTED data to the cloud, TramAI denies it before the provider is
-invoked — the `/invoices/boundary/restricted-cloud` endpoint exists to prove
-exactly that.
+CONFIDENTIAL/RESTRICTED data to the cloud, TramAI denies it before the
+provider is invoked — the `/invoices/boundary/restricted-cloud` endpoint
+exists to prove exactly that, printing the cloud invocation delta (0).
+
+The route exposed over HTTP is the application-owned choice
+(`selectedRoute: LOCAL|CLOUD`). The YAML owns model → provider → trust zone;
+the application does not repeat that mapping.
 
 ## One runtime, two routes
 
@@ -65,7 +71,10 @@ api/             InvoiceController (+ demo-only /boundary/restricted-cloud)
                  ApprovalController, GovernanceStatsController (+ /healthz),
                  ApiExceptionAdvice (readable error mapping)
 governance/      ProvidersConfiguration (local + cloud deterministic
-                   providers; optional real local provider via env)
+                   providers; optional real local provider via env —
+                   wrapped in ModelAliasProvider for the real endpoint id)
+                 ModelAliasProvider (provider adapter: logical model name →
+                   actual endpoint model id; no sovereign config touched)
 demo/            DeterministicProvider (input-driven script)
                  DemoResponses
 payments/        SchedulePaymentTool (tool = authority: permission, risk,
@@ -89,7 +98,9 @@ The important names, clickable:
 Two layers, deliberately distinct:
 
 - **Application port:** `InvoiceService` routes through the runtime-created
-  `InvoiceAnalysisService` proxy. Ordinary Spring.
+  `InvoiceAnalysisService` proxy. Ordinary Spring. The route is the
+  application-owned `InvoiceRoute` (LOCAL/CLOUD); YAML owns the mapping
+  route → model → provider → trust zone.
 - **The actual TramAI typed AI boundary:** the `@AiService`
   `InvoiceAnalysisService` contract — `ClassifiedDocument<InvoiceDocument>`
   → `InvoiceAssessment`, with one `@Operation` per model route. Application

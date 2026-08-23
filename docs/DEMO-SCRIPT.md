@@ -45,7 +45,7 @@ Then run, in order:
 ```bash
 ./scripts/demo typed            # PUBLIC KTCONF-001 → cloud route (200)
 ./scripts/demo restricted       # RESTRICTED KTCONF-001 → local route (200)
-./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, cloud NOT invoked
+./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, cloud delta 0
 ./scripts/demo invalid          # PUBLIC KTCONF-INVALID → 422, 0 side effects
 ./scripts/demo payment          # 202 AWAITING_APPROVAL — request is finished
 ./scripts/demo approve <id>     # workflow resumes, payment 0 → 1
@@ -58,25 +58,24 @@ Key line for the room: *"The HTTP request is finished. The workflow isn't."*
 Then: *"And suddenly this doesn't look like an AI problem anymore. It looks
 like distributed systems."*
 
-Optional real-model proof (only if the operator configured it):
+Optional real-model proof — explicitly off-stage, never part of the talk
+and never part of the deterministic gate:
 
 ```bash
 KTCONF_DEMO_LOCAL_BASE_URL=http://localhost:11434/v1 \
 KTCONF_DEMO_LOCAL_MODEL=gemma-4-12b-it:q5_k_m \
 ./scripts/preflight-real      # env → endpoint → model → typed result MUST succeed
-./scripts/stage-up            # deterministic; stage-up always unsets real-model env
-./scripts/demo real           # RESTRICTED KTCONF-001 through the REAL local provider
 ```
 
-The real path is optional and never part of the deterministic gate. The
-endpoint is declared LOCAL by operator assertion — never by URL, hostname or
-provider type.
+The real path is opt-in and independent. `stage-up` always starts the
+deterministic app (it unsets the real-model env). The endpoint is declared
+LOCAL by operator assertion — never by URL, hostname or provider type.
 
 ## Expected outputs (abridged)
 
-- `typed`: HTTP 200, `selectedModel=cloud-invoice-model`, risk LOW, invoiceId KTCONF-001
-- `restricted`: HTTP 200, `selectedModel=local-invoice-model`, same typed shape
-- `restricted-cloud`: HTTP 403 `{"code":"classification-routing-blocked",...}`, cloud invocation count unchanged
+- `typed`: HTTP 200, `selectedRoute=CLOUD`, risk LOW, invoiceId KTCONF-001
+- `restricted`: HTTP 200, `selectedRoute=LOCAL`, same typed shape
+- `restricted-cloud`: HTTP 403 `{"code":"classification-routing-blocked",...}` plus a printed cloud invocation delta of 0 (before/after counts)
 - `invalid`: HTTP 422 `{"code":"structured-output-rejected",...}`, payment 0
 - `payment`: HTTP 202 `{"status":"AWAITING_APPROVAL","approvalId":...,"workflowRunId":...,"toolName":"schedule-payment"}` — no token
 - `approve <id>`: HTTP 200 typed assessment, payment 0 → 1

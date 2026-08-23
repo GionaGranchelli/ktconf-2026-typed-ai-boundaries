@@ -40,8 +40,7 @@ class InvoiceRoutingTest {
         val body = response.body!!
         assertEquals("KTCONF-001", body.assessment.invoiceId)
         assertEquals("LOW", body.assessment.risk.name)
-        assertEquals("cloud-invoice-model", body.selectedModel)
-        assertEquals("GLOBAL_CLOUD", body.selectedProviderZone)
+        assertEquals("CLOUD", body.selectedRoute.name)
         // The cloud provider WAS invoked for PUBLIC data.
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(1, stats.cloudInvocationCount)
@@ -52,8 +51,7 @@ class InvoiceRoutingTest {
         val response = analyze(DemoRequests.restricted())
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = response.body!!
-        assertEquals("local-invoice-model", body.selectedModel)
-        assertEquals("LOCAL", body.selectedProviderZone)
+        assertEquals("LOCAL", body.selectedRoute.name)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(0, stats.cloudInvocationCount, "RESTRICTED data must never reach the cloud provider")
     }

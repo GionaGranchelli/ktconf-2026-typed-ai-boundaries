@@ -1,5 +1,7 @@
 package dev.giona.ktconf.domain
 
+import dev.tramai.core.model.ClassifiedDocument
+import dev.tramai.core.policy.ClassificationSource
 import dev.tramai.core.policy.DataClassification
 
 /**
@@ -55,8 +57,22 @@ data class SchedulePaymentResult(
  * supplied by the caller. In production it could come from upstream
  * metadata, DLP, a deterministic classifier, a policy engine, or explicit
  * workflow state — TramAI never infers confidentiality from the payload.
+ *
+ * NOTE: in this demo the request's classification represents a TRUSTED
+ * UPSTREAM GOVERNANCE FACT. Nothing stops an arbitrary external caller
+ * from saying PUBLIC; the demo assumes the classification was already
+ * decided by a trusted component. The boundary proof (RESTRICTED → cloud)
+ * shows what TramAI does with a wrong route once the classification is set.
  */
 data class AnalyzeInvoiceRequest(
     val classification: DataClassification,
     val invoice: InvoiceDocument,
 )
+
+/** Wraps the request into TramAI's classification envelope (DECLARED). */
+fun AnalyzeInvoiceRequest.toClassifiedDocument(): ClassifiedDocument<InvoiceDocument> =
+    ClassifiedDocument(
+        payload = invoice,
+        classification = classification,
+        source = ClassificationSource.DECLARED,
+    )

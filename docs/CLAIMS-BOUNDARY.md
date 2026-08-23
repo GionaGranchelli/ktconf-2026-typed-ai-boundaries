@@ -8,10 +8,11 @@ What this demo proves — and what it deliberately does **not** claim.
   `InvoiceAssessment` — no manual JSON mapping in application code.
 - TramAI's classification-aware routing matrix **denies** a `RESTRICTED`
   document on a `GLOBAL_CLOUD` provider BEFORE provider invocation (HTTP 403,
-  `reasonCode=classification-routing-blocked`, `cloudInvocationCount` stays
-  0) and allows the same document on a LOCAL provider. The demo proves this
-  with a deliberately misrouted request through the SAME runtime
-  (`/invoices/boundary/restricted-cloud`).
+  `reasonCode=classification-routing-blocked`, cloud invocation **delta** 0 —
+  even after the same provider was used by earlier requests) and allows the
+  same document on a LOCAL provider. The demo proves this with a
+  deliberately misrouted request through the SAME runtime
+  (`/invoices/boundary/restricted-cloud`, printed before/after counts).
 - TramAI's structured-output engine rejects invalid model output through the
   SAME application and SAME runtime (HTTP 422, `structured-output-rejected`),
   and no side effect executes. Nothing about the application changed — only
@@ -51,16 +52,24 @@ What this demo proves — and what it deliberately does **not** claim.
   request/caller — TramAI never infers confidentiality from the payload.
   In production classification could come from upstream metadata, DLP, a
   deterministic classifier, a policy engine, or explicit workflow state.
+  In this demo the request's classification represents a **trusted upstream
+  governance fact**: the caller is expected to be a trusted component that
+  already decided the classification. Nothing stops an arbitrary external
+  caller from saying PUBLIC; the demo shows what TramAI does with a wrong
+  route once the classification is set, not how to trust a self-classifying
+  external user.
 - **No production audit infrastructure.** Stores are in-memory for the
   demo; they are real TramAI stores, not fakes, but they are not durable.
 - **No claim that these TramAI APIs are stable.** The exact API surface is
   pinned to a specific revision (`docs/TRAMAI-INTEGRATION.md`).
 
-## Real-model path (optional, opt-in)
+## Real-model path (optional, opt-in, off-stage)
 
 - Proves: an actual LLM sits behind the same typed input/output contract
   (`ClassifiedDocument<InvoiceDocument>` → `InvoiceAssessment`), with the
-  same structured-output validation.
+  same structured-output validation. `KTCONF_DEMO_LOCAL_MODEL` is mapped to
+  the real endpoint model id via `ModelAliasProvider` (the logical route
+  name `local-invoice-model` is never sent to the model).
 - **Trust zone is an operator assertion, not a URL property.** This repo
   declares the real provider LOCAL by configuration, so
   `KTCONF_DEMO_LOCAL_BASE_URL` must point to an endpoint the operator
@@ -68,7 +77,9 @@ What this demo proves — and what it deliberately does **not** claim.
   self-hosted inference). Public cloud APIs must not be declared LOCAL.
 - `preflight` and `stage-up` **unset** the real-model environment variables,
   so the deterministic oracle never silently depends on a network model.
-  `preflight-real` is the only entry point that requires them.
+  `preflight-real` is the ONLY entry point that requires them and is the
+  only place the real path is exercised (off-stage; there is no
+  `demo real` command).
 - The real-model path proves only the typed contract against a real model.
   It is NOT needed to demonstrate payment, approval, denial, evidence or
   exactly-once behavior — those remain deterministic.

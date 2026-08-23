@@ -80,7 +80,6 @@ class ApprovalFlowTest {
         val denied = post("/approvals/$approvalId/deny", null, DenyView::class.java)
         assertEquals(HttpStatus.OK, denied.statusCode)
         assertEquals("DENIED", (denied.body as DenyView).status)
-        assertEquals(0, (denied.body as DenyView).paymentExecutionCount)
 
         val resumeAfterDeny = post("/approvals/$approvalId/approve", null, ErrorResponse::class.java)
         assertEquals(HttpStatus.CONFLICT, resumeAfterDeny.statusCode)

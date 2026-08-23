@@ -225,7 +225,7 @@ application:
 | Declare provider trust zone | ✅ | |
 | Define typed service contract | ✅ | |
 | Declare tool permission/risk/effect/approval metadata | ✅ | |
-| Choose the normal model route (when) | ✅ | |
+| Choose the normal model route (exhaustive when) | ✅ | |
 | Evaluate/enforce tool policy and approval requirement | | ✅ |
 | Call model provider | | ✅ |
 | Generate/validate structured output | | ✅ |
@@ -252,7 +252,7 @@ file.
 |---|---|---|
 | 1 | `POST /invoices/analyze` with explicit `classification=RESTRICTED` | [InvoiceController.kt](../app/src/main/kotlin/dev/giona/ktconf/api/InvoiceController.kt) |
 | 2 | Request → `ClassifiedDocument` (DECLARED) | [InvoiceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt) |
-| 3 | Routing `when`: RESTRICTED → `analyzeLocal` | [InvoiceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt) |
+| 3 | Routing `when`: PUBLIC/INTERNAL → `analyzeCloud`, CONFIDENTIAL/RESTRICTED → `analyzeLocal` | [InvoiceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt) |
 | 4 | Typed `@AiService` boundary (model=local-invoice-model, tools=[schedule-payment]) | [InvoiceAnalysisService.kt](../app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt) |
 | 5 | TramAI validates the route, then invokes the provider | policy inside TramAI |
 | 6 | Model result: tool call `schedule-payment` | [DemoResponses.kt](../app/src/main/kotlin/dev/giona/ktconf/demo/DemoResponses.kt) |
@@ -290,7 +290,14 @@ which is exactly the claim of the talk.
 
 TramAI 0.6.x **validates** whether the selected route/provider is allowed
 for the classification. It does **NOT** automatically select LOCAL for
-RESTRICTED input — the application chooses the route, and the 
-`restricted-cloud` fault injection proves TramAI is the independent
-enforcement backstop when the application's choice is wrong. Policy-aware
-provider selection is future (0.7) roadmap work.
+RESTRICTED input — the application chooses the route (an exhaustive `when`
+over all four classifications), and the `restricted-cloud` fault injection
+proves TramAI is the independent enforcement backstop when the application's
+choice is wrong. Policy-aware provider selection is future (0.7) roadmap
+work.
+
+One caveat for honest stage storytelling: in this demo the request's
+classification is a **trusted upstream governance fact**. An arbitrary
+external caller could say PUBLIC; the demo assumes a trusted component
+already decided the classification. TramAI enforces what the classification
+implies — it is not a substitute for a separate classification/DLP step.

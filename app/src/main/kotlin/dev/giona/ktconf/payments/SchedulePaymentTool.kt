@@ -10,34 +10,8 @@ import dev.tramai.core.policy.AuditDetail
 import dev.tramai.core.policy.ManagedNetworkEgress
 import dev.tramai.core.policy.RiskLevel
 import dev.tramai.core.policy.ToolSecurityMetadata
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import org.springframework.stereotype.Component
-
-/**
- * In-memory payment ledger with exactly-once idempotency.
- *
- * Deduplicates on the engine-supplied [ToolExecutionContext.idempotencyKey],
- * so approval resume cannot double-schedule a payment within this demo's
- * single-process ledger (same idempotency key → one entry).
- */
-@Component
-class InMemoryPaymentLedger {
-    private val executions = ConcurrentHashMap<String, SchedulePaymentResult>()
-
-    fun scheduleExactlyOnce(
-        idempotencyKey: String,
-        input: SchedulePaymentInput,
-    ): SchedulePaymentResult =
-        executions.computeIfAbsent(idempotencyKey) {
-            SchedulePaymentResult(
-                paymentReference = "payment-${input.invoiceId}",
-                status = "SCHEDULED",
-            )
-        }
-
-    fun executionCount(): Int = executions.size
-}
 
 /**
  * HIGH-risk payment tool that requires human approval before execution.
