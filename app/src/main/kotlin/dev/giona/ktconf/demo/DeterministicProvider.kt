@@ -6,6 +6,7 @@ import dev.tramai.core.model.ModelResponse
 import dev.tramai.core.provider.ModelProvider
 import dev.tramai.core.provider.ProviderCapability
 import java.util.concurrent.atomic.AtomicInteger
+import org.slf4j.LoggerFactory
 
 /**
  * Input-driven deterministic model provider — the demo's stand-in for a
@@ -27,6 +28,7 @@ class DeterministicProvider(
     private val providerId: String,
     private val script: (invoiceId: String, toolResultPresent: Boolean) -> ModelResponse,
 ) : ModelProvider {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     private val callCount = AtomicInteger(0)
 
@@ -43,7 +45,8 @@ class DeterministicProvider(
         val invoiceId = KNOWN_INVOICE_IDS.firstOrNull { userContent.contains(it) }
             ?: error("DeterministicProvider($providerId): no deterministic response for request (no known invoice id)")
         val toolResultPresent = request.messages.any { it.role == MessageRole.TOOL }
-        callCount.incrementAndGet()
+        val call = callCount.incrementAndGet()
+        log.info("Deterministic provider response selected: providerId={}, invoiceId={}, toolResultPresent={}, invocation={}", providerId, invoiceId, toolResultPresent, call)
         return script(invoiceId, toolResultPresent)
     }
 

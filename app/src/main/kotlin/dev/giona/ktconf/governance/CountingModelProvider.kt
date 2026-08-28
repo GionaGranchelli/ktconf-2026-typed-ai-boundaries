@@ -5,6 +5,7 @@ import dev.tramai.core.model.ModelResponse
 import dev.tramai.core.provider.ModelProvider
 import dev.tramai.core.provider.ProviderCapability
 import java.util.concurrent.atomic.AtomicInteger
+import org.slf4j.LoggerFactory
 
 /**
  * Invocation counter decorator — the stage/security oracle works identically
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class CountingModelProvider(
     internal val delegate: ModelProvider,
 ) : ModelProvider {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     private val calls = AtomicInteger()
 
@@ -27,7 +29,8 @@ class CountingModelProvider(
         delegate.supportsCapability(capability)
 
     override suspend fun complete(request: ModelRequest): ModelResponse {
-        calls.incrementAndGet()
+        val call = calls.incrementAndGet()
+        log.info("Cloud provider invoked: providerId={}, invocation={}", providerId(), call)
         return delegate.complete(request)
     }
 

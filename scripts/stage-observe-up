@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Start an opt-in local Jaeger trace backend, then run the normal deterministic
+# stage with TramAI OTLP export enabled. The collector stays loopback-only.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+docker compose -f docker-compose.observability.yml up -d
+
+for i in $(seq 1 30); do
+  if curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+if ! curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1; then
+  echo "FAIL: Jaeger UI did not become ready on :16686." >&2
+  exit 1
+fi
+
+KTCONF_OBSERVABILITY_OTLP_ENDPOINT=http://localhost:4318 ./scripts/stage-up
+echo "Tracing: http://localhost:16686 (service: ktconf-demo)"

@@ -9,6 +9,7 @@ import dev.tramai.sovereign.evidence.AuditChainEvidenceV1
 import dev.tramai.sovereign.evidence.SovereignEvidencePackWriter
 import java.nio.file.Files
 import java.nio.file.Path
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
@@ -23,6 +24,7 @@ class EvidenceService(
     private val auditStore: AuditStore,
     private val tramai: SovereignTramai,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun evidenceFor(approvalId: String): EvidenceResult {
         val pending = registry.require(approvalId)
@@ -42,6 +44,7 @@ class EvidenceService(
         )
         val packPath = outputDir.resolve("sovereign-evidence-pack-$approvalId.json")
         SovereignEvidencePackWriter.write(evidencePack, packPath)
+        log.info("Evidence written: approvalId={}, events={}, auditChain={}, evidenceDirectory={}", approvalId, events.size, chain.isValid, outputDir.toAbsolutePath().normalize())
 
         return EvidenceResult(
             auditEvents = events,

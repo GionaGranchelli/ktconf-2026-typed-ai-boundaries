@@ -50,3 +50,10 @@ ktconf:
       base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com}
       model: ${KTCONF_DEMO_CLOUD_MODEL:deepseek-v4-flash}
       api-key: ${KTCONF_DEMO_CLOUD_API_KEY:}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    dev.tramai: DEBUG
+    dev.giona.ktconf: DEBUG

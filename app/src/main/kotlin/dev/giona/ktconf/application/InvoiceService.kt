@@ -6,8 +6,8 @@ import dev.giona.ktconf.domain.InvoiceAssessment
 import dev.giona.ktconf.domain.toClassifiedDocument
 import dev.tramai.core.exception.ApprovalSuspendedException
 import dev.tramai.core.policy.DataClassification
-import dev.tramai.sovereign.SovereignTramaiRuntime
 import org.springframework.stereotype.Service
+import org.slf4j.LoggerFactory
 
 /**
  * Ordinary application service. Three separate concerns stay visible:
@@ -30,24 +30,29 @@ import org.springframework.stereotype.Service
  */
 @Service
 class InvoiceService(
-    runtime: SovereignTramaiRuntime,
+    private val ai: InvoiceAnalysisService,
     private val registry: PendingApprovalRegistry,
 ) {
-    private val ai: InvoiceAnalysisService = runtime.create(InvoiceAnalysisService::class)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun analyze(request: AnalyzeInvoiceRequest): AnalyzeOutcome {
         val document = request.toClassifiedDocument()
         return try {
             when (document.classification) {
                 DataClassification.PUBLIC,
-                DataClassification.INTERNAL,
-                -> AnalyzeOutcome.Typed(ai.analyzeCloud(document), InvoiceRoute.CLOUD)
+                DataClassification.INTERNAL, -> {
+                    log.info("Routing invoice to cloud operation: invoiceId={}, classification={}", request.invoice.invoiceId, document.classification)
+                    AnalyzeOutcome.Typed(ai.analyzeCloud(document), InvoiceRoute.CLOUD)
+                }
 
                 DataClassification.CONFIDENTIAL,
-                DataClassification.RESTRICTED,
-                -> AnalyzeOutcome.Typed(ai.analyzeLocal(document), InvoiceRoute.LOCAL)
+                DataClassification.RESTRICTED, -> {
+                    log.info("Routing invoice to local operation: invoiceId={}, classification={}", request.invoice.invoiceId, document.classification)
+                    AnalyzeOutcome.Typed(ai.analyzeLocal(document), InvoiceRoute.LOCAL)
+                }
             }
         } catch (e: ApprovalSuspendedException) {
+            log.info("Workflow suspended by approval gate: invoiceId={}, approvalId={}, workflowRunId={}, tool={}", request.invoice.invoiceId, e.approvalId, e.workflowRunId, e.toolName)
             val pending = registry.register(e)
             AnalyzeOutcome.AwaitingApproval(
                 approvalId = pending.approvalId,
@@ -65,7 +70,9 @@ class InvoiceService(
      * NOT production routing logic.
      */
     suspend fun analyzeRestrictedViaCloud(request: AnalyzeInvoiceRequest): InvoiceAssessment =
-        ai.analyzeCloud(request.toClassifiedDocument())
+        ai.analyzeCloud(request.toClassifiedDocument()).also {
+            log.error("Boundary proof unexpectedly completed: invoiceId={} reached cloud operation", request.invoice.invoiceId)
+        }
 }
 
 /**

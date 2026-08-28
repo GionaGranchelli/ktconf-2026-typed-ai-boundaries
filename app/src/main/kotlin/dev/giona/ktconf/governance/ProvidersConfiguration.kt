@@ -9,6 +9,7 @@ import dev.tramai.openai.OpenAiCompatibleProvider
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.slf4j.LoggerFactory
 
 /**
  * The ONLY infrastructure configuration in the application.
@@ -38,12 +39,15 @@ import org.springframework.context.annotation.Configuration
 class ProvidersConfiguration(
     private val endpoints: ProviderEndpoints,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Bean
     fun localProvider(): ModelProvider =
         if (endpoints.local.baseUrl.isNotBlank()) {
+            log.info("Configuring local provider with an OpenAI-compatible endpoint")
             realProvider(endpoints.local, "local-provider")
         } else {
+            log.info("Configuring deterministic local provider")
             DeterministicProvider(providerId = "local-provider", script = ::localScript)
         }
 
@@ -55,8 +59,10 @@ class ProvidersConfiguration(
     fun cloudProvider(): CountingModelProvider {
         val delegate: ModelProvider =
             if (endpoints.cloud.apiKey.isNotBlank()) {
+                log.info("Configuring cloud provider with an OpenAI-compatible endpoint")
                 realProvider(endpoints.cloud, "cloud-provider")
             } else {
+                log.info("Configuring deterministic cloud provider")
                 DeterministicProvider(providerId = "cloud-provider", script = ::cloudScript)
             }
         return CountingModelProvider(delegate)

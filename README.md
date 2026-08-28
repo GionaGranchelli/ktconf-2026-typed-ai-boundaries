@@ -97,6 +97,20 @@ Then, on the stage:
 ./scripts/demo stats            # cloudInvocationCount / paymentExecutionCount
 ```
 
+### Local trace rehearsal (optional)
+
+For a local browser view of TramAI's per-attempt traces, run:
+
+```bash
+./scripts/stage-observe-up
+./scripts/demo typed
+```
+
+Open <http://localhost:16686>, select service `ktconf-demo`, and inspect the
+`ai.analyzeCloud` span. The stack is loopback-only: the app exports OTLP/HTTP
+to Jaeger at `localhost:4318`. Stop both with `./scripts/stage-observe-down`.
+The normal `stage-up` path remains offline and does not export telemetry.
+
 Key line for the room: *"The HTTP request is finished. The workflow isn't."*
 Then: *"And suddenly this doesn't look like an AI problem anymore. It looks
 like distributed systems."*

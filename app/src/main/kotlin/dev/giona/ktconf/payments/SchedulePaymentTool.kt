@@ -11,6 +11,7 @@ import dev.tramai.core.policy.ManagedNetworkEgress
 import dev.tramai.core.policy.RiskLevel
 import dev.tramai.core.policy.ToolSecurityMetadata
 import kotlin.reflect.KClass
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 /**
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Component
 class SchedulePaymentTool(
     private val ledger: InMemoryPaymentLedger,
 ) : TramaiTool<SchedulePaymentInput, SchedulePaymentResult> {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override val name: String = "schedule-payment"
 
@@ -57,6 +59,7 @@ class SchedulePaymentTool(
     ): SchedulePaymentResult {
         val idempotencyKey = context.idempotencyKey
             ?: throw IllegalStateException("schedule-payment requires an idempotencyKey from the engine")
+        log.info("Schedule-payment tool executing: invoiceId={}, amountCents={}, currency={}", input.invoiceId, input.amountCents, input.currency)
         return ledger.scheduleExactlyOnce(idempotencyKey, input)
     }
 }

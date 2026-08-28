@@ -4,6 +4,7 @@ import dev.tramai.core.approval.ApprovalToken
 import dev.tramai.core.exception.ApprovalSuspendedException
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.stereotype.Component
+import org.slf4j.LoggerFactory
 
 /**
  * Application-owned registry of pending approvals.
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class PendingApprovalRegistry {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     enum class State { PENDING, COMPLETED, DENIED, REJECTED }
 
@@ -41,7 +43,10 @@ class PendingApprovalRegistry {
             continuationVersion = suspension.continuationVersion,
             presentedToken = suspension.challenge.token,
             toolName = suspension.toolName,
-        ).also { approvals[it.approvalId] = it }
+        ).also {
+            approvals[it.approvalId] = it
+            log.info("Registered pending approval: approvalId={}, workflowRunId={}, tool={}", it.approvalId, it.workflowRunId, it.toolName)
+        }
 
     fun get(approvalId: String): PendingApproval? = approvals[approvalId]
 
@@ -50,6 +55,7 @@ class PendingApprovalRegistry {
 
     fun complete(approvalId: String, state: State) {
         approvals[approvalId] = require(approvalId).copy(state = state)
+        log.info("Approval state updated: approvalId={}, state={}", approvalId, state)
     }
 }
 

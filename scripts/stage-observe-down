@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stop the stage app and its opt-in local trace backend.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+./scripts/stage-down
+docker compose -f docker-compose.observability.yml down
