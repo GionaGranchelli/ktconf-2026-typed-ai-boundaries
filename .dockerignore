@@ -1,0 +1,7 @@
+.git
+.gradle
+.build
+vendor
+app/build/*
+!app/build/libs/
+!app/build/libs/ktconf-demo.jar

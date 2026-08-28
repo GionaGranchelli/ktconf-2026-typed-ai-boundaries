@@ -2,7 +2,6 @@ package dev.giona.ktconf.api
 
 import dev.giona.ktconf.governance.CountingModelProvider
 import dev.giona.ktconf.payments.InMemoryPaymentLedger
-import dev.tramai.core.provider.ModelProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -17,13 +16,14 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/governance")
 class GovernanceStatsController(
     @Qualifier("cloudProvider") private val cloudProvider: CountingModelProvider,
-    @Qualifier("localProvider") private val localProvider: ModelProvider,
+    @Qualifier("localProvider") private val localProvider: CountingModelProvider,
     private val ledger: InMemoryPaymentLedger,
 ) {
 
     @GetMapping("/stats")
     fun stats(): StatsResponse = StatsResponse(
         cloudInvocationCount = cloudProvider.invocationCount(),
+        localInvocationCount = localProvider.invocationCount(),
         paymentExecutionCount = ledger.executionCount(),
     )
 
@@ -34,5 +34,6 @@ class GovernanceStatsController(
 
 data class StatsResponse(
     val cloudInvocationCount: Int,
+    val localInvocationCount: Int,
     val paymentExecutionCount: Int,
 )

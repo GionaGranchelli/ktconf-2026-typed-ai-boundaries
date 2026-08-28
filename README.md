@@ -97,6 +97,24 @@ Then, on the stage:
 ./scripts/demo stats            # cloudInvocationCount / paymentExecutionCount
 ```
 
+## Isolated workflow-demo flow
+
+The main invoice and approval flow is unchanged. This endpoint accepts the
+same request and uses the same typed AI operations as `/invoices/analyze`, but
+expresses the work as an explicit state machine:
+
+```bash
+curl -sS -X POST http://localhost:8080/workflow-demo/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"classification":"PUBLIC","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
+```
+
+Its bounded steps are `classify → route → analyze → finalize`. `PUBLIC` and
+`INTERNAL` use the cloud operation; `CONFIDENTIAL` and `RESTRICTED` use the
+local operation—the same routing choice shown by the normal endpoint. With
+`stage-observe-up`, the same run creates an `invoice-review-demo` workflow trace
+in Jaeger without changing the invoice/payment authority flow.
+
 ### Local trace rehearsal (optional)
 
 For a local browser view of TramAI's per-attempt traces, run:
@@ -107,8 +125,18 @@ For a local browser view of TramAI's per-attempt traces, run:
 ```
 
 Open <http://localhost:16686>, select service `ktconf-demo`, and inspect the
-`ai.analyzeCloud` span. The stack is loopback-only: the app exports OTLP/HTTP
-to Jaeger at `localhost:4318`. Stop both with `./scripts/stage-observe-down`.
+`invoice.model.call` span and its nested `ai.analyzeCloud` attempt. The parent
+records classification, selected route, logical model, provider, and trust zone;
+a denied route adds a `governance.policy.denied` event without exposing invoice
+content. The stack is loopback-only: the app exports OTLP/HTTP to Jaeger at
+`localhost:4318`. Stop both with `./scripts/stage-observe-down`.
+
+The observability rehearsal runs both the app and Jaeger in Docker. Watch the
+application's structured logs with:
+
+```bash
+docker compose -f docker-compose.observability.yml logs -f app
+```
 The normal `stage-up` path remains offline and does not export telemetry.
 
 Key line for the room: *"The HTTP request is finished. The workflow isn't."*

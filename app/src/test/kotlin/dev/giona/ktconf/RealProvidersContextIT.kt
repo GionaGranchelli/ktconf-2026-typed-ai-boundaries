@@ -3,6 +3,7 @@ package dev.giona.ktconf
 import dev.giona.ktconf.governance.CountingModelProvider
 import dev.giona.ktconf.governance.ModelAliasProvider
 import dev.tramai.core.provider.ModelProvider
+import dev.tramai.deepseek.DeepSeekProvider
 import dev.tramai.sovereign.SovereignTramaiRuntime
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,12 +39,14 @@ class RealProvidersContextIT {
         assertEquals(1, runtimes.size, "exactly one runtime even with two real providers")
 
         val local = context.getBean("localProvider") as ModelProvider
-        assertTrue(local is ModelAliasProvider, "local must be the real z840 alias")
+        assertTrue(local is CountingModelProvider, "local must stay counted even when real")
+        assertTrue((local as CountingModelProvider).delegate is ModelAliasProvider)
         assertEquals("local-provider", local.providerId())
 
         val cloud = context.getBean("cloudProvider") as ModelProvider
         assertTrue(cloud is CountingModelProvider, "cloud must stay counted even when real")
         assertTrue((cloud as CountingModelProvider).delegate is ModelAliasProvider)
+        assertTrue(((cloud as CountingModelProvider).delegate as ModelAliasProvider).delegate is DeepSeekProvider)
         assertEquals("cloud-provider", cloud.providerId())
     }
 }

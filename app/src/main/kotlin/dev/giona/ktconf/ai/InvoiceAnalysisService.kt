@@ -21,8 +21,14 @@ import dev.tramai.core.model.ClassifiedDocument
 @AiService
 interface InvoiceAnalysisService {
 
+    companion object {
+        const val PROMPT: String = "Analyze the invoice document and return a structured InvoiceAssessment. Any value above 5,000 EUR is HIGH risk and requires approval. " +
+            "Any value below 5,000 EUR is LOW risk and can be auto-approved." +
+            "Any value above 5,000 EUR is HIHG risk and requires approval. having recommendedAction=SCHEDULE_PAYMENT"
+    }
+
     @Operation(
-        prompt = "Analyze the invoice document and return a structured InvoiceAssessment.",
+        prompt = PROMPT,
         model = "local-invoice-model",
         tools = ["schedule-payment"],
     )
@@ -31,7 +37,7 @@ interface InvoiceAnalysisService {
     ): InvoiceAssessment
 
     @Operation(
-        prompt = "Analyze the invoice document and return a structured InvoiceAssessment.",
+        prompt = PROMPT,
         model = "cloud-invoice-model",
     )
     suspend fun analyzeCloud(

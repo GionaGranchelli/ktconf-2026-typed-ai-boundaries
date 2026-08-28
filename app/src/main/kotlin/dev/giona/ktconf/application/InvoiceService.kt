@@ -4,6 +4,7 @@ import dev.giona.ktconf.ai.InvoiceAnalysisService
 import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.domain.InvoiceAssessment
 import dev.giona.ktconf.domain.toClassifiedDocument
+import dev.giona.ktconf.observability.GovernanceTelemetry
 import dev.tramai.core.exception.ApprovalSuspendedException
 import dev.tramai.core.policy.DataClassification
 import org.springframework.stereotype.Service
@@ -32,33 +33,37 @@ import org.slf4j.LoggerFactory
 class InvoiceService(
     private val ai: InvoiceAnalysisService,
     private val registry: PendingApprovalRegistry,
+    private val telemetry: GovernanceTelemetry,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun analyze(request: AnalyzeInvoiceRequest): AnalyzeOutcome {
         val document = request.toClassifiedDocument()
-        return try {
-            when (document.classification) {
+        val route = when (document.classification) {
                 DataClassification.PUBLIC,
-                DataClassification.INTERNAL, -> {
-                    log.info("Routing invoice to cloud operation: invoiceId={}, classification={}", request.invoice.invoiceId, document.classification)
-                    AnalyzeOutcome.Typed(ai.analyzeCloud(document), InvoiceRoute.CLOUD)
-                }
+                DataClassification.INTERNAL, -> InvoiceRoute.CLOUD
 
                 DataClassification.CONFIDENTIAL,
-                DataClassification.RESTRICTED, -> {
-                    log.info("Routing invoice to local operation: invoiceId={}, classification={}", request.invoice.invoiceId, document.classification)
-                    AnalyzeOutcome.Typed(ai.analyzeLocal(document), InvoiceRoute.LOCAL)
-                }
+                DataClassification.RESTRICTED, -> InvoiceRoute.LOCAL
             }
-        } catch (e: ApprovalSuspendedException) {
-            log.info("Workflow suspended by approval gate: invoiceId={}, approvalId={}, workflowRunId={}, tool={}", request.invoice.invoiceId, e.approvalId, e.workflowRunId, e.toolName)
-            val pending = registry.register(e)
-            AnalyzeOutcome.AwaitingApproval(
-                approvalId = pending.approvalId,
-                workflowRunId = pending.workflowRunId,
-                toolName = pending.toolName,
-            )
+        return telemetry.traceModelCall(document.classification, route) {
+            try {
+                AnalyzeOutcome.Typed(
+                    assessment = when (route) {
+                        InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
+                        InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
+                    },
+                    selectedRoute = route,
+                )
+            } catch (e: ApprovalSuspendedException) {
+                log.info("Workflow suspended by approval gate: approvalId={}, workflowRunId={}, tool={}", e.approvalId, e.workflowRunId, e.toolName)
+                val pending = registry.register(e)
+                AnalyzeOutcome.AwaitingApproval(
+                    approvalId = pending.approvalId,
+                    workflowRunId = pending.workflowRunId,
+                    toolName = pending.toolName,
+                )
+            }
         }
     }
 
@@ -69,10 +74,14 @@ class InvoiceService(
      * (HTTP 403, cloud invocation delta = 0). This is fault injection,
      * NOT production routing logic.
      */
-    suspend fun analyzeRestrictedViaCloud(request: AnalyzeInvoiceRequest): InvoiceAssessment =
-        ai.analyzeCloud(request.toClassifiedDocument()).also {
+    suspend fun analyzeRestrictedViaCloud(request: AnalyzeInvoiceRequest): InvoiceAssessment {
+        val document = request.toClassifiedDocument()
+        return telemetry.traceModelCall(document.classification, InvoiceRoute.CLOUD) {
+            ai.analyzeCloud(document)
+        }.also {
             log.error("Boundary proof unexpectedly completed: invoiceId={} reached cloud operation", request.invoice.invoiceId)
         }
+    }
 }
 
 /**
@@ -91,5 +100,6 @@ sealed interface AnalyzeOutcome {
         val approvalId: String,
         val workflowRunId: String,
         val toolName: String,
+        val rationale: String
     ) : AnalyzeOutcome
 }

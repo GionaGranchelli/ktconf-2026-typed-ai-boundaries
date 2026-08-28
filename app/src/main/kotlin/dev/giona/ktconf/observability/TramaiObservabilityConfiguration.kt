@@ -5,6 +5,8 @@ import dev.tramai.core.model.TramaiTool
 import dev.tramai.core.observation.OperationObserver
 import dev.tramai.core.provider.ModelProvider
 import dev.tramai.observability.OpenTelemetryOperationObserver
+import dev.tramai.observability.OpenTelemetryWorkflowObserver
+import dev.tramai.orchestration.WorkflowObserver
 import dev.tramai.security.audit.AuditStore
 import dev.tramai.sovereign.SovereignProfileConfiguration
 import dev.tramai.sovereign.SovereignTramai
@@ -76,6 +78,10 @@ class TramaiObservabilityConfiguration {
     @Bean
     fun tramaiOperationObserver(openTelemetry: OpenTelemetry): OperationObserver =
         OpenTelemetryOperationObserver(openTelemetry, "dev.giona.ktconf.tramai")
+
+    @Bean
+    fun tramaiWorkflowObserver(openTelemetry: OpenTelemetry): WorkflowObserver =
+        OpenTelemetryWorkflowObserver(openTelemetry, "dev.giona.ktconf.workflow")
 
     /**
      * The sovereign starter currently does not accept an OperationObserver

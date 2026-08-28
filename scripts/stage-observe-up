@@ -1,21 +1,48 @@
 #!/usr/bin/env bash
-# Start an opt-in local Jaeger trace backend, then run the normal deterministic
-# stage with TramAI OTLP export enabled. The collector stays loopback-only.
+# Build the deterministic stage jar, then start it with Jaeger in Docker.
+# The collector and app ports stay loopback-only; application logs are available
+# through `docker compose ... logs -f app`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-docker compose -f docker-compose.observability.yml up -d
+cleanup_on_failure() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    echo "stage-observe-up: failed; stopping the stage app and Compose stack." >&2
+    ./scripts/stage-down || true
+    docker compose -f docker-compose.observability.yml down || true
+  fi
+}
+trap cleanup_on_failure EXIT
+
+./scripts/stage-down
+
+expected="$(grep '^tramaiGitCommit=' gradle.properties | cut -d= -f2)"
+actual="$(git -C vendor/tramai rev-parse HEAD 2>/dev/null || echo MISSING)"
+if [ "$expected" != "$actual" ]; then
+  echo "FAIL: vendor/tramai is not at the pinned revision ($expected)." >&2
+  exit 1
+fi
+
+echo "building current bootJar…"
+./gradlew :app:bootJar -q
+
+docker compose -f docker-compose.observability.yml up -d --build
 
 for i in $(seq 1 30); do
-  if curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1; then
+  if curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1 \
+    && curl -sf --max-time 1 http://localhost:8080/governance/healthz >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
-if ! curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1; then
-  echo "FAIL: Jaeger UI did not become ready on :16686." >&2
+if ! curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1 \
+  || ! curl -sf --max-time 1 http://localhost:8080/governance/healthz >/dev/null 2>&1; then
+  echo "FAIL: Jaeger or ktconf-demo did not become ready." >&2
+  docker compose -f docker-compose.observability.yml logs --tail=40 app >&2 || true
   exit 1
 fi
 
-KTCONF_OBSERVABILITY_OTLP_ENDPOINT=http://localhost:4318 ./scripts/stage-up
-echo "Tracing: http://localhost:16686 (service: ktconf-demo)"
+trap - EXIT
+echo "Demo: http://localhost:8080 | Tracing: http://localhost:16686 (service: ktconf-demo)"
+echo "Logs: docker compose -f docker-compose.observability.yml logs -f app"

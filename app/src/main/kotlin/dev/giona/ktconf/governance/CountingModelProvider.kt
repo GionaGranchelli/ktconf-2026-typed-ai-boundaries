@@ -30,7 +30,15 @@ class CountingModelProvider(
 
     override suspend fun complete(request: ModelRequest): ModelResponse {
         val call = calls.incrementAndGet()
-        log.info("Cloud provider invoked: providerId={}, invocation={}", providerId(), call)
+        log.info(
+            "Model provider invoked: providerId={}, requestedModel={}, operation={}.{}, invocation={}",
+            providerId(),
+            request.model,
+            request.operationInterface ?: "unknown",
+            request.operationMethod ?: "unknown",
+            call,
+        )
+        log.info("Model provider implementation: providerId={}, delegate={}", providerId(), delegate::class.simpleName)
         return delegate.complete(request)
     }
 

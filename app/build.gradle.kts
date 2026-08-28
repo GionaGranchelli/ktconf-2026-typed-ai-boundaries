@@ -28,12 +28,15 @@ dependencies {
     // OpenTelemetry operation spans and metrics for TramAI model attempts.
     // Exporter/collector configuration remains the deployment's responsibility.
     implementation("dev.tramai:tramai-observability:${tramaiVersion}")
+    implementation("dev.tramai:tramai-orchestration:${tramaiVersion}")
     implementation("io.opentelemetry:opentelemetry-api")
     implementation("io.opentelemetry:opentelemetry-sdk")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     // OpenAI-compatible provider adapter — used only for the OPTIONAL
     // real-model path (KTCONF_DEMO_LOCAL_BASE_URL set).
     implementation("dev.tramai:tramai-openai:${tramaiVersion}")
+    // Dedicated DeepSeek adapter for the OPTIONAL cloud real-model path.
+    implementation("dev.tramai:tramai-deepseek:${tramaiVersion}")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")

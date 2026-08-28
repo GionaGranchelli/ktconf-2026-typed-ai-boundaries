@@ -61,7 +61,8 @@ class ApplicationContextIT {
         // identities must be deterministic (never network clients).
         val local = context.getBean("localProvider") as ModelProvider
         val cloud = context.getBean("cloudProvider") as ModelProvider
-        assertTrue(local is DeterministicProvider, "local provider must be deterministic when no real-model env is set")
+        assertTrue(local is CountingModelProvider)
+        assertTrue((local as CountingModelProvider).delegate is DeterministicProvider, "local provider must be deterministic when no real-model env is set")
         assertTrue(cloud is CountingModelProvider)
         assertTrue((cloud as CountingModelProvider).delegate is DeterministicProvider)
     }

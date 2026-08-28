@@ -4,3 +4,15 @@ services:
     ports:
       - "127.0.0.1:16686:16686" # Jaeger UI
       - "127.0.0.1:4318:4318" # OTLP HTTP collector
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.observability
+    depends_on:
+      - jaeger
+    environment:
+      SERVER_PORT: "8080"
+      KTCONF_OBSERVABILITY_OTLP_ENDPOINT: http://jaeger:4318
+    ports:
+      - "127.0.0.1:8080:8080"

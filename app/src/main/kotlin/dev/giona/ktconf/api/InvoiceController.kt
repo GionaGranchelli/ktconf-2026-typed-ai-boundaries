@@ -39,7 +39,9 @@ class InvoiceController(
 
             is AnalyzeOutcome.AwaitingApproval -> {
                 log.info("Invoice analysis suspended for approval: invoiceId={}, approvalId={}, tool={}", request.invoice.invoiceId, outcome.approvalId, outcome.toolName)
-                ResponseEntity.status(202).body(AwaitingApprovalResponse("AWAITING_APPROVAL", outcome.approvalId, outcome.workflowRunId, outcome.toolName))
+                ResponseEntity.status(202).body(AwaitingApprovalResponse(status = "AWAITING_APPROVAL",
+                    outcome.approvalId, outcome.workflowRunId, outcome.toolName, outcome.rationale
+                ))
             }
         }
     }
@@ -69,4 +71,5 @@ data class AwaitingApprovalResponse(
     val approvalId: String,
     val workflowRunId: String,
     val toolName: String,
+    val rationale: String,
 )

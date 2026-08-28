@@ -40,7 +40,7 @@ class ProviderDefaultsRegressionIT {
     @Test
     fun `supplied cloud key selects real cloud with YAML DeepSeek defaults`() {
         // YAML defaults resolved by Spring binding:
-        assertEquals("https://api.deepseek.com", endpoints.cloud.baseUrl)
+        assertEquals("https://api.deepseek.com/v1", endpoints.cloud.baseUrl)
         assertEquals("deepseek-v4-flash", endpoints.cloud.model)
         assertEquals("sk-test", endpoints.cloud.apiKey)
 
@@ -55,10 +55,10 @@ class ProviderDefaultsRegressionIT {
         assertEquals("/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf", endpoints.local.model)
 
         val local = context.getBean("localProvider") as ModelProvider
-        assertTrue(local is ModelAliasProvider, "local must be real when base-url is set")
+        assertTrue(local is CountingModelProvider, "local must stay counted when real")
         assertEquals(
             "/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf",
-            (local as ModelAliasProvider).actualModel,
+            ((local as CountingModelProvider).delegate as ModelAliasProvider).actualModel,
         )
     }
 }

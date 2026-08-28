@@ -87,7 +87,7 @@ Trust zones are operator assertions — never inferred from URLs.
 - `restricted`: HTTP 200, `selectedRoute=LOCAL`, same typed shape
 - `restricted-cloud`: HTTP 403 `{"code":"classification-routing-blocked",...}` plus a printed cloud invocation delta of 0 (before/after counts)
 - `invalid`: HTTP 422 `{"code":"structured-output-rejected",...}`, payment 0
-- `payment`: HTTP 202 `{"status":"AWAITING_APPROVAL","approvalId":...,"workflowRunId":...,"toolName":"schedule-payment"}` — no token
+- `payment`: HTTP 202 `{"status":"AWAITING_APPROVAL","approvalId":...,"workflowRunId":...,"toolName":"schedule-payment","rationale":...}` — no token
 - `approve <id>`: HTTP 200 typed assessment, payment 0 → 1
 - `approve <id>` again: HTTP 409, payment stays 1
 - `deny <id>`: HTTP 200 `{"status":"DENIED",...}`, resume afterwards → 409, payment stays 0
