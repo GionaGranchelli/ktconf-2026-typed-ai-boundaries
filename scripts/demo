@@ -8,6 +8,8 @@
 #   ./scripts/demo restricted-cloud -> RESTRICTED forced cloud  -> 403 + invocation delta 0
 #   ./scripts/demo invalid          -> PUBLIC  KTCONF-INVALID   -> 422 (same app/runtime)
 #   ./scripts/demo payment          -> RESTRICTED KTCONF-PAY-001-> 202 + approvalId
+#   ./scripts/demo workflow-typed   -> PUBLIC invoice through explicit TramAI workflow
+#   ./scripts/demo workflow-payment -> assess -> approve gate -> email notification -> 202
 #   ./scripts/demo approve <id>     -> POST /approvals/<id>/approve
 #   ./scripts/demo deny <id>        -> POST /approvals/<id>/deny
 #   ./scripts/demo evidence <id>    -> GET /approvals/<id>/evidence
@@ -24,6 +26,11 @@ BASE="http://localhost:${KTCONF_DEMO_PORT:-8080}"
 
 analyze() { # $1=json
   curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/invoices/analyze" \
+    -H 'Content-Type: application/json' -d "$1"
+}
+
+workflow_analyze() { # $1=json
+  curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/workflow-demo/analyze" \
     -H 'Content-Type: application/json' -d "$1"
 }
 
@@ -57,6 +64,12 @@ case "${1:-}" in
   payment)
     analyze "$PAYMENT"
     ;;
+  workflow-typed)
+    workflow_analyze "$CATERING"
+    ;;
+  workflow-payment)
+    workflow_analyze "$PAYMENT"
+    ;;
   approve)
     curl -s -w '\nHTTP %{http_code}\n' -X POST "$BASE/approvals/${2:?usage: ./scripts/demo approve <approvalId>}/approve"
     ;;
@@ -73,8 +86,7 @@ case "${1:-}" in
     curl -s -w '\nHTTP %{http_code}\n' "$BASE/governance/healthz"
     ;;
   *)
-    echo "usage: ./scripts/demo {typed|restricted|restricted-cloud|invalid|payment|approve <id>|deny <id>|evidence <id>|stats|healthz}" >&2
+    echo "usage: ./scripts/demo {typed|restricted|restricted-cloud|invalid|payment|workflow-typed|workflow-payment|approve <id>|deny <id>|evidence <id>|stats|healthz}" >&2
     exit 2
     ;;
 esac
-

@@ -152,5 +152,30 @@ Content-Type: application/json
   client.test("Workflow selected the local route", () => client.assert(response.body.selectedRoute === "LOCAL"));
 %}
 
+### Workflow demo: payment invoice suspends with its pre-assessment
+POST {{baseUrl}}/workflow-demo/analyze
+Content-Type: application/json
+
+{
+  "classification": "RESTRICTED",
+  "invoice": {
+    "invoiceId": "KTCONF-PAY-001",
+    "supplierName": "KTConf AV & Stage Services BV",
+    "amountCents": 1840000,
+    "currency": "EUR",
+    "description": "Stage and AV production services"
+  }
+}
+
+> {%
+  client.test("Workflow payment awaits approval", () => client.assert(response.status === 202));
+  client.test("Trusted amount rule selected the human gate", () => client.assert(response.body.approvalGate === "amount-above-5000-eur"));
+  client.test("Workflow suspension includes AI rationale", () => client.assert(!!response.body.assessment.rationale));
+  client.test("AI recommends human review, not payment execution", () => client.assert(response.body.assessment.recommendedAction === "REQUEST_HUMAN_APPROVAL"));
+  client.test("AI confidence satisfies the TramAI field contract", () => client.assert(response.body.assessment.confidence >= 0.0 && response.body.assessment.confidence <= 1.0));
+  client.test("Workflow notified the approver", () => client.assert(response.body.notificationStatus === "RECORDED"));
+  client.global.set("approvalId", response.body.approvalId);
+%}
+
 ### Governance counters
 GET {{baseUrl}}/governance/stats

@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory
  */
 class DeterministicProvider(
     private val providerId: String,
-    private val script: (invoiceId: String, toolResultPresent: Boolean) -> ModelResponse,
+    private val script: (invoiceId: String, toolResultPresent: Boolean, request: ModelRequest) -> ModelResponse,
 ) : ModelProvider {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -47,7 +47,7 @@ class DeterministicProvider(
         val toolResultPresent = request.messages.any { it.role == MessageRole.TOOL }
         val call = callCount.incrementAndGet()
         log.info("Deterministic provider response selected: providerId={}, invoiceId={}, toolResultPresent={}, invocation={}", providerId, invoiceId, toolResultPresent, call)
-        return script(invoiceId, toolResultPresent)
+        return script(invoiceId, toolResultPresent, request)
     }
 
     /** Invocation counter — used to prove policy denials happen BEFORE invocation. */
@@ -66,7 +66,15 @@ class DeterministicProvider(
 }
 
 /** Local route script: the full payment story plus valid/invalid fixtures. */
-fun localScript(invoiceId: String, toolResultPresent: Boolean): ModelResponse = when {
+fun localScript(invoiceId: String, toolResultPresent: Boolean, request: ModelRequest): ModelResponse = when {
+    request.model == "local-assessment-model" && invoiceId.startsWith("KTCONF-PAY-") ->
+        DemoResponses.paymentPreAssessment(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
+    request.model == "local-assessment-model" && invoiceId == "KTCONF-001" ->
+        DemoResponses.cateringAssessment
+    request.model == "local-assessment-model" && invoiceId == "KTCONF-RESTRICTED-001" ->
+        DemoResponses.restrictedAdvisoryAssessment
+    request.model == "local-assessment-model" && invoiceId == "KTCONF-INVALID-001" ->
+        DemoResponses.invalidOutput
     invoiceId.startsWith("KTCONF-PAY-") && !toolResultPresent ->
         DemoResponses.paymentToolCall(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
 
@@ -93,7 +101,7 @@ private fun paymentAmount(invoiceId: String): Pair<String, Long> =
  * RESTRICTED request ever reaches the cloud provider, that is a policy
  * breach and must fail loudly (the oracle asserts the counter stays 0).
  */
-fun cloudScript(invoiceId: String, toolResultPresent: Boolean): ModelResponse = when {
+fun cloudScript(invoiceId: String, toolResultPresent: Boolean, request: ModelRequest): ModelResponse = when {
     invoiceId == "KTCONF-INVALID-001" -> DemoResponses.invalidOutput
     invoiceId == "KTCONF-001" -> DemoResponses.cateringAssessment
     else -> error("cloud provider: no deterministic response for invoice $invoiceId (RESTRICTED data must never reach the cloud)")

@@ -10,13 +10,14 @@ import kotlin.test.fail
 /**
  * Architecture guard: the conference application demonstrates the PUBLIC
  * Spring developer surface of TramAI. If production code reintroduces manual
- * construction of default sovereign infrastructure (or the builder +
- * runtime() pattern), this test fails.
+ * construction of default sovereign stores, coordinators, token machinery,
+ * or unmanaged runtime extraction, this test fails. Runtime composition is
+ * allowed because the observability seam attaches an OperationObserver while
+ * reusing infrastructure supplied by the Spring starter.
  */
 class ArchitectureGuardTest {
 
     private val forbidden = listOf(
-        "SovereignTramai.builder(",
         "SovereignProfileConfiguration(",
         "DefaultApprovalGateCoordinator(",
         "InMemoryModelRegistry(",

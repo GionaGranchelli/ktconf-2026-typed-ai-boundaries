@@ -43,26 +43,31 @@ tramai-spring-boot-starter-sovereign  (auto-configuration)
   ├── DefaultApprovalGateCoordinator + digesters + token generator
   └── collects from the Spring context:
         ModelProvider beans    → local-provider, cloud-provider
-        TramaiTool beans       → SchedulePaymentTool (upstream tramAI #268)
+        TramaiTool beans       → SchedulePaymentTool, SendApprovalEmailTool
 
 application.yml:
   models:            local-invoice-model → local-provider
+                     local-assessment-model → local-provider
                      cloud-invoice-model → cloud-provider
   provider-zones:    local-provider: LOCAL
                      cloud-provider: GLOBAL_CLOUD
 ```
 
-The conference application constructs **zero** sovereign infrastructure:
-no builder, no stores, no coordinators, no digesters. An architecture-guard
-test fails if that ever regresses.
+The conference application constructs **zero low-level sovereign stores,
+coordinators, token generators, or digesters**. The observability configuration
+has one explicit runtime-composition bean that reuses the starter-provided
+infrastructure to attach an `OperationObserver`; it does not create parallel
+approval or audit state. An architecture-guard test fails if that boundary
+regresses.
 
 ## Application layers (this repo)
 
 ```
 domain/          InvoiceDocument, InvoiceAssessment, AnalyzeInvoiceRequest,
                  DataClassification (TramAI enum, supplied by the caller)
-ai/              InvoiceAnalysisService (@AiService, two @Operation routes)
+ai/              InvoiceAnalysisService (@AiService, three typed operations)
 application/     InvoiceService (routing when + suspension mapping)
+                 WorkflowHumanApprovalGateway (trusted amount rule → suspension)
                  PendingApprovalRegistry (HTTP approvalId → server-side
                    challenge token; token NEVER leaves the server)
                  ApprovalService (approve/deny via real resume command)
@@ -84,13 +89,16 @@ demo/            DeterministicProvider (input-driven script)
 payments/        SchedulePaymentTool (tool = authority: permission, risk,
                    approval mode, side effect, egress, audit)
                  InMemoryPaymentLedger (exactly-once via idempotency key)
+notifications/   SendApprovalEmailTool + FakeEmailService (in-memory only)
+workflowdemo/    explicit six-step comparison flow: AI recommends; workflow
+                   orders approval and notification
 ```
 
 The important names, clickable:
 
 | File | Role |
 |---|---|
-| [InvoiceAnalysisService.kt](../app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt) | the `@AiService` typed boundary — two governed routes |
+| [InvoiceAnalysisService.kt](../app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt) | the `@AiService` typed boundary — routed analysis plus tool-free assessment |
 | [InvoiceService.kt](../app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt) | classification → routing → suspension mapping |
 | [ProvidersConfiguration.kt](../app/src/main/kotlin/dev/giona/ktconf/governance/ProvidersConfiguration.kt) | the ONLY infrastructure config: local + cloud provider beans |
 | [SchedulePaymentTool.kt](../app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt) | tool = authority: permission, risk, approval mode |

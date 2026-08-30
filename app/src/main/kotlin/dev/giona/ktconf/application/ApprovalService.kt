@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service
 @Service
 class ApprovalService(
     private val registry: PendingApprovalRegistry,
+    private val workflowApprovals: WorkflowHumanApprovalGateway,
     private val approvalStore: ApprovalStore,
     private val runtime: SovereignTramaiRuntime,
 ) {
@@ -33,6 +34,9 @@ class ApprovalService(
 
     suspend fun approve(approvalId: String): InvoiceAssessment {
         log.info("Approving suspended workflow: approvalId={}", approvalId)
+        if (workflowApprovals.contains(approvalId)) {
+            return workflowApprovals.approve(approvalId)
+        }
         val pending = registry.require(approvalId)
         val stored = approvalStore.get(approvalId) ?: throw ApprovalNotFoundException(approvalId)
         val approved = approvalStore.transition(
@@ -59,6 +63,10 @@ class ApprovalService(
 
     suspend fun deny(approvalId: String): DenyOutcome {
         log.info("Denying suspended workflow: approvalId={}", approvalId)
+        if (workflowApprovals.contains(approvalId)) {
+            workflowApprovals.deny(approvalId)
+            return DenyOutcome(approvalId = approvalId, status = "DENIED")
+        }
         val pending = registry.require(approvalId)
         val stored = approvalStore.get(approvalId) ?: throw ApprovalNotFoundException(approvalId)
         val denied = approvalStore.transition(

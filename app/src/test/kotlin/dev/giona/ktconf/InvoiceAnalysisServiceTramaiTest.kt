@@ -40,6 +40,7 @@ class InvoiceAnalysisServiceTramaiTest {
         assertEquals("KTCONF-001", result.invoiceId)
         assertEquals(InvoiceRisk.LOW, result.risk)
         assertEquals(InvoiceAction.REVIEW_ONLY, result.recommendedAction)
+        assertEquals(0.96, result.confidence)
         TramaiAssertions.assertThat(provider, observer)
             .whenCalled("analyzeCloud")
             .wasCalledTimes(2)
@@ -67,6 +68,26 @@ class InvoiceAnalysisServiceTramaiTest {
             .andObservedFailure(dev.tramai.core.exception.ProviderException::class)
             .andParsedSuccessfully()
             .emittedProvider("simulated-failure")
+    }
+
+    @Test
+    fun `cloud analysis repairs confidence outside the TramAI field constraint`() {
+        val provider = MockAiProvider {
+            onMethod("analyzeCloud") respondWith validAssessmentJson.replace("0.96", "1.25")
+            onMethod("analyzeCloud") respondWith validAssessmentJson
+        }
+        val observer = RecordingOperationObserver()
+        val service = testRuntime(provider, observer, "mock").create(InvoiceAnalysisService::class)
+
+        val result = runBlocking { service.analyzeCloud(DemoRequests.typed().toClassifiedDocument()) }
+
+        assertEquals(0.96, result.confidence)
+        TramaiAssertions.assertThat(provider, observer)
+            .whenCalled("analyzeCloud")
+            .wasCalledTimes(2)
+            .andRetried(1)
+            .andParsedSuccessfully()
+            .emittedProvider("mock")
     }
 
     private fun testRuntime(
@@ -122,6 +143,7 @@ class InvoiceAnalysisServiceTramaiTest {
               "currency": "EUR",
               "risk": "LOW",
               "recommendedAction": "REVIEW_ONLY",
+              "confidence": 0.96,
               "rationale": "Conference catering services within budget"
             }
             """.trimIndent()

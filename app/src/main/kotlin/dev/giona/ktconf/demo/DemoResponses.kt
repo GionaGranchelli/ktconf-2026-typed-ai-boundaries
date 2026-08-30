@@ -17,6 +17,7 @@ object DemoResponses {
           "currency": "EUR",
           "risk": "LOW",
           "recommendedAction": "REVIEW_ONLY",
+          "confidence": 0.96,
           "rationale": "Conference catering services within budget; no payment required"
         }
         """,
@@ -32,6 +33,7 @@ object DemoResponses {
           "currency": "EUR",
           "risk": "HIGH",
           "recommendedAction": "REVIEW_ONLY",
+          "confidence": 0.91,
           "rationale": "MERGER-2026 advisory services require internal review; no payment scheduled"
         }
         """,
@@ -47,6 +49,7 @@ object DemoResponses {
           "currency": "EUR",
           "risk": "YOLO",
           "recommendedAction": "MAYBE_PAY",
+          "confidence": 7.5,
           "rationale": "broken deliberately"
         }
         """,
@@ -76,7 +79,24 @@ object DemoResponses {
           "currency": "EUR",
           "risk": "HIGH",
           "recommendedAction": "SCHEDULE_PAYMENT",
+          "confidence": 0.98,
           "rationale": "Stage and AV production invoice exceeds threshold; payment required"
+        }
+        """,
+    )
+
+    /** Tool-free recommendation before the trusted workflow approval gate. */
+    fun paymentPreAssessment(invoiceId: String, amountCents: Long): ModelResponse = json(
+        """
+        {
+          "invoiceId": "$invoiceId",
+          "supplierName": "KTConf AV & Stage Services BV",
+          "amountCents": $amountCents,
+          "currency": "EUR",
+          "risk": "HIGH",
+          "recommendedAction": "REQUEST_HUMAN_APPROVAL",
+          "confidence": 0.98,
+          "rationale": "Stage and AV production invoice exceeds the EUR 5,000 threshold; human approval is required"
         }
         """,
     )

@@ -31,7 +31,7 @@ classification/DLP step.
 | # | File | What it shows |
 |---|---|---|
 | 1 | `app/src/main/resources/application.yml` | all policy configuration: allowed models, providers, trust zones, tools, permissions |
-| 2 | `app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt` | the typed `@AiService` boundary — `analyzeLocal` / `analyzeCloud` |
+| 2 | `app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt` | the typed `@AiService` boundary — governed local, cloud, and tool-free assessment operations |
 | 3 | `app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt` | routing: exhaustive `when` — PUBLIC/INTERNAL → cloud, CONFIDENTIAL/RESTRICTED → local |
 | 4 | `app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt` | tool = authority: permission, risk, approval mode on the tool itself |
 
@@ -67,7 +67,9 @@ The sovereign starter (`tramai-spring-boot-starter-sovereign`) auto-configures
 the runtime, the model registry, approval/continuation/audit stores and the
 approval gate; it collects the `ModelProvider` beans and the
 `SchedulePaymentTool` bean from the application context. The conference
-application constructs **zero** TramAI infrastructure.
+application constructs **zero low-level TramAI stores or coordinators**. One
+explicit composition bean reuses the starter-provided infrastructure to attach
+the OpenTelemetry observer, because the starter does not yet expose that hook.
 
 TramAI 0.6.x **validates** whether the selected route is allowed. It does
 **not** automatically choose LOCAL for RESTRICTED input — policy-aware
@@ -90,6 +92,7 @@ Then, on the stage:
 ./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, delta 0
 ./scripts/demo invalid          # PUBLIC  KTCONF-INVALID → 422, no side effects
 ./scripts/demo payment          # RESTRICTED KTCONF-PAY → 202, awaiting approval
+./scripts/demo workflow-payment # explicit workflow → AI rationale + approval email + 202
 ./scripts/demo approve <id>     # resume → payment executed exactly once
 ./scripts/demo approve <id>     # again → 409, payment still 1
 ./scripts/demo deny <id>        # deny → no payment, continuation refused
@@ -109,11 +112,19 @@ curl -sS -X POST http://localhost:8080/workflow-demo/analyze \
   -d '{"classification":"PUBLIC","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Conference catering services"}}'
 ```
 
-Its bounded steps are `classify → route → analyze → finalize`. `PUBLIC` and
-`INTERNAL` use the cloud operation; `CONFIDENTIAL` and `RESTRICTED` use the
-local operation—the same routing choice shown by the normal endpoint. With
-`stage-observe-up`, the same run creates an `invoice-review-demo` workflow trace
-in Jaeger without changing the invoice/payment authority flow.
+Its bounded steps are:
+
+```text
+classify → route → assess → amount-above-€5k approval gate → notify-approver → finalize
+```
+
+The AI produces a tool-free typed assessment first, so a suspended response can
+show the real model rationale and a TramAI-validated confidence in the inclusive
+range `0.0..1.0`. A trusted application rule—not the model—then requires human
+approval when `amountCents > 500_000`. The next deterministic workflow step
+records a fake approval email containing the real approval ID. Payment is
+scheduled exactly once only after approval. With `stage-observe-up`,
+the run creates an `invoice-approval-demo` workflow trace in Jaeger.
 
 ### Local trace rehearsal (optional)
 
@@ -137,6 +148,24 @@ application's structured logs with:
 ```bash
 docker compose -f docker-compose.observability.yml logs -f app
 ```
+
+To use the real DeepSeek provider in this Dockerized rehearsal, export its
+normal host variable before starting the stack:
+
+```bash
+export DEEPSEEK_API_KEY="..."
+./scripts/stage-observe-up
+```
+
+The script maps it to the application's `KTCONF_DEMO_CLOUD_API_KEY` at container
+runtime. An explicitly supplied `KTCONF_DEMO_CLOUD_API_KEY` takes precedence.
+The credential is not passed to the Docker build or stored in the image.
+
+Real local models may spend substantially longer generating than the scripted
+stage provider. TramAI limits each provider attempt to 90 seconds, while Spring's
+outer asynchronous workflow request allows 180 seconds. Override the latter with
+`KTCONF_HTTP_ASYNC_TIMEOUT` (for example, `240s`) if needed.
+
 The normal `stage-up` path remains offline and does not export telemetry.
 
 Key line for the room: *"The HTTP request is finished. The workflow isn't."*

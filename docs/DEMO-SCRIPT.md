@@ -37,7 +37,7 @@ Fallback only (old four-profile implementation, do NOT rehearse with it):
 1. **Open `app/src/main/resources/application.yml`** — all policy in one
    file: allowed models, providers, trust zones, tools, permissions.
 2. **Open `app/src/main/kotlin/dev/giona/ktconf/ai/InvoiceAnalysisService.kt`**
-   — the typed boundary: two operations, two governed model routes.
+   — the typed boundary: local/cloud analysis plus a tool-free local assessment.
 3. **Open `app/src/main/kotlin/dev/giona/ktconf/application/InvoiceService.kt`**
    — the routing `when`. Say: *"The application chooses a route."*
 4. **Open `app/src/main/kotlin/dev/giona/ktconf/payments/SchedulePaymentTool.kt`**
@@ -51,6 +51,7 @@ Then run, in order:
 ./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, cloud delta 0
 ./scripts/demo invalid          # PUBLIC KTCONF-INVALID → 422, 0 side effects
 ./scripts/demo payment          # 202 AWAITING_APPROVAL — request is finished
+./scripts/demo workflow-payment # explicit six-step workflow, rationale + email + 202
 ./scripts/demo approve <id>     # workflow resumes, payment 0 → 1
 ./scripts/demo approve <id>     # again → 409, payment stays 1
 ./scripts/demo evidence <id>    # real audit chain, 4 ordered events, verified
@@ -88,6 +89,9 @@ Trust zones are operator assertions — never inferred from URLs.
 - `restricted-cloud`: HTTP 403 `{"code":"classification-routing-blocked",...}` plus a printed cloud invocation delta of 0 (before/after counts)
 - `invalid`: HTTP 422 `{"code":"structured-output-rejected",...}`, payment 0
 - `payment`: HTTP 202 `{"status":"AWAITING_APPROVAL","approvalId":...,"workflowRunId":...,"toolName":"schedule-payment","rationale":...}` — no token
+- `workflow-payment`: HTTP 202 with the typed pre-assessment, real AI rationale,
+  `approvalGate=amount-above-5000-eur`, approval ID, and
+  `notificationStatus=RECORDED`; payment remains 0 until human approval
 - `approve <id>`: HTTP 200 typed assessment, payment 0 → 1
 - `approve <id>` again: HTTP 409, payment stays 1
 - `deny <id>`: HTTP 200 `{"status":"DENIED",...}`, resume afterwards → 409, payment stays 0

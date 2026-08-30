@@ -13,7 +13,8 @@ import org.springframework.context.annotation.Configuration
 import org.slf4j.LoggerFactory
 
 /**
- * The ONLY infrastructure configuration in the application.
+ * Provider deployment configuration. Runtime composition lives separately in
+ * the observability package so it can attach TramAI's OperationObserver.
  *
  * Two ModelProvider beans coexist in the same Spring context and the same
  * [dev.tramai.sovereign.SovereignTramaiRuntime]:

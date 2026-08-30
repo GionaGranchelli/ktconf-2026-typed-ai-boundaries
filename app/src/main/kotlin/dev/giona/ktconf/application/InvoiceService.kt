@@ -62,6 +62,7 @@ class InvoiceService(
                     approvalId = pending.approvalId,
                     workflowRunId = pending.workflowRunId,
                     toolName = pending.toolName,
+                    rationale = "Payment scheduling requires human approval because invoice ${document.payload.invoiceId} is a high-risk write action.",
                 )
             }
         }

@@ -1,6 +1,7 @@
 package dev.giona.ktconf.api
 
 import dev.giona.ktconf.application.ApprovalNotFoundException
+import dev.giona.ktconf.application.WorkflowApprovalStateException
 import dev.tramai.core.exception.ApprovalAuthorizationException
 import dev.tramai.core.exception.ApprovalStoreConflictException
 import dev.tramai.core.exception.ApprovalStoreNotConsumableException
@@ -50,6 +51,7 @@ class ApiExceptionAdvice {
         ApprovalStoreNotConsumableException::class,
         ApprovalStoreTokenRejectedException::class,
         IllegalApprovalTransitionException::class,
+        WorkflowApprovalStateException::class,
     )
     fun approvalRejected(e: RuntimeException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.CONFLICT).body(
