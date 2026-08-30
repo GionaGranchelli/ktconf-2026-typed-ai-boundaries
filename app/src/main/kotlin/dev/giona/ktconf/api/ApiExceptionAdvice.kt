@@ -1,6 +1,7 @@
 package dev.giona.ktconf.api
 
 import dev.giona.ktconf.application.ApprovalNotFoundException
+import dev.giona.ktconf.application.WorkflowApprovalStateException
 import dev.tramai.core.exception.ApprovalAuthorizationException
 import dev.tramai.core.exception.ApprovalStoreConflictException
 import dev.tramai.core.exception.ApprovalStoreNotConsumableException
@@ -9,6 +10,7 @@ import dev.tramai.core.exception.ApprovalTokenRejectedException
 import dev.tramai.core.exception.IllegalApprovalTransitionException
 import dev.tramai.core.exception.PolicyViolationException
 import dev.tramai.core.exception.StructuredOutputException
+import dev.tramai.orchestration.WorkflowGateRejectedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -20,6 +22,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
  */
 @RestControllerAdvice
 class ApiExceptionAdvice {
+
+    @ExceptionHandler(WorkflowGateRejectedException::class)
+    fun workflowGateRejected(e: WorkflowGateRejectedException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse("workflow-gate-rejected", e.message ?: "Workflow gate rejected"))
 
     @ExceptionHandler(PolicyViolationException::class)
     fun policyDenied(e: PolicyViolationException): ResponseEntity<ErrorResponse> {
@@ -45,6 +51,7 @@ class ApiExceptionAdvice {
         ApprovalStoreNotConsumableException::class,
         ApprovalStoreTokenRejectedException::class,
         IllegalApprovalTransitionException::class,
+        WorkflowApprovalStateException::class,
     )
     fun approvalRejected(e: RuntimeException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.CONFLICT).body(

@@ -1,0 +1,30 @@
+services:
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.20.0
+    ports:
+      - "127.0.0.1:16686:16686" # Jaeger UI
+      - "127.0.0.1:4318:4318" # OTLP HTTP collector
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.observability
+    depends_on:
+      - jaeger
+    extra_hosts:
+      # Linux does not create this Docker Desktop hostname automatically.
+      - "host.docker.internal:host-gateway"
+    environment:
+      SERVER_PORT: "8080"
+      KTCONF_HTTP_ASYNC_TIMEOUT: ${KTCONF_HTTP_ASYNC_TIMEOUT:-180s}
+      KTCONF_OBSERVABILITY_OTLP_ENDPOINT: http://jaeger:4318
+      # Supplied by stage-observe-up at container runtime. It is deliberately
+      # not a build argument, so the credential never becomes an image layer.
+      KTCONF_DEMO_CLOUD_API_KEY: ${KTCONF_DEMO_CLOUD_API_KEY:-${DEEPSEEK_API_KEY:-}}
+      KTCONF_DEMO_CLOUD_BASE_URL: ${KTCONF_DEMO_CLOUD_BASE_URL:-https://api.deepseek.com/v1}
+      KTCONF_DEMO_CLOUD_MODEL: ${KTCONF_DEMO_CLOUD_MODEL:-deepseek-v4-flash}
+      KTCONF_DEMO_LOCAL_BASE_URL: ${KTCONF_DEMO_LOCAL_BASE_URL:-http://100.118.66.80:8088/v1}
+      KTCONF_DEMO_LOCAL_MODEL: ${KTCONF_DEMO_LOCAL_MODEL:-/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}
+      KTCONF_DEMO_LOCAL_API_KEY: ${KTCONF_DEMO_LOCAL_API_KEY:-}
+    ports:
+      - "127.0.0.1:8080:8080"

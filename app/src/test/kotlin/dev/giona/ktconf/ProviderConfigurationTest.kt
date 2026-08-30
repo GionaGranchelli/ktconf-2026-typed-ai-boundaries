@@ -7,6 +7,7 @@ import dev.giona.ktconf.governance.ModelAliasProvider
 import dev.giona.ktconf.governance.ProviderEndpoints
 import dev.giona.ktconf.governance.ProvidersConfiguration
 import dev.tramai.openai.OpenAiCompatibleProvider
+import dev.tramai.deepseek.DeepSeekProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -24,10 +25,10 @@ class ProviderConfigurationTest {
     @Test
     fun `no provider config keeps both identities deterministic`() {
         val providers = config()
-        assertTrue(providers.localProvider() is DeterministicProvider)
+        val local = providers.localProvider()
+        assertTrue(local.delegate is DeterministicProvider)
         val cloud = providers.cloudProvider()
-        assertTrue(cloud is CountingModelProvider)
-        assertTrue((cloud as CountingModelProvider).delegate is DeterministicProvider)
+        assertTrue(cloud.delegate is DeterministicProvider)
     }
 
     @Test
@@ -35,8 +36,7 @@ class ProviderConfigurationTest {
         val local = config(
             local = Endpoint(baseUrl = "http://z840-tailscale:8088/v1", model = "Qwen3.8-27B-UD-Q6_K"),
         ).localProvider()
-        assertTrue(local is ModelAliasProvider, "local must be aliased to the real endpoint model")
-        val alias = local as ModelAliasProvider
+        val alias = local.delegate as ModelAliasProvider
         assertEquals("Qwen3.8-27B-UD-Q6_K", alias.actualModel)
         assertEquals("local-provider", alias.providerId())
         assertTrue(alias.delegate is OpenAiCompatibleProvider)
@@ -47,11 +47,10 @@ class ProviderConfigurationTest {
         val cloud = config(
             cloud = Endpoint(baseUrl = "https://api.deepseek.com", model = "deepseek-v4-flash", apiKey = "sk-test"),
         ).cloudProvider()
-        assertTrue(cloud is CountingModelProvider)
         val alias = cloud.delegate as ModelAliasProvider
         assertEquals("deepseek-v4-flash", alias.actualModel)
         assertEquals("cloud-provider", alias.providerId())
-        assertTrue(alias.delegate is OpenAiCompatibleProvider)
+        assertTrue(alias.delegate is DeepSeekProvider)
     }
 
     @Test
@@ -59,6 +58,6 @@ class ProviderConfigurationTest {
         val cloud = config(
             cloud = Endpoint(baseUrl = "https://api.deepseek.com", model = "deepseek-v4-flash"),
         ).cloudProvider()
-        assertTrue((cloud as CountingModelProvider).delegate is DeterministicProvider)
+        assertTrue(cloud.delegate is DeterministicProvider)
     }
 }

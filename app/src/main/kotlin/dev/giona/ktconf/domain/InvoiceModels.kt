@@ -1,6 +1,7 @@
 package dev.giona.ktconf.domain
 
 import dev.tramai.core.model.ClassifiedDocument
+import dev.tramai.core.annotations.AiRange
 import dev.tramai.core.policy.ClassificationSource
 import dev.tramai.core.policy.DataClassification
 
@@ -21,7 +22,7 @@ data class InvoiceDocument(
 enum class InvoiceRisk { LOW, HIGH }
 
 /** Action recommended for an assessed invoice. */
-enum class InvoiceAction { REVIEW_ONLY, SCHEDULE_PAYMENT }
+enum class InvoiceAction { REVIEW_ONLY, REQUEST_HUMAN_APPROVAL, SCHEDULE_PAYMENT }
 
 /**
  * Typed result of the AI analysis.
@@ -36,6 +37,8 @@ data class InvoiceAssessment(
     val currency: String,
     val risk: InvoiceRisk,
     val recommendedAction: InvoiceAction,
+    @property:AiRange(min = 0.0, max = 1.0)
+    val confidence: Double,
     val rationale: String,
 )
 

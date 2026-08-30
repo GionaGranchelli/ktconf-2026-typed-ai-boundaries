@@ -42,6 +42,10 @@ class ApprovalFlowTest {
         assertEquals(HttpStatus.ACCEPTED, response.statusCode)
         val body = response.body as AwaitingApprovalResponse
         assertNotNull(body.approvalId)
+        assertEquals(
+            "Payment scheduling requires human approval because invoice KTCONF-PAY-001 is a high-risk write action.",
+            body.rationale,
+        )
         assertNotNull(body.workflowRunId)
         assertEquals("schedule-payment", body.toolName)
         assertEquals(0, stats().paymentExecutionCount)

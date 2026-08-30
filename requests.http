@@ -1,0 +1,181 @@
+@baseUrl = http://localhost:8080
+
+### Liveness check
+GET {{baseUrl}}/governance/healthz
+
+> {%
+  client.test("Application is healthy", () => client.assert(response.status === 200));
+%}
+
+### Normal route: PUBLIC invoice -> cloud model -> typed assessment
+POST {{baseUrl}}/invoices/analyze
+Content-Type: application/json
+
+{
+  "classification": "PUBLIC",
+  "invoice": {
+    "invoiceId": "KTCONF-001",
+    "supplierName": "KTConf Catering BV",
+    "amountCents": 42830,
+    "currency": "EUR",
+    "description": "Conference catering services"
+  }
+}
+
+> {%
+  client.test("PUBLIC invoice is analyzed", () => client.assert(response.status === 200));
+%}
+
+### Normal route: RESTRICTED invoice -> local model -> typed assessment
+POST {{baseUrl}}/invoices/analyze
+Content-Type: application/json
+
+{
+  "classification": "RESTRICTED",
+  "invoice": {
+    "invoiceId": "KTCONF-001",
+    "supplierName": "KTConf Catering BV",
+    "amountCents": 42830,
+    "currency": "EUR",
+    "description": "Conference catering services"
+  }
+}
+
+> {%
+  client.test("RESTRICTED invoice is analyzed", () => client.assert(response.status === 200));
+%}
+
+### Boundary proof: policy rejects RESTRICTED data forced to the cloud
+POST {{baseUrl}}/invoices/boundary/restricted-cloud
+Content-Type: application/json
+
+{
+  "classification": "RESTRICTED",
+  "invoice": {
+    "invoiceId": "KTCONF-001",
+    "supplierName": "KTConf Catering BV",
+    "amountCents": 42830,
+    "currency": "EUR",
+    "description": "Conference catering services"
+  }
+}
+
+> {%
+  client.test("Restricted cloud route is denied", () => client.assert(response.status === 403));
+%}
+
+### Structured-output proof: scripted invalid model output is rejected
+POST {{baseUrl}}/invoices/analyze
+Content-Type: application/json
+
+{
+  "classification": "PUBLIC",
+  "invoice": {
+    "invoiceId": "KTCONF-INVALID-001",
+    "supplierName": "KTConf",
+    "amountCents": 42830,
+    "currency": "EUR",
+    "description": "Broken"
+  }
+}
+
+> {%
+  client.test("Untypable output is rejected", () => client.assert(response.status === 422));
+%}
+
+### Start payment workflow: stores approvalId for the following requests
+POST {{baseUrl}}/invoices/analyze
+Content-Type: application/json
+
+{
+  "classification": "RESTRICTED",
+  "invoice": {
+    "invoiceId": "KTCONF-PAY-001",
+    "supplierName": "KTConf AV & Stage Services BV",
+    "amountCents": 1840000,
+    "currency": "EUR",
+    "description": "Stage and AV production services"
+  }
+}
+
+> {%
+  client.test("Payment workflow awaits approval", () => client.assert(response.status === 202));
+  client.global.set("approvalId", response.body.approvalId);
+%}
+
+### Approve the most recently started payment workflow
+POST {{baseUrl}}/approvals/{{approvalId}}/approve
+
+### Deny the most recently started payment workflow
+POST {{baseUrl}}/approvals/{{approvalId}}/deny
+
+### Evidence for the most recently started payment workflow
+GET {{baseUrl}}/approvals/{{approvalId}}/evidence
+
+### Workflow demo: same PUBLIC invoice as the normal route, expressed as workflow steps
+POST {{baseUrl}}/workflow-demo/analyze
+Content-Type: application/json
+
+{
+  "classification": "PUBLIC",
+  "invoice": {
+    "invoiceId": "KTCONF-001",
+    "supplierName": "KTConf Catering BV",
+    "amountCents": 42830,
+    "currency": "EUR",
+    "description": "Conference catering services"
+  }
+}
+
+> {%
+  client.test("Workflow PUBLIC invoice is analyzed", () => client.assert(response.status === 200));
+  client.test("Workflow selected the cloud route", () => client.assert(response.body.selectedRoute === "CLOUD"));
+%}
+
+### Workflow demo: same RESTRICTED invoice as the normal route, expressed as workflow steps
+POST {{baseUrl}}/workflow-demo/analyze
+Content-Type: application/json
+
+{
+  "classification": "RESTRICTED",
+  "invoice": {
+    "invoiceId": "KTCONF-001",
+    "supplierName": "KTConf Catering BV",
+    "amountCents": 42830,
+    "currency": "EUR",
+    "description": "Conference catering services"
+  }
+}
+
+> {%
+  client.test("Workflow RESTRICTED invoice is analyzed", () => client.assert(response.status === 200));
+  client.test("Workflow selected the local route", () => client.assert(response.body.selectedRoute === "LOCAL"));
+%}
+
+### Workflow demo: payment invoice suspends with its pre-assessment
+POST {{baseUrl}}/workflow-demo/analyze
+Content-Type: application/json
+
+{
+  "classification": "RESTRICTED",
+  "invoice": {
+    "invoiceId": "KTCONF-PAY-001",
+    "supplierName": "KTConf AV & Stage Services BV",
+    "amountCents": 1840000,
+    "currency": "EUR",
+    "description": "Stage and AV production services"
+  }
+}
+
+> {%
+  client.test("Workflow payment awaits approval", () => client.assert(response.status === 202));
+  client.test("Trusted amount rule selected the human gate", () => client.assert(response.body.approvalGate === "amount-above-5000-eur"));
+  client.test("Workflow suspension includes AI rationale", () => client.assert(!!response.body.assessment.rationale));
+  client.test("AI recommends human review, not payment execution", () => client.assert(response.body.assessment.recommendedAction === "REQUEST_HUMAN_APPROVAL"));
+  client.test("AI confidence satisfies the TramAI field contract", () => client.assert(response.body.assessment.confidence >= 0.0 && response.body.assessment.confidence <= 1.0));
+  client.test("Workflow notified the approver", () => client.assert(response.body.notificationStatus === "RECORDED"));
+  client.global.set("approvalId", response.body.approvalId);
+%}
+
+### Governance counters
+GET {{baseUrl}}/governance/stats

@@ -53,6 +53,7 @@ class InvoiceRoutingTest {
         val body = response.body!!
         assertEquals("LOCAL", body.selectedRoute.name)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(1, stats.localInvocationCount)
         assertEquals(0, stats.cloudInvocationCount, "RESTRICTED data must never reach the cloud provider")
     }
 

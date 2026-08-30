@@ -1,6 +1,14 @@
 server:
   port: 8080
 
+spring:
+  mvc:
+    # A workflow may make two sequential local-model calls: typed assessment,
+    # then the governed tool-capable operation. Keep this outer HTTP deadline
+    # longer than TramAI's per-attempt deadline.
+    async:
+      request-timeout: ${KTCONF_HTTP_ASYNC_TIMEOUT:180s}
+
 # tramai.sovereign.*  = governance truth (trust zones, allowed models/providers/tools)
 tramai:
   sovereign:
@@ -8,6 +16,7 @@ tramai:
 
     allowed-models:
       - local-invoice-model
+      - local-assessment-model
       - cloud-invoice-model
 
     allowed-providers:
@@ -20,13 +29,16 @@ tramai:
 
     models:
       local-invoice-model: local-provider
+      local-assessment-model: local-provider
       cloud-invoice-model: cloud-provider
 
     allowed-tools:
       - schedule-payment
+      - send-approval-email
 
     allowed-permissions:
       - payment.schedule
+      - notification.email.send
 
 # ktconf.providers.*  = deployment configuration ONLY (which real endpoint serves
 # each identity). In the deterministic conference run both stay empty and both
@@ -47,6 +59,13 @@ ktconf:
       api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
     cloud:
       # DeepSeek's OpenAI-compatible API.
-      base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com}
+      base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com/v1}
       model: ${KTCONF_DEMO_CLOUD_MODEL:deepseek-v4-flash}
       api-key: ${KTCONF_DEMO_CLOUD_API_KEY:}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    dev.tramai: DEBUG
+    dev.giona.ktconf: DEBUG

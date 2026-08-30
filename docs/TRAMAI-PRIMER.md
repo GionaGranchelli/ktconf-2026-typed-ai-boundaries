@@ -210,7 +210,7 @@ Two short definitions:
 > configuration. It creates the executable `@AiService` implementation and
 > is also used later to resume suspended approvals.
 
-The conference application constructs **zero** of these classes: the starter
+The conference application constructs **zero low-level stores or coordinators**: the starter
 owns them all (`SovereignTramaiProperties` in `application.yml`). There is
 exactly ONE runtime bean per Spring context.
 

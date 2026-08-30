@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Build the deterministic stage jar, then start it with Jaeger in Docker.
+# The collector and app ports stay loopback-only; application logs are available
+# through `docker compose ... logs -f app`.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+cleanup_on_failure() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    echo "stage-observe-up: failed; stopping the stage app and Compose stack." >&2
+    ./scripts/stage-down || true
+    docker compose -f docker-compose.observability.yml down || true
+  fi
+}
+trap cleanup_on_failure EXIT
+
+./scripts/stage-down
+
+# Accept the conventional DeepSeek variable at the operator boundary while
+# keeping the application's provider-specific configuration explicit.
+if [ -z "${KTCONF_DEMO_CLOUD_API_KEY:-}" ] && [ -n "${DEEPSEEK_API_KEY:-}" ]; then
+  export KTCONF_DEMO_CLOUD_API_KEY="$DEEPSEEK_API_KEY"
+  echo "Cloud provider: DeepSeek credential inherited from DEEPSEEK_API_KEY."
+elif [ -n "${KTCONF_DEMO_CLOUD_API_KEY:-}" ]; then
+  echo "Cloud provider: credential inherited from KTCONF_DEMO_CLOUD_API_KEY."
+else
+  echo "Cloud provider: deterministic (no DeepSeek credential supplied)."
+fi
+
+expected="$(grep '^tramaiGitCommit=' gradle.properties | cut -d= -f2)"
+actual="$(git -C vendor/tramai rev-parse HEAD 2>/dev/null || echo MISSING)"
+if [ "$expected" != "$actual" ]; then
+  echo "FAIL: vendor/tramai is not at the pinned revision ($expected)." >&2
+  exit 1
+fi
+
+echo "building current bootJar…"
+./gradlew :app:bootJar -q
+
+docker compose -f docker-compose.observability.yml up -d --build
+
+for i in $(seq 1 30); do
+  if curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1 \
+    && curl -sf --max-time 1 http://localhost:8080/governance/healthz >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+if ! curl -sf --max-time 1 http://localhost:16686 >/dev/null 2>&1 \
+  || ! curl -sf --max-time 1 http://localhost:8080/governance/healthz >/dev/null 2>&1; then
+  echo "FAIL: Jaeger or ktconf-demo did not become ready." >&2
+  docker compose -f docker-compose.observability.yml logs --tail=40 app >&2 || true
+  exit 1
+fi
+
+trap - EXIT
+echo "Demo: http://localhost:8080 | Tracing: http://localhost:16686 (service: ktconf-demo)"
+echo "Logs: docker compose -f docker-compose.observability.yml logs -f app"

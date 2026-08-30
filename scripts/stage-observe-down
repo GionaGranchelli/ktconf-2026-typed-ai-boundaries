@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stop the host-process stage if present, then the Docker app and trace backend.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+./scripts/stage-down
+docker compose -f docker-compose.observability.yml down

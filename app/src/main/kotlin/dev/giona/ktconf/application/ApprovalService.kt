@@ -7,6 +7,7 @@ import dev.tramai.core.exception.ApprovalAuthorizationException
 import dev.tramai.core.exception.ApprovalNotFoundException
 import dev.tramai.engine.ResumeApprovalCommand
 import dev.tramai.sovereign.SovereignTramaiRuntime
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
@@ -25,11 +26,17 @@ import org.springframework.stereotype.Service
 @Service
 class ApprovalService(
     private val registry: PendingApprovalRegistry,
+    private val workflowApprovals: WorkflowHumanApprovalGateway,
     private val approvalStore: ApprovalStore,
     private val runtime: SovereignTramaiRuntime,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun approve(approvalId: String): InvoiceAssessment {
+        log.info("Approving suspended workflow: approvalId={}", approvalId)
+        if (workflowApprovals.contains(approvalId)) {
+            return workflowApprovals.approve(approvalId)
+        }
         val pending = registry.require(approvalId)
         val stored = approvalStore.get(approvalId) ?: throw ApprovalNotFoundException(approvalId)
         val approved = approvalStore.transition(
@@ -50,10 +57,16 @@ class ApprovalService(
         // transition (APPROVED), so any retry is rejected there (409).
         val assessment = runtime.resumeApprovalTyped<InvoiceAssessment>(command)
         registry.complete(approvalId, PendingApprovalRegistry.State.COMPLETED)
+        log.info("Approved workflow completed: approvalId={}, invoiceId={}, action={}", approvalId, assessment.invoiceId, assessment.recommendedAction)
         return assessment
     }
 
     suspend fun deny(approvalId: String): DenyOutcome {
+        log.info("Denying suspended workflow: approvalId={}", approvalId)
+        if (workflowApprovals.contains(approvalId)) {
+            workflowApprovals.deny(approvalId)
+            return DenyOutcome(approvalId = approvalId, status = "DENIED")
+        }
         val pending = registry.require(approvalId)
         val stored = approvalStore.get(approvalId) ?: throw ApprovalNotFoundException(approvalId)
         val denied = approvalStore.transition(
@@ -75,8 +88,10 @@ class ApprovalService(
             throw IllegalStateException("resume after deny must be rejected by TramAI")
         } catch (_: ApprovalAuthorizationException) {
             // Expected: the runtime refuses the denied continuation.
+            log.info("Denied continuation was rejected by TramAI: approvalId={}", approvalId)
         }
         registry.complete(approvalId, PendingApprovalRegistry.State.DENIED)
+        log.info("Workflow marked denied: approvalId={}", approvalId)
         return DenyOutcome(
             approvalId = approvalId,
             status = "DENIED",

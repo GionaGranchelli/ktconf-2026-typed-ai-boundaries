@@ -9,9 +9,11 @@ import dev.tramai.core.model.ClassifiedDocument
 /**
  * The typed AI boundary — the ONE contract the audience should remember.
  *
- * Two governed operations on one service:
+ * Three governed operations on one service:
  * - [analyzeLocal] runs on `local-invoice-model` (LOCAL provider) and may
  *   request the HIGH-risk `schedule-payment` tool.
+ * - [preAssessLocal] produces a tool-free recommendation for the explicit
+ *   workflow demo, before any side effect is attempted.
  * - [analyzeCloud] runs on `cloud-invoice-model` (GLOBAL_CLOUD provider)
  *   and has no tools.
  *
@@ -21,18 +23,46 @@ import dev.tramai.core.model.ClassifiedDocument
 @AiService
 interface InvoiceAnalysisService {
 
+    companion object {
+        /** Per provider attempt; the HTTP workflow deadline is configured separately. */
+        const val MODEL_ATTEMPT_TIMEOUT_MILLIS: Long = 90_000
+
+        const val ASSESSMENT_PROMPT: String =
+            "Analyze the invoice document and return a structured InvoiceAssessment. " +
+                "Any value above 5,000 EUR is HIGH risk and requires approval with " +
+                "recommendedAction=REQUEST_HUMAN_APPROVAL. Any value at or below 5,000 EUR " +
+                "is LOW risk with recommendedAction=REVIEW_ONLY. Return confidence " +
+                "as a number from 0.0 to 1.0 inclusive."
+
+        const val TOOL_PROMPT: String =
+            "$ASSESSMENT_PROMPT When human approval is required, request the " +
+                "schedule-payment tool; TramAI will enforce approval before execution."
+    }
+
     @Operation(
-        prompt = "Analyze the invoice document and return a structured InvoiceAssessment.",
+        prompt = TOOL_PROMPT,
         model = "local-invoice-model",
         tools = ["schedule-payment"],
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
     )
     suspend fun analyzeLocal(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
+    /** Tool-free assessment used by the two-phase approval demonstration. */
     @Operation(
-        prompt = "Analyze the invoice document and return a structured InvoiceAssessment.",
+        prompt = ASSESSMENT_PROMPT,
+        model = "local-assessment-model",
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+    )
+    suspend fun preAssessLocal(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    @Operation(
+        prompt = ASSESSMENT_PROMPT,
         model = "cloud-invoice-model",
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
     )
     suspend fun analyzeCloud(
         document: ClassifiedDocument<InvoiceDocument>,
