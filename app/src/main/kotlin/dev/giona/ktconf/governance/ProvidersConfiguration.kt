@@ -65,7 +65,7 @@ class ProvidersConfiguration(
     fun cloudProvider(): CountingModelProvider {
         val delegate: ModelProvider =
             if (endpoints.cloud.apiKey.isNotBlank()) {
-                log.info("Configuring cloud provider with an OpenAI-compatible endpoint")
+                log.info("Configuring cloud provider with a DeepSeek endpoint")
                 realProvider(endpoints.cloud, "cloud-provider")
             } else {
                 log.info("Configuring deterministic cloud provider")

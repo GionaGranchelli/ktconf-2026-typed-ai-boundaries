@@ -43,7 +43,7 @@ class TramaiObservabilityConfiguration {
      * Opt-in local/host OTLP export. The endpoint is a collector base URL;
      * this configuration adds the OTLP HTTP trace path itself.
      */
-    @Bean
+    @Bean(destroyMethod = "close")
     @ConditionalOnProperty(prefix = "ktconf.observability", name = ["otlp-endpoint"])
     fun localOtlpOpenTelemetry(
         @Value("\${ktconf.observability.otlp-endpoint}") collectorEndpoint: String,
