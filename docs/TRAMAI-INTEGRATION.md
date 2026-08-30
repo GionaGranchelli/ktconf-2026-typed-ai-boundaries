@@ -43,7 +43,7 @@ It collects `ModelProvider` beans and — since upstream tramAI PR #268 —
 coordinates matches the version the pinned TramAI build declares for itself
 (`tramaiVersion=0.5.0`); the composite build substitutes the included
 projects. `gradle.properties` field `tramaiGitCommit` records the
-authoritative pinned SHA — currently **10aa8e3efad34cae48a488fb8541740c8a912418**.
+authoritative pinned SHA — currently **852c89ba265466c54217557d2dc5db83760691c9**.
 
 ## Immutability
 
@@ -66,7 +66,7 @@ git -C vendor/tramai rev-parse HEAD    # must equal tramaiGitCommit
 ## Known-good revision
 
 The pinned revision is the known-good combination:
-`tramaiGitCommit=10aa8e3efad34cae48a488fb8541740c8a912418`
+`tramaiGitCommit=852c89ba265466c54217557d2dc5db83760691c9`
 Optional real-provider path verified against Qwen3.8-27B-UD-Q6_K on the
 z840 (Tailscale, LOCAL) and DeepSeek V4 Flash (GLOBAL_CLOUD). The freeze
 tag `ktconf-2026-demo-v4` records this known-good combination;
