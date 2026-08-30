@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL, Nebius EU, and GLOBAL NVIDIA execution boundaries. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md) and [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
+
 # KTConf 2026 — Typed AI Boundaries
 
 *"The model may be nondeterministic. The boundaries around it should not be."*
