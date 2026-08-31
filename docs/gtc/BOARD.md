@@ -26,16 +26,34 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 
 | Task | Status | Track | Depends on | Objective |
 |---|---|---|---|---|
-| [task-001](tasks/task-001.md) | READY | A | — | Establish native `EU_CLOUD`/regional trust semantics in TramAI |
-| [task-002](tasks/task-002.md) | READY | B | — | Prove GLOBAL Build.NVIDIA.com Nemotron inference |
-| [task-003](tasks/task-003.md) | READY | C | — | Prove LOCAL RTX + Nemotron inference |
-| [task-004](tasks/task-004.md) | READY | D | — | Prove Nebius France + NVIDIA H200 + NIM path |
-| [task-005](tasks/task-005.md) | READY | E | — | Add fail-closed real PDF + trusted metadata ingestion |
+| [task-001](tasks/task-001.md) | DONE | A | — | Establish native `EU_CLOUD`/regional trust semantics in TramAI |
+| [task-002](tasks/task-002.md) | REVIEW | B | — | Prove GLOBAL Build.NVIDIA.com Nemotron inference |
+| [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
+| [task-004](tasks/task-004.md) | REVIEW | D | — | Prove Nebius France + NVIDIA H200 + NIM path |
+| [task-005](tasks/task-005.md) | REVIEW | E | — | Add fail-closed real PDF + trusted metadata ingestion |
 | [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed NVIDIA execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
+
+## Evidence checkpoint
+
+- task-003 is `DONE`: local smoke passed with RTX 3060 / driver 580.173.02,
+  llama.cpp 9986, Nemotron `nvidia/nemotron-3-nano-4b`, direct HTTP 200, typed
+  application HTTP 200, `selectedRoute=LOCAL_NVIDIA`, and invocation count 1.
+- task-004 remains `REVIEW`: a real Nebius endpoint is now provisioned in the
+  existing `eu-west1` project with H200 capacity and is still `STARTING`.
+  Managed URL and endpoint ID are recorded in `CURRENT-STATE.md`; direct NIM
+  inference is not claimed until startup completes.
+- task-005 is `REVIEW`: PDFBox ingestion, documented metadata contract, three
+  synthetic fixtures, and fail-closed parser tests are complete. The focused
+  parser suite passed 5/5 and the full app suite passed. A multipart endpoint
+  counter test remains follow-on hardening.
+
+Tasks 006–010 were not started. Their dependency chain remains blocked until
+the real-provider proofs for tasks 002–004 and the review of task-005 are
+resolved.
 
 ## Critical path
 

@@ -14,7 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties(prefix = "ktconf.providers")
 data class ProviderEndpoints(
     val local: Endpoint = Endpoint(),
+    val localNvidia: Endpoint = Endpoint(),
     val cloud: Endpoint = Endpoint(),
+    val euNvidia: Endpoint = Endpoint(),
+    val globalNvidia: Endpoint = Endpoint(),
 )
 
 data class Endpoint(

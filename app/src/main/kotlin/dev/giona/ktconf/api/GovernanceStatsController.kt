@@ -17,7 +17,10 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/governance")
 class GovernanceStatsController(
     @param:Qualifier("cloudProvider") private val cloudProvider: CountingModelProvider,
+    @param:Qualifier("globalNvidiaProvider") private val globalNvidiaProvider: CountingModelProvider,
     @param:Qualifier("localProvider") private val localProvider: CountingModelProvider,
+    @param:Qualifier("localNvidiaProvider") private val localNvidiaProvider: CountingModelProvider,
+    @param:Qualifier("euNvidiaProvider") private val euNvidiaProvider: CountingModelProvider,
     private val ledger: InMemoryPaymentLedger,
     private val email: FakeEmailService,
 ) {
@@ -25,7 +28,10 @@ class GovernanceStatsController(
     @GetMapping("/stats")
     fun stats(): StatsResponse = StatsResponse(
         cloudInvocationCount = cloudProvider.invocationCount(),
+        globalNvidiaInvocationCount = globalNvidiaProvider.invocationCount(),
         localInvocationCount = localProvider.invocationCount(),
+        localNvidiaInvocationCount = localNvidiaProvider.invocationCount(),
+        euNvidiaInvocationCount = euNvidiaProvider.invocationCount(),
         paymentExecutionCount = ledger.executionCount(),
         emailNotificationCount = email.count(),
     )
@@ -40,4 +46,7 @@ data class StatsResponse(
     val localInvocationCount: Int,
     val paymentExecutionCount: Int,
     val emailNotificationCount: Int = 0,
+    val globalNvidiaInvocationCount: Int = 0,
+    val localNvidiaInvocationCount: Int = 0,
+    val euNvidiaInvocationCount: Int = 0,
 )

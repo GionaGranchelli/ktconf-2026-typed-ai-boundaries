@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
 
 /**
  * The one-app architecture invariants: exactly one governed runtime,
- * both provider routes alive simultaneously, the tool discovered as a
+ * provider routes alive simultaneously, the tool discovered as a
  * Spring bean, and no profile topology.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -36,9 +36,9 @@ class ApplicationContextIT {
     @Test
     fun `both local and cloud providers coexist in one context`() {
         val providers = context.getBeansOfType(ModelProvider::class.java).values.toList()
-        assertEquals(2, providers.size, "expected exactly the local + cloud provider beans")
+        assertEquals(5, providers.size, "expected local + local NVIDIA + EU NVIDIA + cloud + global NVIDIA provider beans")
         val ids = providers.map { it.providerId() }.toSet()
-        assertEquals(setOf("local-provider", "cloud-provider"), ids)
+        assertEquals(setOf("local-provider", "local-nvidia-provider", "eu-nvidia-provider", "cloud-provider", "global-nvidia-provider"), ids)
     }
 
     @Test
@@ -73,5 +73,14 @@ class ApplicationContextIT {
         assertTrue((local as CountingModelProvider).delegate is DeterministicProvider, "local provider must be deterministic when no real-model env is set")
         assertTrue(cloud is CountingModelProvider)
         assertTrue((cloud as CountingModelProvider).delegate is DeterministicProvider)
+        val global = context.getBean("globalNvidiaProvider") as ModelProvider
+        assertTrue(global is CountingModelProvider)
+        assertTrue((global as CountingModelProvider).delegate is DeterministicProvider)
+        val localNvidia = context.getBean("localNvidiaProvider") as ModelProvider
+        assertTrue(localNvidia is CountingModelProvider)
+        assertTrue((localNvidia as CountingModelProvider).delegate is DeterministicProvider)
+        val euNvidia = context.getBean("euNvidiaProvider") as ModelProvider
+        assertTrue(euNvidia is CountingModelProvider)
+        assertTrue((euNvidia as CountingModelProvider).delegate is DeterministicProvider)
     }
 }

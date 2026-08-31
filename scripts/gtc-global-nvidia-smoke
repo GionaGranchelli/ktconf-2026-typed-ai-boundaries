@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opt-in task-002 proof. The secret is read from the environment and is never
+# printed, committed, or passed as a command-line argument.
+BASE_URL="${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}"
+MODEL="${NVIDIA_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}"
+: "${NVIDIA_API_KEY:?Set NVIDIA_API_KEY in the environment}"
+
+cd "$(dirname "$0")/.."
+if ! command -v curl >/dev/null || ! command -v python3 >/dev/null; then
+  echo "FAIL: curl and python3 are required" >&2
+  exit 1
+fi
+
+echo "checking NVIDIA hosted model catalog…"
+models="$(curl -fsS --max-time 30 -H "Authorization: Bearer ${NVIDIA_API_KEY}" "${BASE_URL}/models")"
+python3 -c 'import json,sys
+data=json.load(sys.stdin)
+ids={item.get("id") for item in data.get("data", [])}
+model=sys.argv[1]
+if model not in ids:
+    raise SystemExit(f"FAIL: configured model is absent from NVIDIA catalog: {model}")
+print(f"catalog: model available ({model})")' "$MODEL" <<<"$models"
+
+echo "direct NVIDIA chat smoke…"
+payload="$(python3 -c 'import json,sys
+print(json.dumps({"model":sys.argv[1],"messages":[{"role":"user","content":"Return exactly the word READY."}],"max_tokens":8,"temperature":0}))' "$MODEL")"
+curl -fsS --max-time 120 -X POST "${BASE_URL}/chat/completions" \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer ${NVIDIA_API_KEY}" \
+  -d "$payload" >/tmp/ktconf-gtc-nvidia-direct.json
+echo "direct: HTTP 200"
+
+echo "building and starting the application with the same logical provider…"
+./gradlew :app:bootJar -q
+./scripts/stage-down >/dev/null 2>&1 || true
+mkdir -p .build
+KTCONF_GTC_GLOBAL_NVIDIA_API_KEY="$NVIDIA_API_KEY" \
+KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL="$BASE_URL" \
+KTCONF_GTC_GLOBAL_NVIDIA_MODEL="$MODEL" \
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar >.build/stage-gtc-global-nvidia.log 2>&1 &
+echo "$!" > .build/stage.pid
+trap './scripts/stage-down >/dev/null 2>&1 || true' EXIT
+
+for i in $(seq 1 60); do
+  if curl -sf --max-time 2 http://localhost:8080/governance/healthz >/dev/null; then break; fi
+  sleep 1
+done
+
+request='{"classification":"PUBLIC","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Synthetic contest fixture"}}'
+http_code="$(curl -sS -o .build/gtc-global-nvidia-response.json -w '%{http_code}' --max-time 120 \
+  -X POST http://localhost:8080/invoices/global-nvidia \
+  -H 'Content-Type: application/json' -d "$request")"
+if [ "$http_code" != 200 ] || ! grep -Fq '"selectedRoute":"GLOBAL_CLOUD"' .build/gtc-global-nvidia-response.json; then
+  echo "FAIL: application smoke returned HTTP $http_code or wrong route" >&2
+  exit 1
+fi
+after="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["globalNvidiaInvocationCount"])')"
+echo "application: HTTP 200, typed InvoiceAssessment, selectedRoute=GLOBAL_CLOUD, invocationCount=$after"
+
+before="$after"
+http_code="$(curl -sS -o .build/gtc-global-nvidia-denied.json -w '%{http_code}' --max-time 30 \
+  -X POST http://localhost:8080/invoices/global-nvidia \
+  -H 'Content-Type: application/json' \
+  -d '{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Synthetic contest fixture"}}')"
+after="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["globalNvidiaInvocationCount"])')"
+if [ "$http_code" != 403 ] || [ "$before" != "$after" ]; then
+  echo "FAIL: restricted route was not denied before NVIDIA invocation" >&2
+  exit 1
+fi
+echo "denial: HTTP 403 before provider invocation, counter delta=0"

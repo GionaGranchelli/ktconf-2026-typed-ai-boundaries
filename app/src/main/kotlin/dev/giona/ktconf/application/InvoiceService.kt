@@ -52,6 +52,9 @@ class InvoiceService(
                     assessment = when (route) {
                         InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
                         InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
+                        InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidia(document)
+                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuNvidia(document)
+                        InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
                     },
                     selectedRoute = route,
                 )
@@ -83,13 +86,37 @@ class InvoiceService(
             log.error("Boundary proof unexpectedly completed: invoiceId={} reached cloud operation", request.invoice.invoiceId)
         }
     }
+
+    /** Explicit task-002 smoke path; normal application routing is unchanged. */
+    suspend fun analyzeGlobalNvidia(request: AnalyzeInvoiceRequest): InvoiceAssessment {
+        val document = request.toClassifiedDocument()
+        return telemetry.traceModelCall(document.classification, InvoiceRoute.GLOBAL_CLOUD) {
+            ai.analyzeGlobalNvidia(document)
+        }
+    }
+
+    /** Explicit task-003 smoke path; normal route selection is unchanged. */
+    suspend fun analyzeLocalNvidia(request: AnalyzeInvoiceRequest): InvoiceAssessment {
+        val document = request.toClassifiedDocument()
+        return telemetry.traceModelCall(document.classification, InvoiceRoute.LOCAL_NVIDIA) {
+            ai.analyzeLocalNvidia(document)
+        }
+    }
+
+    /** Explicit task-004 smoke path; normal route selection is unchanged. */
+    suspend fun analyzeEuNvidia(request: AnalyzeInvoiceRequest): InvoiceAssessment {
+        val document = request.toClassifiedDocument()
+        return telemetry.traceModelCall(document.classification, InvoiceRoute.EU_CLOUD) {
+            ai.analyzeEuNvidia(document)
+        }
+    }
 }
 
 /**
  * Application-owned route choice. The YAML (not this enum) decides which
  * model/provider/trust zone backs each route.
  */
-enum class InvoiceRoute { LOCAL, CLOUD }
+enum class InvoiceRoute { LOCAL, LOCAL_NVIDIA, EU_CLOUD, CLOUD, GLOBAL_CLOUD }
 
 sealed interface AnalyzeOutcome {
     data class Typed(

@@ -69,6 +69,12 @@ class ApiExceptionAdvice {
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
             ErrorResponse(code = "demo-invariant-violated", message = e.message ?: "Demo invariant violated"),
         )
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun invalidPdf(e: IllegalArgumentException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(code = "invalid-pdf-metadata", message = e.message ?: "Invalid PDF input"),
+        )
 }
 
 data class ErrorResponse(

@@ -19,8 +19,13 @@ import kotlin.test.assertTrue
  */
 class ProviderConfigurationTest {
 
-    private fun config(local: Endpoint = Endpoint(), cloud: Endpoint = Endpoint()) =
-        ProvidersConfiguration(ProviderEndpoints(local = local, cloud = cloud))
+    private fun config(
+        local: Endpoint = Endpoint(),
+        localNvidia: Endpoint = Endpoint(),
+        cloud: Endpoint = Endpoint(),
+        euNvidia: Endpoint = Endpoint(),
+        globalNvidia: Endpoint = Endpoint(),
+    ) = ProvidersConfiguration(ProviderEndpoints(local = local, localNvidia = localNvidia, cloud = cloud, euNvidia = euNvidia, globalNvidia = globalNvidia))
 
     @Test
     fun `no provider config keeps both identities deterministic`() {
@@ -43,6 +48,26 @@ class ProviderConfigurationTest {
     }
 
     @Test
+    fun `local NVIDIA without endpoint stays deterministic`() {
+        val local = config().localNvidiaProvider()
+        assertTrue(local.delegate is DeterministicProvider)
+    }
+
+    @Test
+    fun `local NVIDIA endpoint selects OpenAI-compatible provider with logical identity`() {
+        val local = config(
+            localNvidia = Endpoint(
+                baseUrl = "http://127.0.0.1:8088/v1",
+                model = "nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M",
+            ),
+        ).localNvidiaProvider()
+        val alias = local.delegate as ModelAliasProvider
+        assertEquals("nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M", alias.actualModel)
+        assertEquals("local-nvidia-provider", alias.providerId())
+        assertTrue(alias.delegate is OpenAiCompatibleProvider)
+    }
+
+    @Test
     fun `cloud api-key produces a real DeepSeek-compatible provider with model alias`() {
         val cloud = config(
             cloud = Endpoint(baseUrl = "https://api.deepseek.com", model = "deepseek-v4-flash", apiKey = "sk-test"),
@@ -59,5 +84,47 @@ class ProviderConfigurationTest {
             cloud = Endpoint(baseUrl = "https://api.deepseek.com", model = "deepseek-v4-flash"),
         ).cloudProvider()
         assertTrue(cloud.delegate is DeterministicProvider)
+    }
+
+    @Test
+    fun `global NVIDIA without api-key stays deterministic`() {
+        val global = config().globalNvidiaProvider()
+        assertTrue(global.delegate is DeterministicProvider)
+        assertEquals(0, global.invocationCount())
+    }
+
+    @Test
+    fun `global NVIDIA api-key selects OpenAI-compatible provider with logical identity`() {
+        val global = config(
+            globalNvidia = Endpoint(
+                baseUrl = "https://integrate.api.nvidia.com/v1",
+                model = "nvidia/nemotron-3.5-lightning-30b-a3b",
+                apiKey = "nvidia-test-key",
+            ),
+        ).globalNvidiaProvider()
+        val alias = global.delegate as ModelAliasProvider
+        assertEquals("nvidia/nemotron-3.5-lightning-30b-a3b", alias.actualModel)
+        assertEquals("global-nvidia-provider", alias.providerId())
+        assertTrue(alias.delegate is OpenAiCompatibleProvider)
+    }
+
+    @Test
+    fun `EU NVIDIA without endpoint stays deterministic`() {
+        assertTrue(config().euNvidiaProvider().delegate is DeterministicProvider)
+    }
+
+    @Test
+    fun `EU NVIDIA endpoint selects OpenAI-compatible provider with logical identity`() {
+        val eu = config(
+            euNvidia = Endpoint(
+                baseUrl = "https://eu.example.invalid/v1",
+                model = "nvidia/nemotron-3.5-lightning-30b-a3b",
+                apiKey = "eu-test-key",
+            ),
+        ).euNvidiaProvider()
+        val alias = eu.delegate as ModelAliasProvider
+        assertEquals("nvidia/nemotron-3.5-lightning-30b-a3b", alias.actualModel)
+        assertEquals("eu-nvidia-provider", alias.providerId())
+        assertTrue(alias.delegate is OpenAiCompatibleProvider)
     }
 }

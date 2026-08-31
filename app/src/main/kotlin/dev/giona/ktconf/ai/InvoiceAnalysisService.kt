@@ -32,7 +32,10 @@ interface InvoiceAnalysisService {
                 "Any value above 5,000 EUR is HIGH risk and requires approval with " +
                 "recommendedAction=REQUEST_HUMAN_APPROVAL. Any value at or below 5,000 EUR " +
                 "is LOW risk with recommendedAction=REVIEW_ONLY. Return confidence " +
-                "as a number from 0.0 to 1.0 inclusive."
+                "as a number from 0.0 to 1.0 inclusive. The recommendedAction field " +
+                "must be a JSON string enum, exactly one of REVIEW_ONLY, " +
+                "REQUEST_HUMAN_APPROVAL, or SCHEDULE_PAYMENT; do not return an object " +
+                "for this field."
 
         const val TOOL_PROMPT: String =
             "$ASSESSMENT_PROMPT When human approval is required, request the " +
@@ -46,6 +49,16 @@ interface InvoiceAnalysisService {
         timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
     )
     suspend fun analyzeLocal(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    /** Explicit contest smoke operation for local NVIDIA Nemotron. */
+    @Operation(
+        prompt = ASSESSMENT_PROMPT,
+        model = "local-nvidia-invoice-model",
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeLocalNvidia(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
@@ -65,6 +78,26 @@ interface InvoiceAnalysisService {
         timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
     )
     suspend fun analyzeCloud(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    /** Explicit contest smoke operation; normal route selection is unchanged. */
+    @Operation(
+        prompt = ASSESSMENT_PROMPT,
+        model = "global-nvidia-invoice-model",
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeGlobalNvidia(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    /** Explicit contest smoke operation for the EU NVIDIA/NIM endpoint. */
+    @Operation(
+        prompt = ASSESSMENT_PROMPT,
+        model = "eu-nvidia-invoice-model",
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeEuNvidia(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 }

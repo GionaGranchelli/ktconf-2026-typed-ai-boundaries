@@ -4,6 +4,13 @@ What this demo proves — and what it deliberately does **not** claim.
 
 ## Proved (deterministic, reproducible, tested)
 
+- The pinned TramAI revision exposes `ProviderTrustZone.LOCAL`, `EU_CLOUD`,
+  and `GLOBAL_CLOUD` as first-class governance values. Its enabled sovereign
+  routing matrix allows PUBLIC/INTERNAL in all zones, CONFIDENTIAL in LOCAL or
+  EU_CLOUD, and RESTRICTED in LOCAL only; `DefaultPolicyEngine` checks this
+  before provider invocation. This is a policy capability, not proof that an
+  operator's EU deployment is legally sovereign or compliant.
+
 - TramAI structured output turns a valid model response into a typed
   `InvoiceAssessment` — no manual JSON mapping in application code.
 - TramAI's classification-aware provider policy enforcement **denies** a `RESTRICTED`
@@ -58,12 +65,24 @@ What this demo proves — and what it deliberately does **not** claim.
   caller from saying PUBLIC; the demo shows what TramAI does with a wrong
   route once the classification is set, not how to trust a self-classifying
   external user.
+- **Synthetic PDF metadata is not a signature.** The contest PDF path reads
+  the required classification/residency properties locally and rejects
+  contradictory combinations before analysis. The embedded properties are a
+  demo trust contract, not a cryptographic signature, Microsoft Purview label,
+  or legal/compliance assertion.
 - **No production audit infrastructure.** Stores are in-memory for the
   demo; they are real TramAI stores, not fakes, but they are not durable.
 - **No claim that these TramAI APIs are stable.** The exact API surface is
   pinned to a specific revision (`docs/TRAMAI-INTEGRATION.md`).
 
 ## Real-model path (optional, opt-in, off-stage)
+
+- The contest-only `global-nvidia-provider` uses `KTCONF_GTC_GLOBAL_NVIDIA_*`
+  configuration and maps the logical `global-nvidia-invoice-model` to the
+  deployment model `nvidia/nemotron-3.5-lightning-30b-a3b`. It is counted and
+  deterministic when no NVIDIA key is supplied. A real HTTP 200 typed result
+  is not claimed until `./scripts/gtc-global-nvidia-smoke` is run with
+  `NVIDIA_API_KEY`.
 
 - Proves: the actual two-provider architecture behind the SAME typed
   contract (`ClassifiedDocument<InvoiceDocument>` → `InvoiceAssessment`),

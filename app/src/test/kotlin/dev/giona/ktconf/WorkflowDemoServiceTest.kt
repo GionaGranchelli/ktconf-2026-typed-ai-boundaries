@@ -34,7 +34,13 @@ class WorkflowDemoServiceTest {
     private val ai = object : InvoiceAnalysisService {
         override suspend fun analyzeLocal(document: ClassifiedDocument<InvoiceDocument>) = assessment
 
+        override suspend fun analyzeLocalNvidia(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeEuNvidia(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
         override suspend fun analyzeCloud(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeGlobalNvidia(document: ClassifiedDocument<InvoiceDocument>) = assessment
 
         override suspend fun preAssessLocal(document: ClassifiedDocument<InvoiceDocument>) = assessment
     }

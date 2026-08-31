@@ -18,19 +18,31 @@ tramai:
       - local-invoice-model
       - local-assessment-model
       - cloud-invoice-model
+      - local-nvidia-invoice-model
+      - global-nvidia-invoice-model
+      - eu-nvidia-invoice-model
 
     allowed-providers:
       - local-provider
+      - local-nvidia-provider
       - cloud-provider
+      - global-nvidia-provider
+      - eu-nvidia-provider
 
     provider-zones:
       local-provider: LOCAL
+      local-nvidia-provider: LOCAL
       cloud-provider: GLOBAL_CLOUD
+      global-nvidia-provider: GLOBAL_CLOUD
+      eu-nvidia-provider: EU_CLOUD
 
     models:
       local-invoice-model: local-provider
       local-assessment-model: local-provider
+      local-nvidia-invoice-model: local-nvidia-provider
       cloud-invoice-model: cloud-provider
+      global-nvidia-invoice-model: global-nvidia-provider
+      eu-nvidia-invoice-model: eu-nvidia-provider
 
     allowed-tools:
       - schedule-payment
@@ -57,11 +69,25 @@ ktconf:
       base-url: ${KTCONF_DEMO_LOCAL_BASE_URL:}
       model: ${KTCONF_DEMO_LOCAL_MODEL:/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}
       api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
+    local-nvidia:
+      # Official NVIDIA Nemotron 3 Nano 4B GGUF served by llama-server.
+      base-url: ${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:}
+      model: ${KTCONF_GTC_LOCAL_NVIDIA_MODEL:nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M}
+      api-key: ${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:}
     cloud:
       # DeepSeek's OpenAI-compatible API.
       base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com/v1}
       model: ${KTCONF_DEMO_CLOUD_MODEL:deepseek-v4-flash}
       api-key: ${KTCONF_DEMO_CLOUD_API_KEY:}
+    global-nvidia:
+      base-url: ${KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL:https://integrate.api.nvidia.com/v1}
+      model: ${KTCONF_GTC_GLOBAL_NVIDIA_MODEL:nvidia/nemotron-3.5-lightning-30b-a3b}
+      api-key: ${KTCONF_GTC_GLOBAL_NVIDIA_API_KEY:}
+    eu-nvidia:
+      # Nebius eu-west1 / NVIDIA H200 / official NVIDIA NIM endpoint.
+      base-url: ${KTCONF_GTC_EU_NVIDIA_BASE_URL:}
+      model: ${KTCONF_GTC_EU_NVIDIA_MODEL:nvidia/nemotron-3.5-lightning-30b-a3b}
+      api-key: ${KTCONF_GTC_EU_NVIDIA_API_KEY:}
 
 logging:
   level:

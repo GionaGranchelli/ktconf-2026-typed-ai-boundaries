@@ -97,4 +97,7 @@ private data class ModelTarget(
 private fun InvoiceRoute.target(): ModelTarget = when (this) {
     InvoiceRoute.CLOUD -> ModelTarget("cloud-invoice-model", "cloud-provider", "GLOBAL_CLOUD")
     InvoiceRoute.LOCAL -> ModelTarget("local-invoice-model", "local-provider", "LOCAL")
+    InvoiceRoute.LOCAL_NVIDIA -> ModelTarget("local-nvidia-invoice-model", "local-nvidia-provider", "LOCAL")
+    InvoiceRoute.EU_CLOUD -> ModelTarget("eu-nvidia-invoice-model", "eu-nvidia-provider", "EU_CLOUD")
+    InvoiceRoute.GLOBAL_CLOUD -> ModelTarget("global-nvidia-invoice-model", "global-nvidia-provider", "GLOBAL_CLOUD")
 }

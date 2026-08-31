@@ -5,11 +5,13 @@ import dev.giona.ktconf.application.InvoiceRoute
 import dev.giona.ktconf.application.InvoiceService
 import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.domain.InvoiceAssessment
+import dev.giona.ktconf.pdf.TrustedPdfIngestionService
 import org.springframework.http.ResponseEntity
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/invoices")
 class InvoiceController(
     private val app: InvoiceService,
+    private val pdfIngestion: TrustedPdfIngestionService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -64,6 +67,33 @@ class InvoiceController(
         log.warn("Boundary proof requested: invoiceId={} forced to cloud with classification={}", request.invoice.invoiceId, request.classification)
         return app.analyzeRestrictedViaCloud(request)
     }
+
+    /** Opt-in task-002 proof route for hosted NVIDIA Nemotron. */
+    @PostMapping("/global-nvidia")
+    suspend fun globalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
+        ResponseEntity.ok(AnalyzeResponse(app.analyzeGlobalNvidia(request), InvoiceRoute.GLOBAL_CLOUD))
+
+    /** Opt-in task-003 proof route for local NVIDIA Nemotron. */
+    @PostMapping("/local-nvidia")
+    suspend fun localNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
+        ResponseEntity.ok(AnalyzeResponse(app.analyzeLocalNvidia(request), InvoiceRoute.LOCAL_NVIDIA))
+
+    /** Opt-in task-004 proof route for Nebius/NVIDIA NIM. */
+    @PostMapping("/eu-nvidia")
+    suspend fun euNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
+        ResponseEntity.ok(AnalyzeResponse(app.analyzeEuNvidia(request), InvoiceRoute.EU_CLOUD))
+
+    /** Contest PDF entrypoint: local metadata validation precedes analysis. */
+    @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])
+    suspend fun analyzePdf(@RequestPart("file") file: org.springframework.web.multipart.MultipartFile): ResponseEntity<Any> {
+        val parsed = pdfIngestion.parse(file)
+        return when (val outcome = app.analyze(parsed.request)) {
+            is AnalyzeOutcome.Typed -> ResponseEntity.ok(
+                PdfAnalyzeResponse(parsed.metadata, outcome.assessment, outcome.selectedRoute),
+            )
+            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(outcome)
+        }
+    }
 }
 
 /** 200 envelope: the typed result plus the route the application chose. */
@@ -78,4 +108,10 @@ data class AwaitingApprovalResponse(
     val workflowRunId: String,
     val toolName: String,
     val rationale: String,
+)
+
+data class PdfAnalyzeResponse(
+    val metadata: dev.giona.ktconf.pdf.TrustedPdfMetadata,
+    val assessment: InvoiceAssessment,
+    val selectedRoute: InvoiceRoute,
 )

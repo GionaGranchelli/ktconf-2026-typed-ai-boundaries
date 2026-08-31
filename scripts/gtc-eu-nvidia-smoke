@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opt-in smoke for an already deployed Nebius Serverless AI/NIM endpoint.
+# Deployment credentials stay in Nebius MysteryBox or the caller environment.
+BASE_URL="${NEBIUS_NIM_BASE_URL:?Set NEBIUS_NIM_BASE_URL to the endpoint's /v1 base URL}"
+API_KEY="${NEBIUS_NIM_API_KEY:?Set NEBIUS_NIM_API_KEY in the environment}"
+MODEL="${NEBIUS_NIM_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}"
+
+cd "$(dirname "$0")/.."
+if ! command -v curl >/dev/null || ! command -v python3 >/dev/null; then
+  echo "FAIL: curl and python3 are required" >&2
+  exit 1
+fi
+
+models="$(curl -fsS --max-time 30 -H "Authorization: Bearer ${API_KEY}" "${BASE_URL%/}/models")"
+python3 -c 'import json,sys
+data=json.load(sys.stdin)
+ids={item.get("id") for item in data.get("data", [])}
+model=sys.argv[1]
+if model not in ids:
+    raise SystemExit(f"FAIL: NIM endpoint does not advertise configured model: {model}")
+print(f"NIM catalog: model available ({model})")' "$MODEL" <<<"$models"
+
+payload="$(python3 -c 'import json,sys
+print(json.dumps({"model":sys.argv[1],"messages":[{"role":"user","content":"Return exactly the word READY."}],"max_tokens":8,"temperature":0}))' "$MODEL")"
+curl -fsS --max-time 120 -X POST "${BASE_URL%/}/chat/completions" \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -d "$payload" >/tmp/ktconf-gtc-eu-nvidia-direct.json
+echo "direct: HTTP 200 OpenAI-compatible NIM response"
+
+./gradlew :app:bootJar -q
+./scripts/stage-down >/dev/null 2>&1 || true
+mkdir -p .build
+KTCONF_GTC_EU_NVIDIA_BASE_URL="$BASE_URL" \
+KTCONF_GTC_EU_NVIDIA_API_KEY="$API_KEY" \
+KTCONF_GTC_EU_NVIDIA_MODEL="$MODEL" \
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar >.build/stage-gtc-eu-nvidia.log 2>&1 &
+echo "$!" > .build/stage.pid
+trap './scripts/stage-down >/dev/null 2>&1 || true' EXIT
+
+for i in $(seq 1 60); do
+  if curl -sf --max-time 2 http://localhost:8080/governance/healthz >/dev/null; then break; fi
+  sleep 1
+done
+
+request='{"classification":"CONFIDENTIAL","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Synthetic contest fixture"}}'
+http_code="$(curl -sS -o .build/gtc-eu-nvidia-response.json -w '%{http_code}' --max-time 120 \
+  -X POST http://localhost:8080/invoices/eu-nvidia \
+  -H 'Content-Type: application/json' -d "$request")"
+if [ "$http_code" != 200 ] || ! grep -Fq '"selectedRoute":"EU_CLOUD"' .build/gtc-eu-nvidia-response.json; then
+  echo "FAIL: application smoke returned HTTP $http_code or wrong route" >&2
+  exit 1
+fi
+count="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["euNvidiaInvocationCount"])')"
+echo "application: HTTP 200, typed InvoiceAssessment, selectedRoute=EU_CLOUD, invocationCount=$count"
