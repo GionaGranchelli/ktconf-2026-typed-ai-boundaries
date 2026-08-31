@@ -145,7 +145,7 @@ function onStatsUpdated(stats) {
               {{
                 (globalStats.globalNvidiaInvocationCount ?? 0)
                 + (globalStats.localNvidiaInvocationCount  ?? 0)
-                + (globalStats.euScalewayInvocationCount   ?? 0)
+                + (globalStats.euNvidiaInvocationCount     ?? 0)
               }}
             </strong>
           </span>
