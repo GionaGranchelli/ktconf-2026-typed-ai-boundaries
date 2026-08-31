@@ -6,6 +6,8 @@ import dev.giona.ktconf.application.InvoiceService
 import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.domain.InvoiceAssessment
 import dev.giona.ktconf.pdf.TrustedPdfIngestionService
+import dev.giona.ktconf.pdf.DataResidency
+import dev.giona.ktconf.pdf.TrustedPdfMetadata
 import org.springframework.http.ResponseEntity
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
@@ -97,14 +99,22 @@ class InvoiceController(
         // TramAI performs placement authorization at the governed operation
         // boundary. Keep content preparation as a distinct phase so task-006
         // can authorize the proposed boundary before this call is made.
+        val proposedRoute = trusted.metadata.proposedRoute()
         val parsed = pdfIngestion.extractInvoice(trusted)
-        return when (val outcome = app.analyze(parsed.request)) {
+        return when (val outcome = app.analyze(parsed.request, proposedRoute)) {
             is AnalyzeOutcome.Typed -> ResponseEntity.ok(
                 PdfAnalyzeResponse(parsed.metadata, outcome.assessment, outcome.selectedRoute),
             )
             is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(outcome)
         }
     }
+}
+
+/** Metadata-driven proposal; TramAI still authorizes the selected operation. */
+private fun TrustedPdfMetadata.proposedRoute(): InvoiceRoute = when (residency) {
+    DataResidency.ANY -> InvoiceRoute.GLOBAL_CLOUD
+    DataResidency.EU_ONLY -> InvoiceRoute.EU_CLOUD
+    DataResidency.LOCAL_ONLY -> InvoiceRoute.LOCAL_NVIDIA
 }
 
 /** 200 envelope: the typed result plus the route the application chose. */

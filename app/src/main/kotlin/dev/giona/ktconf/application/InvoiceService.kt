@@ -37,9 +37,9 @@ class InvoiceService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    suspend fun analyze(request: AnalyzeInvoiceRequest): AnalyzeOutcome {
+    suspend fun analyze(request: AnalyzeInvoiceRequest, routeOverride: InvoiceRoute? = null): AnalyzeOutcome {
         val document = request.toClassifiedDocument()
-        val route = when (document.classification) {
+        val route = routeOverride ?: when (document.classification) {
                 DataClassification.PUBLIC,
                 DataClassification.INTERNAL, -> InvoiceRoute.CLOUD
 

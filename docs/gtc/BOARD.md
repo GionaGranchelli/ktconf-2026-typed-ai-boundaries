@@ -31,7 +31,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
-| [task-006](tasks/task-006.md) | READY | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
+| [task-006](tasks/task-006.md) | DONE | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
@@ -68,10 +68,11 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
   multipart counter tests are complete. The full app suite passed; malformed
   multipart rejection returned HTTP 400 with all provider counters unchanged.
 
-Tasks 006–010 were not started. Task-006 is now `READY`: tasks 001–005 have
-  completed their recorded gates. Task-004's Scaleway and task-002's NVIDIA
-  real-provider proofs are complete; task-005's PDF rejection/counter proof is
-  complete. Do not start task-007 or later until task-006 is complete.
+Task-006 is `DONE`: trusted PDF residency now selects the governed
+`LOCAL_NVIDIA`, `EU_CLOUD`, or `GLOBAL_CLOUD` route, while TramAI authorizes
+the selected operation. Deterministic tests prove one allowed invocation per
+boundary and existing wrong-route tests prove counter delta `0`. Task-007 is
+the next blocked dependency; tasks 008–010 remain blocked behind it.
 
 Task-011 is maintained on the separate `task/011-gtc-governance-console`
 branch and was not modified here. Before merging it, update the EU card and

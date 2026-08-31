@@ -125,4 +125,28 @@ class InvoiceRoutingTest {
         assertEquals(0, stats.globalNvidiaInvocationCount)
         assertEquals(0, stats.cloudInvocationCount)
     }
+
+    @Test
+    fun `trusted PDF residency selects the corresponding governed boundary`() {
+        val cases = listOf(
+            "fixtures/public-invoice.pdf" to "GLOBAL_CLOUD",
+            "fixtures/confidential-eu-invoice.pdf" to "EU_CLOUD",
+            "fixtures/restricted-local-invoice.pdf" to "LOCAL_NVIDIA",
+        )
+        cases.forEach { (resource, route) ->
+            val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream(resource)).readBytes()
+            val initial = mockMvc.perform(
+                multipart("/invoices/analyze-pdf")
+                    .file(MockMultipartFile("file", resource.substringAfterLast('/'), "application/pdf", bytes)),
+            ).andReturn()
+            val response = mockMvc.perform(asyncDispatch(initial)).andReturn().response
+            assertEquals(HttpStatus.OK.value(), response.status, "resource=$resource body=${response.contentAsString}")
+            assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"$route\""))
+        }
+
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(1, stats.globalNvidiaInvocationCount)
+        assertEquals(1, stats.euScalewayInvocationCount)
+        assertEquals(1, stats.localNvidiaInvocationCount)
+    }
 }

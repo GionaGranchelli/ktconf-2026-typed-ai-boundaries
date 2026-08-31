@@ -59,7 +59,10 @@ class DeterministicProvider(
             "KTCONF-PAY-001",
             "KTCONF-PAY-002",
             "KTCONF-RESTRICTED-001",
+            "KTCONF-RESTRICTED",
             "KTCONF-INVALID-001",
+            "KTCONF-PUBLIC",
+            "KTCONF-EU",
             "KTCONF-001",
         )
     }
@@ -81,9 +84,9 @@ fun localScript(invoiceId: String, toolResultPresent: Boolean, request: ModelReq
     invoiceId.startsWith("KTCONF-PAY-") ->
         DemoResponses.payAssessment(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
 
-    invoiceId == "KTCONF-RESTRICTED-001" -> DemoResponses.restrictedAdvisoryAssessment
+    invoiceId == "KTCONF-RESTRICTED-001" || invoiceId == "KTCONF-RESTRICTED" -> DemoResponses.restrictedAdvisoryAssessment
     invoiceId == "KTCONF-INVALID-001" -> DemoResponses.invalidOutput
-    invoiceId == "KTCONF-001" -> DemoResponses.cateringAssessment
+    invoiceId == "KTCONF-001" || invoiceId == "KTCONF-PUBLIC" || invoiceId == "KTCONF-EU" -> DemoResponses.cateringAssessment
     else -> error("local provider: no deterministic response for invoice $invoiceId")
 }
 
@@ -103,6 +106,6 @@ private fun paymentAmount(invoiceId: String): Pair<String, Long> =
  */
 fun cloudScript(invoiceId: String, toolResultPresent: Boolean, request: ModelRequest): ModelResponse = when {
     invoiceId == "KTCONF-INVALID-001" -> DemoResponses.invalidOutput
-    invoiceId == "KTCONF-001" -> DemoResponses.cateringAssessment
+    invoiceId == "KTCONF-001" || invoiceId == "KTCONF-PUBLIC" || invoiceId == "KTCONF-EU" -> DemoResponses.cateringAssessment
     else -> error("cloud provider: no deterministic response for invoice $invoiceId (RESTRICTED data must never reach the cloud)")
 }

@@ -200,6 +200,17 @@ for every provider. TramAI's governed operation remains the provider
 authorization boundary; task-006 must use the metadata phase to choose the
 boundary before extracted content is sent to a provider.
 
+### task-006 — governed three-boundary integration
+
+Task-006 is complete. The PDF endpoint now derives the proposed execution
+boundary from trusted residency metadata: `ANY` selects `GLOBAL_CLOUD`,
+`EU_ONLY` selects `EU_CLOUD`, and `LOCAL_ONLY` selects `LOCAL_NVIDIA`.
+The selected operation still passes through TramAI's classification routing
+matrix; no provider or vendor is authorized in application code. Deterministic
+application tests prove one successful invocation for each boundary and the
+forced restricted EU/GLOBAL tests prove pre-provider denial with counter delta
+`0`.
+
 Verification: `./gradlew :app:test --tests
 dev.giona.ktconf.TrustedPdfIngestionServiceTest --no-daemon --console=plain
 --rerun` passed 5/5. The focused Spring context test also passed. Metadata

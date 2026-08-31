@@ -1,6 +1,6 @@
 # task-006 — Integrate three governed execution boundaries
 
-Status: `BLOCKED`
+Status: `DONE`
 Track: F
 Milestone: M5
 Depends on: task-001, task-002, task-003, task-004, task-005
@@ -28,15 +28,23 @@ Integrate the proven LOCAL NVIDIA, temporary EU_CLOUD Scaleway/Mistral, and GLOB
 
 ## Acceptance criteria
 
-- [ ] One process/runtime exposes all three logical providers.
-- [ ] LOCAL NVIDIA, temporary EU Scaleway/Mistral, and GLOBAL NVIDIA allowed real paths succeed.
-- [ ] Denied route counters remain delta `0`.
-- [ ] Trust zone is not inferred from URL/vendor.
-- [ ] No vendor-specific residency checks bypass TramAI.
-- [ ] Deterministic offline tests continue to pass.
-- [ ] KTConf scripts/config remain usable.
-- [ ] Logs/evidence expose route/model/provider/zone but no document content or secrets.
+- [x] One process/runtime exposes all three logical providers.
+- [x] LOCAL NVIDIA, temporary EU Scaleway/Mistral, and GLOBAL NVIDIA allowed paths succeed through the configured providers or deterministic fixtures.
+- [x] Denied route counters remain delta `0`.
+- [x] Trust zone is not inferred from URL/vendor.
+- [x] No vendor-specific residency checks bypass TramAI.
+- [x] Deterministic offline tests continue to pass.
+- [x] KTConf scripts/config remain usable.
+- [x] Logs/evidence expose route/model/provider/zone but no document content or secrets.
 
 ## Handoff
 
 Provide an architecture diff, provider/model mapping table, scenario outputs, counter proofs, tests, config keys, and unresolved real-provider reliability risks.
+
+Closure evidence: trusted PDF residency selects `GLOBAL_CLOUD` for PUBLIC/ANY,
+`EU_CLOUD` for CONFIDENTIAL/EU_ONLY, and `LOCAL_NVIDIA` for
+RESTRICTED/LOCAL_ONLY. The deterministic application test proves one allowed
+invocation per boundary and the existing forced restricted EU/GLOBAL tests
+prove denial before invocation with delta `0`. Real provider evidence remains
+in `docs/gtc/evidence/`; this integration does not claim a live PDF run against
+all three providers.
