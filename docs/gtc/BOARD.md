@@ -42,10 +42,25 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 - task-003 is `DONE`: local smoke passed with RTX 3060 / driver 580.173.02,
   llama.cpp 9986, Nemotron `nvidia/nemotron-3-nano-4b`, direct HTTP 200, typed
   application HTTP 200, `selectedRoute=LOCAL_NVIDIA`, and invocation count 1.
-- task-004 remains `REVIEW`: a real Nebius endpoint is now provisioned in the
-  existing `eu-west1` project with H200 capacity and is still `STARTING`.
-  Managed URL and endpoint ID are recorded in `CURRENT-STATE.md`; direct NIM
-  inference is not claimed until startup completes.
+- task-004 remains `REVIEW`: the first endpoint attempt failed with Nebius
+  `code=13` internal error and was removed. A corrected replacement is
+  provisioned in the existing `eu-west1` project with H200 capacity and was
+  restarted after its create operation also reported `code=13`. It is still
+  `STARTING` under restart operation `opvmapp-e01t25eft3y8r13egt`; no direct
+  NIM inference is claimed until startup and an HTTP proof succeed. After
+  NGC key rotation, the endpoint was found pinned to the previous registry
+  secret version; deletion for a clean replacement is in progress under
+  `opvmapp-e01ya8nz7bj2ty2p17`. Two subsequent H200 attempts failed before
+  workload startup with compute `code=8` (`NotEnoughResources`) while
+  scheduling `1gpu-16vcpu-200gb`; this is capacity evidence, not a validated
+  key or NIM failure.
+  A separate small-model diagnostic using the same H200 preset, endpoint
+  `aiendpoint-e01dprnhphd6desh7h`, reached workload initialization and ended
+  with `code=13`. A second regional diagnostic in `eu-north1` on H100,
+  endpoint `aiendpoint-e00tb5k1b689ms14sy`, did the same. Neither produced
+  inference; model size is now unlikely to be the sole cause, while NIM
+  runtime, secret/image access, and Serverless AI causes remain open.
+  completes.
 - task-005 is `REVIEW`: PDFBox ingestion, documented metadata contract, three
   synthetic fixtures, and fail-closed parser tests are complete. The focused
   parser suite passed 5/5 and the full app suite passed. A multipart endpoint
