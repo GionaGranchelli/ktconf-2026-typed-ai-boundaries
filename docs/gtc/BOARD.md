@@ -27,11 +27,11 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | Task | Status | Track | Depends on | Objective |
 |---|---|---|---|---|
 | [task-001](tasks/task-001.md) | DONE | A | — | Establish native `EU_CLOUD`/regional trust semantics in TramAI |
-| [task-002](tasks/task-002.md) | REVIEW | B | — | Prove GLOBAL Build.NVIDIA.com Nemotron inference |
+| [task-002](tasks/task-002.md) | DONE | B | — | Prove GLOBAL Build.NVIDIA.com Nemotron inference |
 | [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
-| [task-005](tasks/task-005.md) | REVIEW | E | — | Add fail-closed real PDF + trusted metadata ingestion |
-| [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
+| [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
+| [task-006](tasks/task-006.md) | READY | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
@@ -42,6 +42,11 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 - task-003 is `DONE`: local smoke passed with RTX 3060 / driver 580.173.02,
   llama.cpp 9986, Nemotron `nvidia/nemotron-3-nano-4b`, direct HTTP 200, typed
   application HTTP 200, `selectedRoute=LOCAL_NVIDIA`, and invocation count 1.
+- task-002 is `DONE`: fresh-shell NVIDIA smoke validated the hosted model
+  catalog, direct HTTP 200, typed application HTTP 200 with
+  `selectedRoute=GLOBAL_CLOUD`, invocation count 1, and restricted denial
+  before provider invocation with counter delta `0`. Sanitized evidence is in
+  [`evidence/global-nvidia-smoke.md`](evidence/global-nvidia-smoke.md).
 - task-004 is `DONE`: Nebius H200/H100 attempts remain historical evidence
   of `code=13` workload failures and `code=8 NotEnoughResources` scheduling
   failures; no Nebius inference is claimed. The active EU implementation uses
@@ -58,14 +63,15 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 - Sanitized real-run evidence is recorded in
   [`evidence/scaleway-smoke.md`](evidence/scaleway-smoke.md); it contains no
   endpoint UUID, account identifier, URL, token, or key.
-- task-005 is `REVIEW`: PDFBox ingestion, documented metadata contract, three
-  synthetic fixtures, and fail-closed parser tests are complete. The focused
-  parser suite passed 5/5 and the full app suite passed. A multipart endpoint
-  counter test remains follow-on hardening.
+- task-005 is `DONE`: PDFBox ingestion, documented metadata contract, three
+  synthetic fixtures, separate metadata/content phases, and fail-closed
+  multipart counter tests are complete. The full app suite passed; malformed
+  multipart rejection returned HTTP 400 with all provider counters unchanged.
 
-Tasks 006–010 were not started. Their dependency chain remains blocked until
-the remaining task-002 real-provider review and task-005 review are resolved;
-task-004's Scaleway real-provider proof is complete.
+Tasks 006–010 were not started. Task-006 is now `READY`: tasks 001–005 have
+  completed their recorded gates. Task-004's Scaleway and task-002's NVIDIA
+  real-provider proofs are complete; task-005's PDF rejection/counter proof is
+  complete. Do not start task-007 or later until task-006 is complete.
 
 Task-011 is maintained on the separate `task/011-gtc-governance-console`
 branch and was not modified here. Before merging it, update the EU card and

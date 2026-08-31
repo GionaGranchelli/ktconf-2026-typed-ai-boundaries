@@ -6,6 +6,7 @@ Recorded against commit: `a540ba27f0b42b454030c0abeea63fa266da5317`
 Provider: `eu-scaleway-provider`
 Trust zone: `EU_CLOUD`
 Deployment: Scaleway Generative APIs, European dedicated deployment
+Region: fr-par / Paris, France
 Model: `mistral/mistral-small-24b-instruct-2501:bf16`
 
 The initial stale base URL returned HTTP 404. After correcting the configured

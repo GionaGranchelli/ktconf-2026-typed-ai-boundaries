@@ -7,9 +7,10 @@ Base commit: `287d52cc44ed28e7e5c2d9ddb21ac8b99504a64e` (`main` at branch creati
 
 ## Status
 
-The contest workstream is **M0 COMPLETE / M1 REVIEW-PENDING REAL CREDENTIAL**.
+The contest workstream is **M0 COMPLETE / M1 GLOBAL PROOF COMPLETE**.
 
-Task 001 and the opt-in portion of task 002 are implemented. The deterministic KTConf path remains green. A real NVIDIA hosted smoke is not claimed in this environment because `NVIDIA_API_KEY` was absent.
+Tasks 001–005 are complete. The deterministic KTConf path remains green, and
+the real GLOBAL NVIDIA hosted proof is recorded below.
 
 ## Completed checkpoints
 
@@ -33,10 +34,17 @@ Opt-in proof command: `./scripts/gtc-global-nvidia-smoke` with `NVIDIA_API_KEY` 
 
 Verification completed:
 
-- `./scripts/preflight` — deterministic build/tests (63 tests, 0 failures) and boot artifact passed after the route/test corrections.
+- `zsh -lc 'source ~/.zshrc && ./scripts/gtc-global-nvidia-smoke'` — model
+  catalog, direct HTTP 200, typed application HTTP 200,
+  `selectedRoute=GLOBAL_CLOUD`, invocation count 1, and restricted denial
+  before invocation with delta 0.
+- `./gradlew :app:test --no-daemon --console=plain --rerun` — BUILD SUCCESSFUL.
 - `./scripts/stress-rehearse` — deterministic 20/20 rehearsal passed.
 - focused TramAI `DefaultPolicyEngineTest` suite — 69 tests, 0 failures.
-- `NVIDIA_API_KEY` — absent; direct hosted inference and the real typed application proof remain pending.
+- Sanitized evidence: `docs/gtc/evidence/global-nvidia-smoke.md`.
+
+`./scripts/preflight` remains blocked only by the pre-existing dirty
+`vendor/tramai` working tree; the pinned submodule SHA is unchanged.
 
 ### task-003 — isolated LOCAL NVIDIA provider
 
@@ -184,6 +192,13 @@ Three repository fixtures cover PUBLIC/ANY, CONFIDENTIAL/EU_ONLY, and
 RESTRICTED/LOCAL_ONLY; they contain synthetic contest data only. The parser
 test also covers missing classification, contradictory restricted residency,
 non-PDF input, and fixture ingestion.
+
+Task-005 is now complete. The PDF service separates trusted metadata reading
+from invoice content extraction, and the application suite includes a
+multipart malformed-PDF rejection proof with HTTP 400 and unchanged counters
+for every provider. TramAI's governed operation remains the provider
+authorization boundary; task-006 must use the metadata phase to choose the
+boundary before extracted content is sent to a provider.
 
 Verification: `./gradlew :app:test --tests
 dev.giona.ktconf.TrustedPdfIngestionServiceTest --no-daemon --console=plain

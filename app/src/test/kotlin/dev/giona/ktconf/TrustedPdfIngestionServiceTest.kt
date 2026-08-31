@@ -25,6 +25,13 @@ class TrustedPdfIngestionServiceTest {
     }
 
     @Test
+    fun `metadata phase does not extract invoice content`() {
+        val trusted = parser.readTrustedMetadata(pdf("CONFIDENTIAL", "EU_ONLY"))
+        assertEquals(DataResidency.EU_ONLY, trusted.metadata.residency)
+        assertEquals("KTCONF-PDF-EU", parser.extractInvoice(trusted).request.invoice.invoiceId)
+    }
+
+    @Test
     fun `missing classification fails closed before invoice extraction`() {
         assertFailsWith<IllegalArgumentException> {
             parser.parse(pdf(null, "ANY"))

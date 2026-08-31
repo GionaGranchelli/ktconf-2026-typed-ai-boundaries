@@ -21,9 +21,15 @@ data class PdfInvoice(
     val metadata: TrustedPdfMetadata,
 )
 
+data class TrustedPdf(
+    internal val bytes: ByteArray,
+    val metadata: TrustedPdfMetadata,
+)
+
 /**
- * Parses the small contest PDF contract locally. Metadata is read before text
- * extraction, and the raw PDF is never logged or returned to the model layer.
+ * Parses the small contest PDF contract locally. Metadata validation is a
+ * separate first phase; content extraction is explicit and must only happen
+ * after the caller has selected and authorized the execution boundary.
  */
 @Service
 class TrustedPdfIngestionService {
@@ -34,6 +40,12 @@ class TrustedPdfIngestionService {
     }
 
     fun parse(file: MultipartFile): PdfInvoice {
+        val trusted = readTrustedMetadata(file)
+        return extractInvoice(trusted)
+    }
+
+    /** First phase: read and validate trusted metadata without extracting text. */
+    fun readTrustedMetadata(file: MultipartFile): TrustedPdf {
         require(file.contentType == "application/pdf") { "PDF content type is required" }
         require(file.size in 1..MAX_PDF_BYTES) { "PDF size must be between 1 byte and 5 MiB" }
         val bytes = file.bytes
@@ -42,8 +54,19 @@ class TrustedPdfIngestionService {
         try {
             Loader.loadPDF(bytes).use { document ->
                 val metadata = parseMetadata(document.documentInformation, bytes)
+                return TrustedPdf(bytes, metadata)
+            }
+        } catch (e: IOException) {
+            throw IllegalArgumentException("Malformed or unsupported PDF", e)
+        }
+    }
+
+    /** Second phase: prepare invoice content after placement authorization. */
+    fun extractInvoice(trusted: TrustedPdf): PdfInvoice {
+        try {
+            Loader.loadPDF(trusted.bytes).use { document ->
                 val text = PDFTextStripper().getText(document)
-                return PdfInvoice(parseInvoice(text, metadata), metadata)
+                return PdfInvoice(parseInvoice(text, trusted.metadata), trusted.metadata)
             }
         } catch (e: IOException) {
             throw IllegalArgumentException("Malformed or unsupported PDF", e)

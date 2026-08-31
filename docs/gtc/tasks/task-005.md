@@ -1,6 +1,6 @@
 # task-005 — Real PDF + trusted metadata ingestion
 
-Status: `READY`
+Status: `DONE`
 Track: E
 Milestone: M4
 Depends on: none
@@ -40,14 +40,22 @@ Tests must prove provider invocation count remains unchanged on metadata/routing
 
 ## Acceptance criteria
 
-- [ ] Real PDF upload/ingestion path exists.
-- [ ] Trusted metadata contract is documented.
-- [ ] Metadata parsing is local and precedes provider invocation.
-- [ ] Missing/malformed metadata fails closed.
-- [ ] Three synthetic documents cover PUBLIC, EU-confidential, and RESTRICTED cases.
-- [ ] Tests prove zero provider invocation on rejected metadata/route cases.
-- [ ] Existing JSON API may remain for KTConf compatibility.
+- [x] Real PDF upload/ingestion path exists.
+- [x] Trusted metadata contract is documented.
+- [x] Metadata parsing is local and precedes provider invocation.
+- [x] Missing/malformed metadata fails closed.
+- [x] Three synthetic documents cover PUBLIC, EU-confidential, and RESTRICTED cases.
+- [x] Tests prove zero provider invocation on rejected metadata/route cases.
+- [x] Existing JSON API may remain for KTConf compatibility.
 
 ## Handoff
 
 Document metadata schema, parser, endpoint/input contract, sample documents, test matrix, changed files, and exact proof that no provider sees bytes before authorization.
+
+Closure evidence: the full application test suite includes the multipart
+malformed-PDF rejection test, which asserts HTTP 400 and zero invocations for
+local, local NVIDIA, EU Scaleway, global NVIDIA, and legacy cloud providers.
+The parser now exposes separate `readTrustedMetadata` and `extractInvoice`
+phases. TramAI's governed operation remains the authorization boundary before
+any provider receives the extracted content; task-006 must preserve this
+ordering when adding metadata-derived boundary selection.

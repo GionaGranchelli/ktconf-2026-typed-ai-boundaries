@@ -90,10 +90,14 @@ class InvoiceController(
     suspend fun euScaleway(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
         ResponseEntity.ok(AnalyzeResponse(app.analyzeEuScaleway(request), InvoiceRoute.EU_CLOUD))
 
-    /** Contest PDF entrypoint: local metadata validation precedes analysis. */
+    /** Contest PDF entrypoint: metadata phase precedes local content preparation. */
     @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])
     suspend fun analyzePdf(@RequestPart("file") file: org.springframework.web.multipart.MultipartFile): ResponseEntity<Any> {
-        val parsed = pdfIngestion.parse(file)
+        val trusted = pdfIngestion.readTrustedMetadata(file)
+        // TramAI performs placement authorization at the governed operation
+        // boundary. Keep content preparation as a distinct phase so task-006
+        // can authorize the proposed boundary before this call is made.
+        val parsed = pdfIngestion.extractInvoice(trusted)
         return when (val outcome = app.analyze(parsed.request)) {
             is AnalyzeOutcome.Typed -> ResponseEntity.ok(
                 PdfAnalyzeResponse(parsed.metadata, outcome.assessment, outcome.selectedRoute),

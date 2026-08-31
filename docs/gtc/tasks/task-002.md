@@ -1,6 +1,6 @@
 # task-002 — GLOBAL NVIDIA hosted Nemotron
 
-Status: `READY`
+Status: `DONE`
 Track: B
 Milestone: M1
 Depends on: none
@@ -35,14 +35,14 @@ Verify the current model identifier from Build.NVIDIA.com before hard-coding it.
 
 ## Acceptance criteria
 
-- [ ] Direct NVIDIA hosted Nemotron smoke succeeds.
-- [ ] Same call succeeds through the application provider abstraction.
-- [ ] Typed TramAI result is produced from the real model.
-- [ ] Provider identity remains logical and stable even if the remote model ID differs.
-- [ ] Invocation counter increments on allowed calls.
-- [ ] A governance denial can occur before the NVIDIA provider call and leave delta `0`.
-- [ ] Deterministic CI/preflight remains offline and green.
-- [ ] Secret scanning of changed files is clean.
+- [x] Direct NVIDIA hosted Nemotron smoke succeeds.
+- [x] Same call succeeds through the application provider abstraction.
+- [x] Typed TramAI result is produced from the real model.
+- [x] Provider identity remains logical and stable even if the remote model ID differs.
+- [x] Invocation counter increments on allowed calls.
+- [x] A governance denial can occur before the NVIDIA provider call and leave delta `0`.
+- [x] Deterministic CI/preflight remains offline and green.
+- [x] Secret scanning of changed files is clean.
 
 ## Verification
 
@@ -57,3 +57,5 @@ Provide sanitized evidence of:
 ## Handoff
 
 Document model ID, base URL, provider config keys, code paths changed, tests, and any NVIDIA API quirks relevant to task-006.
+
+Closure evidence: [`../evidence/global-nvidia-smoke.md`](../evidence/global-nvidia-smoke.md).

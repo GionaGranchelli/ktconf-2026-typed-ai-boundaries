@@ -13,6 +13,12 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.mock.web.MockMultipartFile
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 import kotlin.test.assertEquals
 
 /**
@@ -22,11 +28,15 @@ import kotlin.test.assertEquals
  * The 200 envelope exposes the selected route so the stage can SEE routing.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class InvoiceRoutingTest {
 
     @Autowired
     lateinit var rest: TestRestTemplate
+
+    @Autowired
+    lateinit var mockMvc: MockMvc
 
     private fun headers() = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
 
@@ -98,5 +108,21 @@ class InvoiceRoutingTest {
         assertEquals("classification-routing-blocked", response.body!!.code)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(0, stats.euScalewayInvocationCount)
+    }
+
+    @Test
+    fun `malformed multipart PDF is rejected without invoking any provider`() {
+        val result = mockMvc.perform(
+            multipart("/invoices/analyze-pdf")
+                .file(MockMultipartFile("file", "invoice.pdf", "application/pdf", "not a PDF".toByteArray())),
+        ).andReturn()
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isBadRequest)
+
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(0, stats.localInvocationCount)
+        assertEquals(0, stats.localNvidiaInvocationCount)
+        assertEquals(0, stats.euScalewayInvocationCount)
+        assertEquals(0, stats.globalNvidiaInvocationCount)
+        assertEquals(0, stats.cloudInvocationCount)
     }
 }
