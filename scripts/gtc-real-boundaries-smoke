@@ -40,19 +40,19 @@ pdf() { curl -sS -o "$1" -w '%{http_code}' --max-time 180 -X POST http://127.0.0
 json_restricted() { curl -sS -o "$1" -w '%{http_code}' --max-time 60 -X POST "$2" -H 'Content-Type: application/json' -d '{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"Synthetic","amountCents":42830,"currency":"EUR","description":"Synthetic"}}'; }
 
 before=$(stats); code=$(pdf .build/gtc-real-public.json app/src/test/resources/fixtures/public-invoice.pdf); after=$(stats)
-[[ "$code" == 200 ]] && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 1 ]] || { echo "FAIL: PUBLIC -> GLOBAL" >&2; exit 1; }
+[[ "$code" == 200 ]] && grep -Fq '"selectedRoute":"GLOBAL_CLOUD"' .build/gtc-real-public.json && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 1 ]] || { echo "FAIL: PUBLIC -> GLOBAL" >&2; exit 1; }
 echo "PUBLIC PDF -> GLOBAL_CLOUD: invocation delta=1"
 
 before=$(stats); code=$(curl -sS -o .build/gtc-real-confidential-global.json -w '%{http_code}' --max-time 60 -X POST http://127.0.0.1:8080/invoices/boundary/confidential-eu-global -F 'file=@app/src/test/resources/fixtures/confidential-eu-invoice.pdf;type=application/pdf'); after=$(stats)
-[[ "$code" == 403 ]] && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 0 ]] || { echo "FAIL: CONFIDENTIAL EU forced GLOBAL" >&2; exit 1; }
+[[ "$code" == 403 ]] && grep -Fq 'classification-routing-blocked' .build/gtc-real-confidential-global.json && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 0 ]] || { echo "FAIL: CONFIDENTIAL EU forced GLOBAL" >&2; exit 1; }
 before=$(stats); code=$(pdf .build/gtc-real-confidential-eu.json app/src/test/resources/fixtures/confidential-eu-invoice.pdf); after=$(stats)
-[[ "$code" == 200 ]] && [[ $(( $(count "$after" euScalewayInvocationCount)-$(count "$before" euScalewayInvocationCount) )) -eq 1 ]] || { echo "FAIL: CONFIDENTIAL EU -> EU" >&2; exit 1; }
+[[ "$code" == 200 ]] && grep -Fq '"selectedRoute":"EU_CLOUD"' .build/gtc-real-confidential-eu.json && [[ $(( $(count "$after" euScalewayInvocationCount)-$(count "$before" euScalewayInvocationCount) )) -eq 1 ]] || { echo "FAIL: CONFIDENTIAL EU -> EU" >&2; exit 1; }
 echo "CONFIDENTIAL EU PDF -> EU_CLOUD: forced GLOBAL delta=0, EU delta=1"
 
 before=$(stats); code=$(json_restricted .build/gtc-real-restricted-eu.json http://127.0.0.1:8080/invoices/boundary/restricted-eu); after=$(stats)
-[[ "$code" == 403 ]] && [[ $(( $(count "$after" euScalewayInvocationCount)-$(count "$before" euScalewayInvocationCount) )) -eq 0 ]] || { echo "FAIL: RESTRICTED forced EU" >&2; exit 1; }
+[[ "$code" == 403 ]] && grep -Fq 'classification-routing-blocked' .build/gtc-real-restricted-eu.json && [[ $(( $(count "$after" euScalewayInvocationCount)-$(count "$before" euScalewayInvocationCount) )) -eq 0 ]] || { echo "FAIL: RESTRICTED forced EU" >&2; exit 1; }
 before=$(stats); code=$(json_restricted .build/gtc-real-restricted-global.json http://127.0.0.1:8080/invoices/global-nvidia); after=$(stats)
-[[ "$code" == 403 ]] && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 0 ]] || { echo "FAIL: RESTRICTED forced GLOBAL" >&2; exit 1; }
+[[ "$code" == 403 ]] && grep -Fq 'classification-routing-blocked' .build/gtc-real-restricted-global.json && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 0 ]] || { echo "FAIL: RESTRICTED forced GLOBAL" >&2; exit 1; }
 before=$(stats); code=$(pdf .build/gtc-real-restricted-local.json app/src/test/resources/fixtures/restricted-local-invoice.pdf); after=$(stats)
-[[ "$code" == 200 ]] && [[ $(( $(count "$after" localNvidiaInvocationCount)-$(count "$before" localNvidiaInvocationCount) )) -eq 1 ]] || { echo "FAIL: RESTRICTED -> LOCAL" >&2; exit 1; }
+[[ "$code" == 200 ]] && grep -Fq '"selectedRoute":"LOCAL_NVIDIA"' .build/gtc-real-restricted-local.json && [[ $(( $(count "$after" localNvidiaInvocationCount)-$(count "$before" localNvidiaInvocationCount) )) -eq 1 ]] || { echo "FAIL: RESTRICTED -> LOCAL" >&2; exit 1; }
 echo "RESTRICTED LOCAL PDF -> LOCAL_NVIDIA: EU/GLOBAL deltas=0, LOCAL delta=1"

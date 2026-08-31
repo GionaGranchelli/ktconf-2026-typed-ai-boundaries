@@ -8,7 +8,7 @@ command -v java >/dev/null || { echo "FAIL: java is required" >&2; exit 1; }
 
 ./gradlew :app:test --no-daemon --console=plain --rerun
 ./gradlew :app:test --no-daemon --console=plain --rerun \
-  --tests 'dev.giona.ktconf.InvoiceRoutingTest.PUBLIC request routes to cloud and returns typed result' \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.PUBLIC ANY PDF routes to GLOBAL NVIDIA exactly once' \
   --tests 'dev.giona.ktconf.InvoiceRoutingTest.CONFIDENTIAL EU request uses EU Scaleway identity' \
   --tests 'dev.giona.ktconf.InvoiceRoutingTest.confidential EU PDF forced global is denied before global invocation then succeeds in EU' \
   --tests 'dev.giona.ktconf.InvoiceRoutingTest.forced RESTRICTED to EU is denied before Scaleway invocation' \

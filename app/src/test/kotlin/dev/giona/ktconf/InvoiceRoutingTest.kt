@@ -3,6 +3,7 @@ package dev.giona.ktconf
 import dev.giona.ktconf.api.AnalyzeResponse
 import dev.giona.ktconf.api.ErrorResponse
 import dev.giona.ktconf.api.StatsResponse
+import dev.giona.ktconf.pdf.TrustedPdfIngestionService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -20,6 +21,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 import kotlin.test.assertEquals
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.PDPage
+import org.apache.pdfbox.pdmodel.PDPageContentStream
+import org.apache.pdfbox.pdmodel.common.PDRectangle
+import org.apache.pdfbox.pdmodel.font.PDType1Font
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts
+import java.io.ByteArrayOutputStream
 
 /**
  * "Classification is supplied. Routing chooses. Policy enforces."
@@ -138,13 +146,9 @@ class InvoiceRoutingTest {
 
     @Test
     fun `missing trusted PDF metadata is rejected without invoking any provider`() {
-        val original = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/public-invoice.pdf")).readBytes()
-        val withoutClassification = String(original, Charsets.ISO_8859_1)
-            .replace("/KTCONF-Classification (PUBLIC)", "")
-            .toByteArray(Charsets.ISO_8859_1)
         val started = mockMvc.perform(
             multipart("/invoices/analyze-pdf")
-                .file(MockMultipartFile("file", "missing-metadata.pdf", "application/pdf", withoutClassification)),
+                .file(validPdfWithoutClassification()),
         ).andReturn()
         mockMvc.perform(asyncDispatch(started)).andExpect(status().isBadRequest)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
@@ -153,6 +157,20 @@ class InvoiceRoutingTest {
         assertEquals(0, stats.euScalewayInvocationCount)
         assertEquals(0, stats.globalNvidiaInvocationCount)
         assertEquals(0, stats.cloudInvocationCount)
+    }
+
+    @Test
+    fun `PUBLIC ANY PDF routes to GLOBAL NVIDIA exactly once`() {
+        val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/public-invoice.pdf")).readBytes()
+        val started = mockMvc.perform(
+            multipart("/invoices/analyze-pdf")
+                .file(MockMultipartFile("file", "public-invoice.pdf", "application/pdf", bytes)),
+        ).andReturn()
+        val response = mockMvc.perform(asyncDispatch(started)).andReturn().response
+        assertEquals(HttpStatus.OK.value(), response.status)
+        assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"GLOBAL_CLOUD\""))
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(1, stats.globalNvidiaInvocationCount)
     }
 
     @Test
@@ -201,5 +219,32 @@ class InvoiceRoutingTest {
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(1, stats.euScalewayInvocationCount)
         assertEquals(before, stats.globalNvidiaInvocationCount)
+    }
+
+    private fun validPdfWithoutClassification(): MockMultipartFile {
+        PDDocument().use { document ->
+            document.documentInformation.setCustomMetadataValue(TrustedPdfIngestionService.RESIDENCY_KEY, "ANY")
+            val page = PDPage(PDRectangle.A4)
+            document.addPage(page)
+            PDPageContentStream(document, page).use { content ->
+                content.beginText()
+                content.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA), 12f)
+                content.newLineAtOffset(50f, 750f)
+                listOf(
+                    "invoiceId=KTCONF-PUBLIC",
+                    "supplierName=Synthetic Public Supplier",
+                    "amountCents=120000",
+                    "currency=EUR",
+                    "description=Public synthetic contest fixture",
+                ).forEach { line ->
+                    content.showText(line)
+                    content.newLineAtOffset(0f, -20f)
+                }
+                content.endText()
+            }
+            val output = ByteArrayOutputStream()
+            document.save(output)
+            return MockMultipartFile("file", "missing-metadata.pdf", "application/pdf", output.toByteArray())
+        }
     }
 }
