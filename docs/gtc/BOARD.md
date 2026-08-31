@@ -34,7 +34,8 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed NVIDIA execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
-| [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
+| [task-011](tasks/task-011.md) | IN_PROGRESS | UI | 005 implementation; final binds 006–008 | Build Vue/Vite GTC Governance Console |
+| [task-009](tasks/task-009.md) | BLOCKED | I | 008,011 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
 
 ## Evidence checkpoint
@@ -50,10 +51,16 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
   synthetic fixtures, and fail-closed parser tests are complete. The focused
   parser suite passed 5/5 and the full app suite passed. A multipart endpoint
   counter test remains follow-on hardening.
+- task-011 is `IN_PROGRESS` on `task/011-gtc-governance-console`: Vue/Vite
+  source is being built against the real PDF, stats, approval, and evidence
+  endpoints. Final visual proof remains dependent on tasks 006–008. No UI
+  build is claimed until npm dependencies can be installed and `npm run build`
+  is executed in a networked environment.
 
-Tasks 006–010 were not started. Their dependency chain remains blocked until
-the real-provider proofs for tasks 002–004 and the review of task-005 are
-resolved.
+Tasks 006–010 remain on their dependency chain. Task-011 can progress in
+parallel because the task-005 API implementation already exists, but task-009
+cannot start until both backend evidence (008) and the governance console (011)
+are ready.
 
 ## Critical path
 
@@ -61,11 +68,13 @@ resolved.
 001 ─┐
 002 ─┤
 003 ─┤
-004 ─┼─> 006 -> 007 -> 008 -> 009 -> 010
-005 ─┘
+004 ─┼─> 006 -> 007 -> 008 ─┐
+005 ─┘       \              ├─> 009 -> 010
+              └-> 011 ------┘
 ```
 
-Tasks 001–005 are intentionally parallel. Do not serialize them unless resource contention requires it.
+The UI deliberately starts before backend integration is complete. It must not
+invent final route/evidence semantics while those contracts are still moving.
 
 ## Global definition of done
 
@@ -81,3 +90,4 @@ The branch is submission-ready only when all of the following are true:
 8. The deterministic offline path remains green.
 9. No secrets appear in source, logs, screenshots, video, evidence, or Git history.
 10. A reviewer can understand the project and reproduce the primary proof from the repository without reading chat history.
+11. The Governance Console visualizes backend evidence without fabricating policy, route, counter, approval, or audit state.

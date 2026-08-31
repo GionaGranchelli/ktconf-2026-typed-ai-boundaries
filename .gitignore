@@ -9,3 +9,9 @@ build/
 .env
 .env.local
 .env.*.local
+
+# GTC Vue/Vite console
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+app/src/main/resources/static/gtc/
