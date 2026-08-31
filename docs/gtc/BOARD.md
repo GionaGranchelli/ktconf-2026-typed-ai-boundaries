@@ -36,6 +36,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-008](tasks/task-008.md) | REVIEW | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
+| [task-012](tasks/task-012.md) | READY | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
 
 ## Evidence checkpoint
 
@@ -85,6 +86,12 @@ all three configured provider families and uploads the three synthetic PDFs in
 one Spring process. No live result is recorded until that command and the
 payment smoke complete successfully against the final evidence revision.
 
+Live execution checkpoint: `./scripts/gtc-evidence` passed, but the combined
+runner stopped before startup because the sourced shell lacked the local/global
+model configuration and Scaleway API key. The local payment runner then failed
+to connect to `127.0.0.1:1234`. Therefore no new live artifact or closure status
+was recorded; 006, 007, and 008 remain `REVIEW`, and 009 remains `BLOCKED`.
+
 Latest closure checkpoint: the assessment/tool prompt explicitly defines the
 EUR 5,000 risk/action rule and the post-`schedule-payment` state transition.
 The canonical payment PDF denial test proves denial leaves payment count at
@@ -98,6 +105,12 @@ counter to the active Scaleway/Mistral implementation: `Scaleway Europe`,
 `Generative APIs`, `Mistral Small 24B`, and `euScalewayInvocationCount` (or a
 generic EU-provider label). The UI must not claim Nebius, H200, NVIDIA NIM, or
 Nemotron for the temporary EU route.
+
+Task-012 is a new READY enhancement task. It covers TramAI-native
+`RULE_BASED` PDF provenance and sovereign evidence-pack exposure, with local
+artifact verification and telemetry de-duplication bounded as optional work.
+It is planned separately from the current task-008 evidence review and has
+not been started.
 
 ## Critical path
 

@@ -242,12 +242,28 @@ combined three-PDF run or real Nemotron payment/audit result is claimed.
 The combined live runner is `scripts/gtc-real-boundaries-smoke`; it is
 credential-gated and has not been claimed as passed.
 
+Execution checkpoint: the offline evidence gate passed. The combined live
+runner was attempted from a sourced shell but stopped before application
+startup because the local/global model variables and Scaleway API key were not
+available. The local payment smoke also could not connect to
+`127.0.0.1:1234`. No live evidence is claimed; the remaining blocker is
+operator/provider availability, not an observed application failure.
+
 The assessment/tool prompt now states the amount-based risk/action rules and
 the successful-tool-result transition explicitly. The canonical
 `payment-local-invoice.pdf` denial test proves `202` suspension, payment count
 `0`, denial, and subsequent resume rejection with `409`. The full deterministic
 suite and 20/20 rehearsal pass. Real Nemotron payment and audit evidence remain
 pending local endpoint availability.
+
+### task-012 — TramAI-native provenance and sovereign evidence (READY)
+
+A follow-on task has been created to preserve `ClassificationSource.RULE_BASED`
+for trusted PDF metadata, retain `DECLARED` for ordinary requests, and expose
+TramAI's native sovereign evidence pack through the existing runtime
+composition. Local Nemotron artifact verification and telemetry de-duplication
+are explicitly bounded optional investigations. Task-012 is planned and has
+not started; it does not alter the current 006–008 review statuses.
 
 ## Locked contest direction
 

@@ -63,3 +63,9 @@ live runner is `scripts/gtc-real-boundaries-smoke`. Live results are not
 inferred from the offline gate. Task-006 combined real PDF evidence and
 task-007 real Nemotron payment/audit evidence remain pending infrastructure
 availability.
+
+Latest execution: `./scripts/gtc-evidence` passed, including the full suite,
+named contest tests, and 20/20 rehearsal. The combined live runner was blocked
+by missing sourced provider configuration before startup, and the local
+payment smoke could not connect to `127.0.0.1:1234`; no real-provider claim is
+made.
