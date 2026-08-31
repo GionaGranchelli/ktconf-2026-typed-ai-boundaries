@@ -113,12 +113,14 @@ const rows = computed(() => {
           The provider call delta between a <em>before</em> and <em>after</em> snapshot proves
           that a denied boundary was never invoked (delta = 0). The payment counter proves
           exactly-once execution: it must be 0 at suspension, 1 after approval, and rejected
-          on a duplicate attempt. Use <strong>Document Flow</strong> to generate a live proof run.
+          on a duplicate attempt. Use <strong>Live Governance</strong> to generate a live proof run
+          and inspect the full hash-chained audit timeline.
         </div>
       </div>
     </template>
   </div>
 </template>
+
 
 <style scoped>
 .gap-top { margin-top: 22px; }

@@ -55,3 +55,27 @@ export function deny(approvalId) {
 export function getEvidence(approvalId) {
   return request(`/approvals/${encodeURIComponent(approvalId)}/evidence`)
 }
+
+/**
+ * DEMO-ONLY boundary proof: send RESTRICTED data to the cloud operation.
+ * TramAI must deny it before any provider is invoked (HTTP 403).
+ * api.js will throw ApiError with status 403 — the caller must catch it.
+ * The cloud invocation counter must not change (delta = 0).
+ */
+export function attemptForbiddenRoute(classification = 'RESTRICTED') {
+  return request('/invoices/boundary/restricted-cloud', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      classification,
+      invoice: {
+        invoiceId: 'PROOF-DENY-001',
+        supplierName: 'TramAI Policy Verifier',
+        amountCents: 42830,
+        currency: 'EUR',
+        description: 'Boundary proof: TramAI must deny this before cloud invocation',
+      },
+    }),
+  })
+}
+

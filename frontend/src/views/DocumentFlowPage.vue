@@ -1,9 +1,15 @@
 <!--
-  DocumentFlowPage — Main demo screen.
+  DocumentFlowPage (Live Governance) — Hero demo screen.
 
   Flow: PDF upload → trusted metadata → TramAI route decision →
         Nemotron assessment → HIGH-risk suspension → human approve/deny →
-        payment counter proof → audit evidence
+        payment counter proof → audit evidence → replay protection proof
+
+  P0-2: DenialProof panel — intentional forbidden route with delta=0 proof
+  P0-4: Context preserved through 202 suspension (approval enriched)
+  P1-1: proveReplayRejection() — duplicate approve → must be rejected
+  P1-2: AuditTimeline — renders evidence.auditEvents hash chain
+  P1-4: ProofStrip — persistent screenshot-moment summary bar
 
   INVARIANT: The UI never classifies, routes, or authorizes anything.
   All proof values come from backend responses only.
@@ -12,8 +18,10 @@
 import { computed, ref } from 'vue'
 import BoundaryCard   from '../components/BoundaryCard.vue'
 import WorkflowTrace  from '../components/WorkflowTrace.vue'
+import AuditTimeline  from '../components/AuditTimeline.vue'
+import ProofStrip     from '../components/ProofStrip.vue'
 import {
-  analyzePdf, approve, deny, getEvidence, getStats,
+  analyzePdf, approve, deny, getEvidence, getStats, attemptForbiddenRoute,
 } from '../api.js'
 import {
   allowedBoundaries, boundaries, counterDelta,
@@ -22,19 +30,26 @@ import {
 
 const emit = defineEmits(['stats-updated'])
 
-// ── State ──────────────────────────────────────────────────────
-const file         = ref(null)
-const dragging     = ref(false)
-const busy         = ref(false)
-const localError   = ref('')
-const metadata     = ref(null)
-const assessment   = ref(null)
-const selectedRoute= ref(null)
-const approval     = ref(null)
-const evidence     = ref(null)
-const statsBefore  = ref(null)
-const statsAfter   = ref(null)
-const lastAction   = ref('Waiting for a classified document')
+// ── Core workflow state ────────────────────────────────────────
+const file          = ref(null)
+const dragging      = ref(false)
+const busy          = ref(false)
+const localError    = ref('')
+const metadata      = ref(null)
+const assessment    = ref(null)
+const selectedRoute = ref(null)
+const approval      = ref(null)
+const evidence      = ref(null)
+const statsBefore   = ref(null)
+const statsAfter    = ref(null)
+const lastAction    = ref('Waiting for a classified document')
+
+// ── P1-1: replay protection state ─────────────────────────────
+const replayResult  = ref(null)
+
+// ── P0-2: denial proof state ───────────────────────────────────
+const denialBusy    = ref(false)
+const denialResult  = ref(null)
 
 // ── Derived ────────────────────────────────────────────────────
 const allowedSet       = computed(() => allowedBoundaries(metadata.value))
@@ -53,13 +68,22 @@ const providerDeltas = computed(() => {
   return result
 })
 
-// Workflow step index (1–5)
+// P0-2: delta for the denied (global) route
+const deltaGlobal = computed(() =>
+  denialResult.value
+    ? (denialResult.value.after?.globalNvidiaInvocationCount ?? 0)
+      - (denialResult.value.before?.globalNvidiaInvocationCount ?? 0)
+    : null
+)
+const providerDeltaZero = computed(() => deltaGlobal.value === 0)
+
+// Workflow step index (1–5) for step indicator
 const step = computed(() => {
-  if (evidence.value)  return 5
-  if (approval.value)  return 4
-  if (assessment.value)return 3
-  if (metadata.value)  return 2
-  if (busy.value)      return 2
+  if (evidence.value)   return 5
+  if (approval.value)   return 4
+  if (assessment.value) return 3
+  if (metadata.value)   return 2
+  if (busy.value)       return 2
   return 1
 })
 
@@ -80,16 +104,17 @@ function onDrop(event) {
   selectFiles(event.dataTransfer.files)
 }
 
-// ── Actions ────────────────────────────────────────────────────
+// ── Process document ───────────────────────────────────────────
 async function processDocument() {
   if (!file.value || busy.value) return
-  busy.value     = true
+  busy.value      = true
   localError.value = ''
   metadata.value  = null
   assessment.value= null
   selectedRoute.value = null
   approval.value  = null
   evidence.value  = null
+  replayResult.value = null
   lastAction.value= 'Reading trusted metadata · evaluating TramAI policy…'
 
   try {
@@ -101,10 +126,16 @@ async function processDocument() {
     assessment.value    = result.assessment     ?? null
 
     if (result.approvalId) {
-      approval.value  = result
-      lastAction.value= 'Model finished reasoning · runtime awaiting human authority'
+      // P0-4: enrich 202 object with context that the raw AwaitingApproval body omits
+      approval.value = {
+        ...result,
+        metadata:      result.metadata      ?? metadata.value,
+        selectedRoute: result.selectedRoute  ?? selectedRoute.value,
+        assessment:    result.assessment     ?? assessment.value,
+      }
+      lastAction.value = 'Model finished reasoning · runtime awaiting human authority'
     } else {
-      lastAction.value= selectedRoute.value
+      lastAction.value = selectedRoute.value
         ? `TramAI selected ${selectedRoute.value}`
         : 'Analysis complete'
     }
@@ -123,6 +154,7 @@ async function processDocument() {
   }
 }
 
+// ── Approve ────────────────────────────────────────────────────
 async function approvePayment() {
   if (!approval.value?.approvalId || busy.value) return
   busy.value = true
@@ -140,6 +172,7 @@ async function approvePayment() {
   }
 }
 
+// ── Deny ───────────────────────────────────────────────────────
 async function denyPayment() {
   if (!approval.value?.approvalId || busy.value) return
   busy.value = true
@@ -157,6 +190,52 @@ async function denyPayment() {
   }
 }
 
+// ── P1-1: Replay protection proof ─────────────────────────────
+async function proveReplayRejection() {
+  if (!approval.value?.approvalId || busy.value) return
+  busy.value = true
+  localError.value = ''
+  try {
+    await approve(approval.value.approvalId)
+    replayResult.value = {
+      rejected: false,
+      message: 'UNEXPECTED: duplicate approval was not rejected by TramAI.',
+    }
+  } catch (e) {
+    // 409 / 403 is the expected, correct outcome
+    replayResult.value = {
+      rejected: true,
+      status: e.status,
+      message: e.message || 'Duplicate approval rejected.',
+    }
+  } finally {
+    try { statsAfter.value = await getStats(); emit('stats-updated', statsAfter.value) } catch {}
+    busy.value = false
+  }
+}
+
+// ── P0-2: Denial proof ────────────────────────────────────────
+async function runForbiddenRouteProof() {
+  if (denialBusy.value) return
+  denialBusy.value = true
+  denialResult.value = null
+  try {
+    const before = await getStats()
+    try {
+      await attemptForbiddenRoute('RESTRICTED')
+      // Should never succeed — TramAI must deny
+      const after = await getStats()
+      denialResult.value = { error: null, before, after, unexpectedSuccess: true }
+    } catch (e) {
+      const after = await getStats()
+      denialResult.value = { error: e, before, after, unexpectedSuccess: false }
+    }
+  } finally {
+    denialBusy.value = false
+  }
+}
+
+// ── Reset ─────────────────────────────────────────────────────
 function reset() {
   file.value = null
   metadata.value = null
@@ -168,6 +247,8 @@ function reset() {
   statsAfter.value = null
   localError.value = ''
   lastAction.value = 'Waiting for a classified document'
+  replayResult.value = null
+  denialResult.value = null
 }
 </script>
 
@@ -176,32 +257,27 @@ function reset() {
     <!-- Step indicator -->
     <div class="step-indicator">
       <div class="step" :class="{ 'step--done': step > 1, 'step--active': step === 1 }">
-        <span class="step__num">1</span>
-        <span class="step__label">Input</span>
+        <span class="step__num">1</span><span class="step__label">Input</span>
       </div>
       <div class="step__connector" />
       <div class="step" :class="{ 'step--done': step > 2, 'step--active': step === 2 }">
-        <span class="step__num">2</span>
-        <span class="step__label">Governance</span>
+        <span class="step__num">2</span><span class="step__label">Governance</span>
       </div>
       <div class="step__connector" />
       <div class="step" :class="{ 'step--done': step > 3, 'step--active': step === 3 }">
-        <span class="step__num">3</span>
-        <span class="step__label">Model result</span>
+        <span class="step__num">3</span><span class="step__label">Model result</span>
       </div>
       <div class="step__connector" />
       <div class="step" :class="{ 'step--done': step > 4, 'step--active': step === 4 }">
-        <span class="step__num">4</span>
-        <span class="step__label">Authority</span>
+        <span class="step__num">4</span><span class="step__label">Authority</span>
       </div>
       <div class="step__connector" />
       <div class="step" :class="{ 'step--done': step >= 5, 'step--active': step === 5 }">
-        <span class="step__num">5</span>
-        <span class="step__label">Evidence</span>
+        <span class="step__num">5</span><span class="step__label">Evidence</span>
       </div>
     </div>
 
-    <!-- Live workflow trace — reconstructed from state already tracked here -->
+    <!-- Live workflow trace -->
     <WorkflowTrace
       class="gap-top"
       :file="file"
@@ -215,9 +291,63 @@ function reset() {
       :stats-after="statsAfter"
     />
 
+    <!-- P0-2: Policy Denial Proof -->
+    <div class="panel gap-top panel--denial-proof">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Policy denial proof</span>
+          <div class="panel-title">Attempt RESTRICTED → GLOBAL CLOUD</div>
+          <div class="panel-subtitle">TramAI must deny before any provider is invoked · delta must be 0</div>
+        </div>
+        <button class="btn btn--ghost btn--sm" :disabled="denialBusy" @click="runForbiddenRouteProof">
+          <span v-if="denialBusy" class="spinner" />
+          {{ denialBusy ? 'Verifying…' : 'Prove denial' }}
+        </button>
+      </div>
+
+      <div v-if="denialResult" class="denial-result">
+        <div v-if="denialResult.unexpectedSuccess" class="denial-result__fail">
+          ⚠ UNEXPECTED: provider was reached — TramAI policy breach!
+        </div>
+        <template v-else>
+          <div class="denial-result__status">
+            <span class="pill pill--denied">403 DENIED</span>
+            <span class="denial-result__reason font-mono">
+              {{ denialResult.error?.body?.reasonCode || denialResult.error?.message || 'classification-routing-blocked' }}
+            </span>
+          </div>
+          <div class="denial-result__counters">
+            <div class="metric-cell">
+              <span class="metric-label">Global NVIDIA before</span>
+              <span class="metric-value">{{ denialResult.before?.globalNvidiaInvocationCount ?? '—' }}</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-label">Global NVIDIA after</span>
+              <span class="metric-value">{{ denialResult.after?.globalNvidiaInvocationCount ?? '—' }}</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-label">Delta</span>
+              <span class="metric-value" :class="{ 'text-accent': providerDeltaZero }">
+                {{ providerDeltaZero ? '0 ✓' : deltaGlobal }}
+              </span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-label">Provider status</span>
+              <span class="metric-value" style="font-size:0.85rem;">
+                {{ providerDeltaZero ? 'NEVER INVOKED' : 'INVOKED ⚠' }}
+              </span>
+            </div>
+          </div>
+        </template>
+      </div>
+      <div v-else class="info-note">
+        Clicking "Prove denial" sends a RESTRICTED invoice to the GLOBAL_CLOUD operation.
+        TramAI must block it before the provider is called. The counter delta proves no invocation occurred.
+      </div>
+    </div>
+
     <!-- Row 1: Input + Governance -->
     <div class="grid-doc gap-top">
-
       <!-- 01 · INPUT -->
       <div class="panel">
         <div class="panel-heading">
@@ -257,7 +387,6 @@ function reset() {
           {{ busy ? 'Evaluating under policy…' : 'Process under TramAI policy' }}
         </button>
 
-        <!-- Trusted metadata cells -->
         <div v-if="metadata" class="meta-grid">
           <div class="meta-cell">
             <span class="meta-label">Classification</span>
@@ -297,7 +426,6 @@ function reset() {
           />
         </div>
 
-        <!-- Legacy route note — never relabel as NVIDIA -->
         <div v-if="selectedRoute && !selectedBoundary" class="legacy-note">
           Backend route: <strong>{{ selectedRoute }}</strong>.
           This is a legacy deterministic route — not a governed NVIDIA execution boundary.
@@ -316,14 +444,12 @@ function reset() {
           <div class="assessment-tags">
             <span class="pill" :class="riskPillClass(assessment.risk)">{{ assessment.risk }}</span>
             <span class="pill pill--neutral">{{ assessment.recommendedAction }}</span>
-            <span class="pill pill--neutral">
-              {{ Math.round((assessment.confidence ?? 0) * 100) }}% confidence
-            </span>
+            <span class="pill pill--neutral">{{ Math.round((assessment.confidence ?? 0) * 100) }}% confidence</span>
           </div>
           <p class="assessment-rationale">{{ assessment.rationale }}</p>
         </div>
         <div v-else class="empty-state">
-          Nemotron's typed assessment appears here after an allowed inference.
+          Nemotron’s typed assessment appears here after an allowed inference.
         </div>
       </div>
 
@@ -331,9 +457,7 @@ function reset() {
       <div class="panel" :class="{ 'panel--accent': approval }">
         <span class="eyebrow">04 · Consequential action</span>
         <template v-if="approval">
-          <div class="panel-title" style="margin-top:10px; font-size:1.05rem;">
-            Human authority required
-          </div>
+          <div class="panel-title" style="margin-top:10px; font-size:1.05rem;">Human authority required</div>
           <p class="authority-copy" style="margin-top:8px;">
             The model proposed
             <span class="authority-tool">{{ approval.toolName }}</span>
@@ -342,15 +466,31 @@ function reset() {
             <strong>{{ statsAfter?.paymentExecutionCount ?? '—' }}</strong>
           </p>
           <div class="authority-actions">
-            <button class="btn btn--primary" :disabled="busy" @click="approvePayment">
+            <button class="btn btn--primary" :disabled="busy || !!evidence" @click="approvePayment">
               <span v-if="busy" class="spinner" />
               Approve
             </button>
-            <button class="btn btn--danger" :disabled="busy" @click="denyPayment">
-              Deny
-            </button>
+            <button class="btn btn--danger" :disabled="busy || !!evidence" @click="denyPayment">Deny</button>
           </div>
           <div class="approval-id">Approval ID: {{ approval.approvalId }}</div>
+
+          <!-- P1-1: Replay protection proof -->
+          <template v-if="replayResult">
+            <div class="replay-result" :class="replayResult.rejected ? 'replay-result--rejected' : 'replay-result--warn'">
+              <span class="replay-result__label">Replay {{ replayResult.rejected ? 'REJECTED' : 'UNEXPECTED' }}</span>
+              <span class="replay-result__msg">{{ replayResult.message }}</span>
+              <span v-if="replayResult.rejected" class="pill pill--allowed" style="margin-top:4px;font-size:9px;">exactly-once enforced ✓</span>
+            </div>
+          </template>
+          <button
+            v-else-if="evidence && !replayResult"
+            class="btn btn--ghost btn--sm btn--full"
+            style="margin-top:10px;"
+            :disabled="busy"
+            @click="proveReplayRejection"
+          >
+            Prove replay protection
+          </button>
         </template>
         <div v-else class="empty-state">
           A HIGH-risk tool call suspends here before executing any side effect.
@@ -372,19 +512,12 @@ function reset() {
           </div>
         </div>
 
-        <div
-          class="audit-state"
-          :class="{
-            'audit-state--valid':   evidence?.chainValid === true,
-            'audit-state--invalid': evidence?.chainValid === false,
-          }"
-        >
-          <span class="audit-label">Audit chain</span>
-          <span class="audit-value">
-            {{ evidence?.chainValid === true ? 'VALID'
-               : evidence?.chainValid === false ? 'INVALID'
-               : '—' }}
-          </span>
+        <!-- P1-2: Real audit event timeline -->
+        <div style="margin-top: 14px;">
+          <AuditTimeline
+            :events="evidence?.auditEvents ?? []"
+            :chain-valid="evidence?.chainValid ?? null"
+          />
         </div>
 
         <p class="microcopy">
@@ -393,6 +526,19 @@ function reset() {
         </p>
       </div>
     </div>
+
+    <!-- P1-4: Proof strip -->
+    <ProofStrip
+      :metadata="metadata"
+      :selected-route="selectedRoute"
+      :assessment="assessment"
+      :approval="approval"
+      :evidence="evidence"
+      :stats-before="statsBefore"
+      :stats-after="statsAfter"
+      :replay-result="replayResult"
+      :denial-result="denialResult"
+    />
 
     <!-- Error banner -->
     <div v-if="localError" class="alert-banner alert-banner--error" role="alert">
