@@ -87,6 +87,22 @@ class InvoiceController(
     suspend fun localNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
         ResponseEntity.ok(AnalyzeResponse(app.analyzeLocalNvidia(request), InvoiceRoute.LOCAL_NVIDIA))
 
+    /** Contest payment proof: local NVIDIA assessment plus TramAI approval gate. */
+    @PostMapping("/analyze/local-nvidia")
+    suspend fun analyzeLocalNvidiaPayment(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
+        when (val outcome = app.analyze(request, InvoiceRoute.LOCAL_NVIDIA)) {
+            is AnalyzeOutcome.Typed -> ResponseEntity.ok(AnalyzeResponse(outcome.assessment, outcome.selectedRoute))
+            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
+                AwaitingApprovalResponse(
+                    status = "AWAITING_APPROVAL",
+                    approvalId = outcome.approvalId,
+                    workflowRunId = outcome.workflowRunId,
+                    toolName = outcome.toolName,
+                    rationale = outcome.rationale,
+                ),
+            )
+        }
+
     /** Opt-in task-004 proof route for the configured EU managed endpoint. */
     @PostMapping("/eu-scaleway")
     suspend fun euScaleway(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =

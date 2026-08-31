@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opt-in task-007 smoke. Requires a running local NVIDIA-compatible endpoint.
+# No credentials or document content are printed.
+BASE_URL="${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:-http://127.0.0.1:1234/v1}"
+MODEL="${KTCONF_GTC_LOCAL_NVIDIA_MODEL:-nvidia/nemotron-3-nano-4b}"
+API_KEY="${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:-}"
+
+cd "$(dirname "$0")/.."
+command -v curl >/dev/null || { echo "FAIL: curl is required" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "FAIL: python3 is required" >&2; exit 1; }
+
+auth=()
+if [[ -n "$API_KEY" ]]; then auth=(-H "Authorization: Bearer ${API_KEY}"); fi
+curl -fsS --max-time 30 "${auth[@]}" "${BASE_URL}/models" >/dev/null
+echo "catalog: local NVIDIA endpoint reachable"
+
+./gradlew :app:bootJar -q
+./scripts/stage-down >/dev/null 2>&1 || true
+mkdir -p .build
+KTCONF_GTC_LOCAL_NVIDIA_BASE_URL="$BASE_URL" \
+KTCONF_GTC_LOCAL_NVIDIA_MODEL="$MODEL" \
+KTCONF_GTC_LOCAL_NVIDIA_API_KEY="$API_KEY" \
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar >.build/stage-gtc-local-nvidia-payment.log 2>&1 &
+app_pid=$!
+cleanup() { kill "$app_pid" >/dev/null 2>&1 || true; wait "$app_pid" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+for i in $(seq 1 60); do
+  if curl -sf --max-time 2 http://127.0.0.1:8080/governance/healthz >/dev/null; then break; fi
+  sleep 1
+done
+
+request='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-PAY-001","supplierName":"KTConf AV & Stage Services BV","amountCents":1840000,"currency":"EUR","description":"Synthetic contest fixture"}}'
+code=$(curl -sS -o .build/gtc-local-nvidia-payment-pending.json -w '%{http_code}' --max-time 120 \
+  -X POST http://127.0.0.1:8080/invoices/analyze/local-nvidia \
+  -H 'Content-Type: application/json' -d "$request")
+[[ "$code" == 202 ]] || { echo "FAIL: payment request returned HTTP $code" >&2; exit 1; }
+approval_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["approvalId"])' .build/gtc-local-nvidia-payment-pending.json)
+before=$(curl -fsS http://127.0.0.1:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["paymentExecutionCount"])')
+[[ "$before" == 0 ]] || { echo "FAIL: payment executed before approval" >&2; exit 1; }
+echo "application: HTTP 202, schedule-payment suspended, payment count=0"
+
+curl -fsS -X POST "http://127.0.0.1:8080/approvals/${approval_id}/approve" >/dev/null
+after=$(curl -fsS http://127.0.0.1:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["paymentExecutionCount"])')
+[[ "$after" == 1 ]] || { echo "FAIL: approval did not execute exactly once" >&2; exit 1; }
+echo "approval: payment count 0 -> 1"
+
+duplicate=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8080/approvals/${approval_id}/approve")
+[[ "$duplicate" == 409 ]] || { echo "FAIL: duplicate approval returned HTTP $duplicate" >&2; exit 1; }
+echo "duplicate: HTTP 409, payment count remains 1"
+
+evidence=$(curl -fsS "http://127.0.0.1:8080/approvals/${approval_id}/evidence")
+python3 -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["chainValid"] and d["eventCount"] >= 4' "$evidence"
+echo "evidence: audit chain valid"

@@ -89,4 +89,34 @@ class ApprovalFlowTest {
         assertEquals(HttpStatus.CONFLICT, resumeAfterDeny.statusCode)
         assertEquals(0, stats().paymentExecutionCount, "denied approval must never execute a payment")
     }
+
+    @Test
+    fun `local NVIDIA assessment uses the same TramAI approval and audit lifecycle`() {
+        val pending = post(
+            "/invoices/analyze/local-nvidia",
+            DemoRequests.payment(),
+            AwaitingApprovalResponse::class.java,
+        )
+        assertEquals(HttpStatus.ACCEPTED, pending.statusCode)
+        val approval = pending.body as AwaitingApprovalResponse
+        assertEquals("schedule-payment", approval.toolName)
+        assertEquals(0, stats().paymentExecutionCount)
+        assertEquals(1, stats().localNvidiaInvocationCount)
+
+        val approved = post("/approvals/${approval.approvalId}/approve", null, InvoiceAssessment::class.java)
+        assertEquals(HttpStatus.OK, approved.statusCode)
+        assertEquals("SCHEDULE_PAYMENT", (approved.body as InvoiceAssessment).recommendedAction.name)
+        assertEquals(1, stats().paymentExecutionCount)
+
+        val duplicate = post("/approvals/${approval.approvalId}/approve", null, ErrorResponse::class.java)
+        assertEquals(HttpStatus.CONFLICT, duplicate.statusCode)
+        assertEquals(1, stats().paymentExecutionCount)
+
+        val evidence = rest.getForEntity(
+            "/approvals/${approval.approvalId}/evidence",
+            EvidenceView::class.java,
+        )
+        assertEquals(HttpStatus.OK, evidence.statusCode)
+        assertEquals(true, evidence.body!!.chainValid)
+    }
 }

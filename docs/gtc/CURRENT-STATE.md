@@ -216,8 +216,17 @@ dev.giona.ktconf.TrustedPdfIngestionServiceTest --no-daemon --console=plain
 --rerun` passed 5/5. The focused Spring context test also passed. Metadata
 rejection occurs before `InvoiceService` is called, so no provider operation is
 entered; the existing route-denial integration test remains the explicit
-provider-counter proof for TramAI's deny-before-invocation behavior. A full
-multipart endpoint counter test is still a follow-on hardening item.
+provider-counter proof for TramAI's deny-before-invocation behavior.
+
+### task-007 — governed payment on NVIDIA path
+
+Task-007 implementation is complete and in review. An explicit
+`/invoices/analyze/local-nvidia` route uses the local NVIDIA typed operation
+with the existing `schedule-payment` tool metadata, then TramAI suspends the
+high-value action for approval. Deterministic tests prove payment count 0 at
+suspension, 0 -> 1 after approval, duplicate rejection, denial, and valid
+audit evidence. The real payment smoke is not yet claimed: the local endpoint
+at `127.0.0.1:1234` was unreachable during verification.
 
 ## Locked contest direction
 

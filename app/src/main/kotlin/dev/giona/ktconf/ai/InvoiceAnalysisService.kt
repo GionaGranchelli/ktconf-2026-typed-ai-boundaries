@@ -62,6 +62,17 @@ interface InvoiceAnalysisService {
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
+    /** Contest payment proof: the real NVIDIA model may request the governed tool. */
+    @Operation(
+        prompt = TOOL_PROMPT,
+        model = "local-nvidia-invoice-model",
+        tools = ["schedule-payment"],
+        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeLocalNvidiaPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
     /** Tool-free assessment used by the two-phase approval demonstration. */
     @Operation(
         prompt = ASSESSMENT_PROMPT,

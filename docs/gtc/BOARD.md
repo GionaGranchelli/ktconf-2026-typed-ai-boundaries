@@ -32,7 +32,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
 | [task-006](tasks/task-006.md) | DONE | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
-| [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
+| [task-007](tasks/task-007.md) | REVIEW | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
@@ -72,7 +72,9 @@ Task-006 is `DONE`: trusted PDF residency now selects the governed
 `LOCAL_NVIDIA`, `EU_CLOUD`, or `GLOBAL_CLOUD` route, while TramAI authorizes
 the selected operation. Deterministic tests prove one allowed invocation per
 boundary and existing wrong-route tests prove counter delta `0`. Task-007 is
-the next blocked dependency; tasks 008–010 remain blocked behind it.
+in `REVIEW`: deterministic payment integration is complete, but its real
+Nemotron payment smoke is pending local endpoint availability. Tasks 008–010
+remain blocked behind task-007.
 
 Task-011 is maintained on the separate `task/011-gtc-governance-console`
 branch and was not modified here. Before merging it, update the EU card and

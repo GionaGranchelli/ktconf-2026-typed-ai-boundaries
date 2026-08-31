@@ -52,7 +52,7 @@ class InvoiceService(
                     assessment = when (route) {
                         InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
                         InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
-                        InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidia(document)
+                        InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidiaPayment(document)
                         InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(document)
                         InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
                     },

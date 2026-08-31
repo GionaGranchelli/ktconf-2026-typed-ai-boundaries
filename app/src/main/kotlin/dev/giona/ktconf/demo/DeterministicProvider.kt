@@ -70,6 +70,10 @@ class DeterministicProvider(
 
 /** Local route script: the full payment story plus valid/invalid fixtures. */
 fun localScript(invoiceId: String, toolResultPresent: Boolean, request: ModelRequest): ModelResponse = when {
+    request.model == "local-nvidia-invoice-model" && invoiceId.startsWith("KTCONF-PAY-") && !toolResultPresent ->
+        DemoResponses.paymentToolCall(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
+    request.model == "local-nvidia-invoice-model" && invoiceId.startsWith("KTCONF-PAY-") ->
+        DemoResponses.payAssessment(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
     request.model == "local-assessment-model" && invoiceId.startsWith("KTCONF-PAY-") ->
         DemoResponses.paymentPreAssessment(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
     request.model == "local-assessment-model" && invoiceId == "KTCONF-001" ->

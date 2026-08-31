@@ -1,6 +1,6 @@
 # task-007 — Governed payment on real Nemotron path
 
-Status: `BLOCKED`
+Status: `REVIEW`
 Track: G
 Milestone: M6
 Depends on: task-006
@@ -20,14 +20,25 @@ Reuse the existing governed payment flow so a real Nemotron-backed workflow can 
 ## Acceptance criteria
 
 - [ ] Real Nemotron output can lead to a payment proposal.
-- [ ] Payment count remains 0 at suspension.
-- [ ] Approval changes payment count 0 -> 1.
-- [ ] Duplicate approval/resume is rejected and count remains 1.
-- [ ] Denial leaves count 0 and continuation is refused.
-- [ ] Tool policy is enforced outside model output/prompting.
+- [x] Payment count remains 0 at suspension.
+- [x] Approval changes payment count 0 -> 1.
+- [x] Duplicate approval/resume is rejected and count remains 1.
+- [x] Denial leaves count 0 and continuation is refused.
+- [x] Tool policy is enforced outside model output/prompting.
 - [ ] Hash-chained audit records cover the real contest workflow.
-- [ ] Existing deterministic payment oracle remains green.
+- [x] Existing deterministic payment oracle remains green.
 
 ## Handoff
 
 Provide the end-to-end sequence, sanitized outputs, tool metadata proof, exact counters, audit event sequence, changed files, and any model-output normalization required.
+
+Implementation evidence: `analyzeLocalNvidiaPayment` declares the existing
+`schedule-payment` tool with `HIGH`/`HUMAN_REQUIRED` metadata and uses the
+existing TramAI approval/resume path. The deterministic suite proves
+suspension at payment count 0, approval 0 -> 1, duplicate rejection, denial,
+and valid audit-chain evidence. The opt-in real command is
+`./scripts/gtc-local-nvidia-payment-smoke`.
+
+Real closure is pending: the local endpoint at `127.0.0.1:1234` was not
+reachable during this run, so no real Nemotron payment proposal or real audit
+claim is made.
