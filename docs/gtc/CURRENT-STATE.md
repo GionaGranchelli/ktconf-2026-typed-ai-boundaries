@@ -239,6 +239,8 @@ handling, payment suspension/denial/exactly-once behavior, and audit-chain
 verification. Publish-safe evidence guidance is in
 `docs/gtc/evidence/README.md`. Live provider evidence remains separate; no
 combined three-PDF run or real Nemotron payment/audit result is claimed.
+The combined live runner is `scripts/gtc-real-boundaries-smoke`; it is
+credential-gated and has not been claimed as passed.
 
 The assessment/tool prompt now states the amount-based risk/action rules and
 the successful-tool-result transition explicitly. The canonical

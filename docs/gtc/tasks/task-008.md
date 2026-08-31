@@ -43,13 +43,13 @@ Do not invent a benchmark percentage unless the sample set and methodology are c
 
 ## Acceptance criteria
 
-- [ ] Every headline contest claim maps to a machine-observable proof.
-- [ ] Denied routes prove invocation delta `0`.
+- [x] Every deterministic headline contest claim maps to a machine-observable proof.
+- [x] Denied routes prove invocation delta `0`.
 - [ ] Real-provider smoke results are captured without secrets/document contents.
-- [ ] Deterministic proof suite is repeatable offline.
-- [ ] Evidence output is safe to publish.
-- [ ] Claims-boundary docs are updated for all new GTC behavior.
-- [ ] A concise judge-facing proof table can be generated from the evidence.
+- [x] Deterministic proof suite is repeatable offline.
+- [x] Evidence output is safe to publish.
+- [x] Claims-boundary docs are updated for all new GTC behavior.
+- [x] A concise judge-facing proof table can be generated from the evidence.
 
 ## Handoff
 
@@ -57,7 +57,9 @@ Provide claim -> test/evidence mapping, commands, outputs, sample counts, limita
 
 Implementation evidence: `scripts/gtc-evidence` runs the full deterministic
 application suite and the 20-scenario rehearsal, then prints a concise proof
-table. The publish-safe evidence index is `docs/gtc/evidence/README.md`; live
-provider scripts remain separate and no live result is inferred from the
-offline gate. Task-006 combined real PDF evidence and task-007 real Nemotron
-payment/audit evidence remain pending infrastructure availability.
+table while also selecting the named contest proof tests directly. The
+publish-safe evidence index is `docs/gtc/evidence/README.md`; the combined
+live runner is `scripts/gtc-real-boundaries-smoke`. Live results are not
+inferred from the offline gate. Task-006 combined real PDF evidence and
+task-007 real Nemotron payment/audit evidence remain pending infrastructure
+availability.

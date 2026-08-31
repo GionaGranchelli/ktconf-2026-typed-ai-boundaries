@@ -19,11 +19,11 @@ gate:
 
 | Boundary/workflow | Command | Current status |
 |---|---|---|
-| LOCAL NVIDIA typed inference | `scripts/gtc-local-nvidia-smoke` | Individual proof recorded; combined PDF proof pending |
+| LOCAL NVIDIA typed inference | `scripts/gtc-local-nvidia-smoke` | Individual proof recorded in `local-nvidia-smoke.md`; combined PDF proof pending |
 | EU Scaleway/Mistral typed inference | `scripts/gtc-eu-scaleway-smoke` | Individual proof recorded |
 | GLOBAL NVIDIA typed inference | `scripts/gtc-global-nvidia-smoke` | Individual proof recorded |
 | LOCAL NVIDIA payment PDF | `scripts/gtc-local-nvidia-payment-smoke` | Pending local endpoint availability |
-| Combined three-PDF run | task-008 evidence run | Pending |
+| Combined three-PDF run | `scripts/gtc-real-boundaries-smoke` | Pending |
 
 Live evidence artifacts must record only provider identity, region/endpoint
 type, model ID, HTTP result, selected route, safe counters, and limitations.

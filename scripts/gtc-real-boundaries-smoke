@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Combined opt-in real PDF proof. All three providers are configured in one
+# Spring process. Credentials are read from the environment and never printed.
+LOCAL_BASE="${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:-${NVIDIA_LOCAL_BASE_URL:-}}"
+LOCAL_MODEL="${KTCONF_GTC_LOCAL_NVIDIA_MODEL:-${NVIDIA_LOCAL_MODEL:-}}"
+GLOBAL_BASE="${KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL:-${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}}"
+GLOBAL_MODEL="${KTCONF_GTC_GLOBAL_NVIDIA_MODEL:-${NVIDIA_MODEL:-}}"
+GLOBAL_KEY="${KTCONF_GTC_GLOBAL_NVIDIA_API_KEY:-${NVIDIA_API_KEY:-}}"
+EU_BASE="${KTCONF_GTC_EU_SCALEWAY_BASE_URL:-${SCW_BASE_URL:-}}"
+EU_MODEL="${KTCONF_GTC_EU_SCALEWAY_MODEL:-${SCW_MODEL:-}}"
+EU_KEY="${KTCONF_GTC_EU_SCALEWAY_API_KEY:-${SCW_API_KEY:-}}"
+: "${LOCAL_BASE:?Set local NVIDIA base URL}"
+: "${LOCAL_MODEL:?Set local NVIDIA model}"
+: "${GLOBAL_KEY:?Set NVIDIA API key}"
+: "${GLOBAL_MODEL:?Set global NVIDIA model}"
+: "${EU_BASE:?Set Scaleway base URL}"
+: "${EU_MODEL:?Set Scaleway model}"
+: "${EU_KEY:?Set Scaleway API key}"
+
+cd "$(dirname "$0")/.."
+command -v curl >/dev/null || { echo "FAIL: curl is required" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "FAIL: python3 is required" >&2; exit 1; }
+./gradlew :app:bootJar -q
+./scripts/stage-down >/dev/null 2>&1 || true
+mkdir -p .build
+KTCONF_GTC_LOCAL_NVIDIA_BASE_URL="$LOCAL_BASE" KTCONF_GTC_LOCAL_NVIDIA_MODEL="$LOCAL_MODEL" \
+KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL="$GLOBAL_BASE" KTCONF_GTC_GLOBAL_NVIDIA_MODEL="$GLOBAL_MODEL" KTCONF_GTC_GLOBAL_NVIDIA_API_KEY="$GLOBAL_KEY" \
+KTCONF_GTC_EU_SCALEWAY_BASE_URL="$EU_BASE" KTCONF_GTC_EU_SCALEWAY_MODEL="$EU_MODEL" KTCONF_GTC_EU_SCALEWAY_API_KEY="$EU_KEY" \
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar >.build/stage-gtc-real-boundaries.log 2>&1 &
+app_pid=$!
+cleanup() { kill "$app_pid" >/dev/null 2>&1 || true; wait "$app_pid" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+for i in $(seq 1 60); do curl -sf --max-time 2 http://127.0.0.1:8080/governance/healthz >/dev/null && break; sleep 1; done
+
+stats() { curl -fsS http://127.0.0.1:8080/governance/stats; }
+count() { printf '%s' "$1" | python3 -c 'import json,sys; print(json.load(sys.stdin)[sys.argv[1]])' "$2"; }
+pdf() { curl -sS -o "$1" -w '%{http_code}' --max-time 180 -X POST http://127.0.0.1:8080/invoices/analyze-pdf -F "file=@$2;type=application/pdf"; }
+json_restricted() { curl -sS -o "$1" -w '%{http_code}' --max-time 60 -X POST "$2" -H 'Content-Type: application/json' -d '{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"Synthetic","amountCents":42830,"currency":"EUR","description":"Synthetic"}}'; }
+
+before=$(stats); code=$(pdf .build/gtc-real-public.json app/src/test/resources/fixtures/public-invoice.pdf); after=$(stats)
+[[ "$code" == 200 ]] && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 1 ]] || { echo "FAIL: PUBLIC -> GLOBAL" >&2; exit 1; }
+echo "PUBLIC PDF -> GLOBAL_CLOUD: invocation delta=1"
+
+before=$(stats); code=$(curl -sS -o .build/gtc-real-confidential-global.json -w '%{http_code}' --max-time 60 -X POST http://127.0.0.1:8080/invoices/boundary/confidential-eu-global -F 'file=@app/src/test/resources/fixtures/confidential-eu-invoice.pdf;type=application/pdf'); after=$(stats)
+[[ "$code" == 403 ]] && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 0 ]] || { echo "FAIL: CONFIDENTIAL EU forced GLOBAL" >&2; exit 1; }
+before=$(stats); code=$(pdf .build/gtc-real-confidential-eu.json app/src/test/resources/fixtures/confidential-eu-invoice.pdf); after=$(stats)
+[[ "$code" == 200 ]] && [[ $(( $(count "$after" euScalewayInvocationCount)-$(count "$before" euScalewayInvocationCount) )) -eq 1 ]] || { echo "FAIL: CONFIDENTIAL EU -> EU" >&2; exit 1; }
+echo "CONFIDENTIAL EU PDF -> EU_CLOUD: forced GLOBAL delta=0, EU delta=1"
+
+before=$(stats); code=$(json_restricted .build/gtc-real-restricted-eu.json http://127.0.0.1:8080/invoices/boundary/restricted-eu); after=$(stats)
+[[ "$code" == 403 ]] && [[ $(( $(count "$after" euScalewayInvocationCount)-$(count "$before" euScalewayInvocationCount) )) -eq 0 ]] || { echo "FAIL: RESTRICTED forced EU" >&2; exit 1; }
+before=$(stats); code=$(json_restricted .build/gtc-real-restricted-global.json http://127.0.0.1:8080/invoices/global-nvidia); after=$(stats)
+[[ "$code" == 403 ]] && [[ $(( $(count "$after" globalNvidiaInvocationCount)-$(count "$before" globalNvidiaInvocationCount) )) -eq 0 ]] || { echo "FAIL: RESTRICTED forced GLOBAL" >&2; exit 1; }
+before=$(stats); code=$(pdf .build/gtc-real-restricted-local.json app/src/test/resources/fixtures/restricted-local-invoice.pdf); after=$(stats)
+[[ "$code" == 200 ]] && [[ $(( $(count "$after" localNvidiaInvocationCount)-$(count "$before" localNvidiaInvocationCount) )) -eq 1 ]] || { echo "FAIL: RESTRICTED -> LOCAL" >&2; exit 1; }
+echo "RESTRICTED LOCAL PDF -> LOCAL_NVIDIA: EU/GLOBAL deltas=0, LOCAL delta=1"

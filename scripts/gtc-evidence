@@ -7,6 +7,16 @@ cd "$(dirname "$0")/.."
 command -v java >/dev/null || { echo "FAIL: java is required" >&2; exit 1; }
 
 ./gradlew :app:test --no-daemon --console=plain --rerun
+./gradlew :app:test --no-daemon --console=plain --rerun \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.PUBLIC request routes to cloud and returns typed result' \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.CONFIDENTIAL EU request uses EU Scaleway identity' \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.confidential EU PDF forced global is denied before global invocation then succeeds in EU' \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.forced RESTRICTED to EU is denied before Scaleway invocation' \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.forced RESTRICTED to GLOBAL NVIDIA is denied before provider invocation' \
+  --tests 'dev.giona.ktconf.InvoiceRoutingTest.missing trusted PDF metadata is rejected without invoking any provider' \
+  --tests 'dev.giona.ktconf.ApprovalFlowTest.canonical payment PDF denial preserves zero payment and refuses continuation' \
+  --tests 'dev.giona.ktconf.ApprovalFlowTest.duplicate approve is rejected and payment stays at one' \
+  --tests 'dev.giona.ktconf.EvidenceTest'
 ./scripts/stress-rehearse
 
 cat <<'EOF'

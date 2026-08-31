@@ -80,6 +80,11 @@ Nemotron payment smoke is pending local endpoint availability. Task-008 is now
 the owner of the remaining real-provider evidence runs; tasks 009–010 remain
 blocked behind task-008.
 
+The combined live command is `scripts/gtc-real-boundaries-smoke`; it requires
+all three configured provider families and uploads the three synthetic PDFs in
+one Spring process. No live result is recorded until that command and the
+payment smoke complete successfully against the final evidence revision.
+
 Latest closure checkpoint: the assessment/tool prompt explicitly defines the
 EUR 5,000 risk/action rule and the post-`schedule-payment` state transition.
 The canonical payment PDF denial test proves denial leaves payment count at

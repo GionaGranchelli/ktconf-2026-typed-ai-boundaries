@@ -83,6 +83,16 @@ class InvoiceRoutingTest {
     }
 
     @Test
+    fun `forced RESTRICTED to GLOBAL NVIDIA is denied before provider invocation`() {
+        val before = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!.globalNvidiaInvocationCount
+        val response = rest.exchange("/invoices/global-nvidia", HttpMethod.POST, HttpEntity(DemoRequests.restricted(), headers()), ErrorResponse::class.java)
+        assertEquals(HttpStatus.FORBIDDEN, response.statusCode)
+        assertEquals("classification-routing-blocked", response.body!!.code)
+        val after = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!.globalNvidiaInvocationCount
+        assertEquals(0, after - before)
+    }
+
+    @Test
     fun `CONFIDENTIAL EU request uses EU Scaleway identity`() {
         val response = rest.exchange(
             "/invoices/eu-scaleway",
@@ -118,6 +128,25 @@ class InvoiceRoutingTest {
         ).andReturn()
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isBadRequest)
 
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(0, stats.localInvocationCount)
+        assertEquals(0, stats.localNvidiaInvocationCount)
+        assertEquals(0, stats.euScalewayInvocationCount)
+        assertEquals(0, stats.globalNvidiaInvocationCount)
+        assertEquals(0, stats.cloudInvocationCount)
+    }
+
+    @Test
+    fun `missing trusted PDF metadata is rejected without invoking any provider`() {
+        val original = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/public-invoice.pdf")).readBytes()
+        val withoutClassification = String(original, Charsets.ISO_8859_1)
+            .replace("/KTCONF-Classification (PUBLIC)", "")
+            .toByteArray(Charsets.ISO_8859_1)
+        val started = mockMvc.perform(
+            multipart("/invoices/analyze-pdf")
+                .file(MockMultipartFile("file", "missing-metadata.pdf", "application/pdf", withoutClassification)),
+        ).andReturn()
+        mockMvc.perform(asyncDispatch(started)).andExpect(status().isBadRequest)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(0, stats.localInvocationCount)
         assertEquals(0, stats.localNvidiaInvocationCount)

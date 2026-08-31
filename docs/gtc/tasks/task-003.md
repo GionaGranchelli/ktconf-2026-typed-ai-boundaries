@@ -1,6 +1,6 @@
 # task-003 — LOCAL NVIDIA RTX + Nemotron
 
-Status: `READY`
+Status: `DONE`
 Track: C
 Milestone: M2
 Depends on: none
@@ -36,13 +36,13 @@ Verify the exact current model artifact/repository and license before pinning.
 
 ## Acceptance criteria
 
-- [ ] Local Nemotron starts reliably on NVIDIA RTX hardware.
-- [ ] OpenAI-compatible health/inference smoke succeeds.
-- [ ] Application receives a typed TramAI result from the real local model.
-- [ ] Provider is declared `LOCAL` through governance configuration, not inferred from URL.
-- [ ] Invocation counting works.
-- [ ] Startup/rehearsal steps are documented and bounded.
-- [ ] Existing deterministic and optional Qwen paths remain intact.
+- [x] Local Nemotron starts reliably on NVIDIA RTX hardware.
+- [x] OpenAI-compatible health/inference smoke succeeds.
+- [x] Application receives a typed TramAI result from the real local model.
+- [x] Provider is declared `LOCAL` through governance configuration, not inferred from URL.
+- [x] Invocation counting works.
+- [x] Startup/rehearsal steps are documented and bounded.
+- [x] Existing deterministic and optional Qwen paths remain intact.
 
 ## Verification
 
@@ -51,3 +51,5 @@ Capture sanitized evidence for GPU/model/runtime versions, model artifact identi
 ## Handoff
 
 State the exact model artifact, quantization, serving command, base URL convention, expected startup time, changed files, tests, and demo risks.
+
+Closure evidence: [`../evidence/local-nvidia-smoke.md`](../evidence/local-nvidia-smoke.md).

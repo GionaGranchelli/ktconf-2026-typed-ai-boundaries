@@ -20,6 +20,10 @@ What this demo proves — and what it deliberately does **not** claim.
   same document on a LOCAL provider. The demo proves this with a
   deliberately misrouted request through the SAME runtime
   (`/invoices/boundary/restricted-cloud`, printed before/after counts).
+- The contest `GLOBAL_NVIDIA` operation also proves RESTRICTED denial before
+  provider invocation with global invocation delta `0`. Missing or malformed
+  trusted PDF metadata fails at the multipart boundary with all provider
+  counters unchanged.
 - TramAI's structured-output engine rejects invalid model output through the
   SAME application and SAME runtime (HTTP 422, `structured-output-rejected`),
   and no side effect executes. Nothing about the application changed — only
@@ -81,8 +85,8 @@ What this demo proves — and what it deliberately does **not** claim.
   configuration and maps the logical `global-nvidia-invoice-model` to the
   deployment model `nvidia/nemotron-3.5-lightning-30b-a3b`. It is counted and
   deterministic when no NVIDIA key is supplied. A real HTTP 200 typed result
-  is not claimed until `./scripts/gtc-global-nvidia-smoke` is run with
-  `NVIDIA_API_KEY`.
+  is recorded in `docs/gtc/evidence/global-nvidia-smoke.md`; final-head
+  refreshes remain required for the evidence freeze.
 
 - Proves: the actual two-provider architecture behind the SAME typed
   contract (`ClassifiedDocument<InvoiceDocument>` → `InvoiceAssessment`),
@@ -104,15 +108,19 @@ What this demo proves — and what it deliberately does **not** claim.
   the expected selectedRoute, and — when cloud is real — that a RESTRICTED
   request forced to cloud is denied BEFORE DeepSeek is called (cloud
   invocation delta 0).
-- The real path proves only the typed contract and the boundary against real
-  models. It is NOT needed to demonstrate payment, approval, denial,
-  evidence or exactly-once behavior — those remain deterministic.
+- The real path proves the typed contract and boundary behavior against real
+  models. The task-007 contest claim additionally requires a real local
+  Nemotron payment proposal and real workflow audit evidence; deterministic
+  payment tests are not a substitute for that pending live proof.
 
-## Rule
+## Evidence rule
 
-Every row in the evidence output derives from a real audit record.
-Nothing is invented for the show. If a scenario cannot be demonstrated with
-real TramAI behavior, it is not demonstrated.
+Every evidence row identifies its source: deterministic test assertions,
+provider counters, or a sanitized live-provider artifact. Audit-chain rows
+derive from real TramAI audit records; routing and fail-closed rows derive from
+their executable HTTP tests and counter assertions. Nothing is invented for
+the show. If a scenario cannot be demonstrated with real TramAI behavior, it
+is not demonstrated.
 
 ## Governance / EU AI Act note
 
