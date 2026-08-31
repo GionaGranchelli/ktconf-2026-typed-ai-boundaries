@@ -57,7 +57,7 @@ class WorkflowDemoService(
                         InvoiceRoute.CLOUD -> ai.analyzeCloud(input.document)
                         InvoiceRoute.LOCAL -> ai.preAssessLocal(input.document)
                         InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidia(input.document)
-                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuNvidia(input.document)
+                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(input.document)
                         InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(input.document)
                     }
                 }

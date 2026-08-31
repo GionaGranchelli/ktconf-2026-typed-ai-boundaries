@@ -22,7 +22,7 @@ M0 baseline
  |                                        |
  +--> M2 LOCAL NVIDIA --------------------+--> M5 three-boundary governance
  |                                        |            |
- +--> M3 EU NVIDIA / Nebius --------------+            +--> M6 governed payment
+ +--> M3 EU_CLOUD managed inference ------+            +--> M6 governed payment
  |                                                     |
  +--> M4 real PDF + trusted metadata ------------------+
                                                        |
@@ -145,10 +145,13 @@ No cloud secret is required for this proof.
 
 ---
 
-# M3 — EU_CLOUD on Nebius + NVIDIA H200 + NIM
+# M3 — EU_CLOUD managed inference
 
 **Priority:** P0  
-**Goal:** Create a real EU execution boundary that is unmistakably NVIDIA-powered.
+**Goal:** Create a real managed EU execution boundary. The active temporary
+provider is Scaleway Generative APIs with Mistral Small 24B; it is not an
+NVIDIA/Nemotron/NIM proof. A suitable managed EU Nemotron deployment remains
+the preferred later upgrade.
 
 ## Locked provider decision
 

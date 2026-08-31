@@ -91,13 +91,13 @@ interface InvoiceAnalysisService {
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
-    /** Explicit contest smoke operation for the EU NVIDIA/NIM endpoint. */
+    /** Explicit contest smoke operation for the configured EU managed endpoint. */
     @Operation(
         prompt = ASSESSMENT_PROMPT,
-        model = "eu-nvidia-invoice-model",
+        model = "eu-scaleway-invoice-model",
         timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
     )
-    suspend fun analyzeEuNvidia(
+    suspend fun analyzeEuScaleway(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 }

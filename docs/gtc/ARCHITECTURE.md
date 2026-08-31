@@ -2,7 +2,10 @@
 
 ## Architecture statement
 
-The contest branch demonstrates one Spring Boot application with one TramAI governance plane and three NVIDIA-backed execution boundaries.
+The contest branch demonstrates one Spring Boot application with one TramAI
+governance plane and three execution boundaries. LOCAL and GLOBAL_CLOUD are
+NVIDIA-backed; the active EU_CLOUD implementation is temporarily Scaleway
+Generative APIs with Mistral Small 24B and is not an NVIDIA/Nemotron/NIM path.
 
 The application may choose a route. TramAI independently decides whether that route is allowed for the trusted handling metadata attached to the document.
 
@@ -37,11 +40,11 @@ The model is never the authority for:
              v                   v                   v
            LOCAL              EU_CLOUD          GLOBAL_CLOUD
              |                   |                   |
-        NVIDIA RTX         Nebius eu-west1    Build.NVIDIA.com
-             |              NVIDIA H200              |
-        llama.cpp                |          integrate.api.nvidia.com
-             |              NVIDIA NIM               |
-     Nemotron 3 Nano 4B       Nemotron            Nemotron 3.5
+        NVIDIA RTX       Scaleway Europe      Build.NVIDIA.com
+             |             Mistral 24B               |
+        llama.cpp       Generative APIs       integrate.api.nvidia.com
+             |                   |                   |
+     Nemotron 3 Nano 4B       Mistral             Nemotron 3.5
              |                   |            Lightning 30B A3B
              +-------------------+-------------------+
                                  |
@@ -127,12 +130,10 @@ local-nvidia-provider
   actual endpoint: local llama.cpp
   actual model: nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF
 
-eu-nvidia-provider
-  trust zone: EU_CLOUD (or pinned-TramAI equivalent)
-  actual endpoint: Nebius Serverless AI / NIM
-  region: eu-west1, France
-  GPU: NVIDIA H200
-  actual model: Nemotron family
+eu-scaleway-provider
+  trust zone: EU_CLOUD
+  actual endpoint: Scaleway Generative APIs (European deployment)
+  actual model: configured Mistral Small 24B deployment (temporary)
 
 global-nvidia-provider
   trust zone: GLOBAL_CLOUD
@@ -269,7 +270,18 @@ Before freeze, record:
 - served model ID returned by `/v1/models`;
 - cold/warm startup notes only if useful to demo reliability.
 
-## EU deployment: Nebius + NVIDIA
+## EU deployment: Scaleway Generative APIs
+
+The active EU deployment is documented in [`SCALEWAY.md`](SCALEWAY.md). It is
+an OpenAI-compatible European Mistral Small 24B service used temporarily to
+unblock the EU execution-boundary integration. The provider is declared
+`EU_CLOUD` by TramAI; the model/provider choice is not the trust zone itself.
+
+The original Nebius + NVIDIA NIM investigation remains in
+[`NVIDIA-NEBIUS.md`](NVIDIA-NEBIUS.md) and `CURRENT-STATE.md` as historical
+evidence. It is not the active P0 route.
+
+## Historical EU deployment: Nebius + NVIDIA
 
 Preferred region:
 
@@ -411,10 +423,9 @@ The desired story is not that Nemotron refuses to make payments. The desired sto
 Safe claims:
 
 - the global NVIDIA endpoint was not invoked for a forbidden EU-only request if counter delta is zero;
-- the Nebius/NIM endpoint was not invoked for a forbidden local-only request if counter delta is zero;
-- the Nebius endpoint is hosted in the configured Nebius EU region we can evidence;
-- the endpoint runs on an NVIDIA GPU platform we can evidence;
-- the chosen self-hosted container is NVIDIA NIM if pinned image evidence proves it;
+- the Scaleway endpoint is not invoked for a forbidden local-only request if counter delta is zero;
+- the active EU endpoint is hosted by the configured European managed service;
+- the model/provider identity is reported truthfully and separately from `EU_CLOUD`;
 - the model proposes; TramAI authorizes provider/tool execution.
 
 Unsafe claims without additional evidence:

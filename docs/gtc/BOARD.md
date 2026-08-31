@@ -29,7 +29,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-001](tasks/task-001.md) | DONE | A | — | Establish native `EU_CLOUD`/regional trust semantics in TramAI |
 | [task-002](tasks/task-002.md) | REVIEW | B | — | Prove GLOBAL Build.NVIDIA.com Nemotron inference |
 | [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
-| [task-004](tasks/task-004.md) | REVIEW | D | — | Prove Nebius France + NVIDIA H200 + NIM path |
+| [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | REVIEW | E | — | Add fail-closed real PDF + trusted metadata ingestion |
 | [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed NVIDIA execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
@@ -42,7 +42,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 - task-003 is `DONE`: local smoke passed with RTX 3060 / driver 580.173.02,
   llama.cpp 9986, Nemotron `nvidia/nemotron-3-nano-4b`, direct HTTP 200, typed
   application HTTP 200, `selectedRoute=LOCAL_NVIDIA`, and invocation count 1.
-- task-004 remains `REVIEW`: the first endpoint attempt failed with Nebius
+- task-004 is `DONE`: the first endpoint attempt failed with Nebius
   `code=13` internal error and was removed. A corrected replacement is
   provisioned in the existing `eu-west1` project with H200 capacity and was
   restarted after its create operation also reported `code=13`. It is still
@@ -60,6 +60,12 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
   endpoint `aiendpoint-e00tb5k1b689ms14sy`, did the same. Neither produced
   inference; model size is now unlikely to be the sole cause, while NIM
   runtime, secret/image access, and Serverless AI causes remain open.
+  The active EU implementation now uses `eu-scaleway-provider` and
+  `eu-scaleway-invoice-model` in `EU_CLOUD`, reusing the OpenAI-compatible,
+  model-alias, and counting-provider composition. The real Scaleway smoke
+  passed: model catalog, direct chat, typed application HTTP 200 with
+  `selectedRoute=EU_CLOUD`, allowed invocation delta `1`, and restricted
+  forced-EU denial HTTP 403 with invocation delta `0`.
   completes.
 - task-005 is `REVIEW`: PDFBox ingestion, documented metadata contract, three
   synthetic fixtures, and fail-closed parser tests are complete. The focused
@@ -87,7 +93,7 @@ Tasks 001–005 are intentionally parallel. Do not serialize them unless resourc
 The branch is submission-ready only when all of the following are true:
 
 1. A real PDF is accepted only after trusted classification/residency metadata is parsed locally.
-2. The same application exposes three governed NVIDIA execution boundaries: `LOCAL`, `EU_CLOUD`, `GLOBAL_CLOUD`.
+2. The same application exposes three governed execution boundaries: NVIDIA-backed `LOCAL` and `GLOBAL_CLOUD`, plus temporary Scaleway/Mistral `EU_CLOUD`.
 3. At least one real successful inference is proven for each boundary.
 4. A disallowed route is denied before provider invocation and the corresponding provider counter delta is exactly `0`.
 5. Nemotron can propose the governed payment action but cannot execute it without TramAI's human-approval gate.

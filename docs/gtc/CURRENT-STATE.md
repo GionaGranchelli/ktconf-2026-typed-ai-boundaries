@@ -64,17 +64,39 @@ model while retaining environment overrides. The TramAI structured-output
 schema generator was corrected to describe Kotlin enums as JSON strings with
 their allowed values; its focused enum test and the local typed proof pass.
 
-### task-004 — isolated EU NVIDIA/NIM provider
+### task-004 — EU_CLOUD managed inference via Scaleway
 
-The application now has a separate `eu-nvidia-provider` identity and
-`eu-nvidia-invoice-model`, declared `EU_CLOUD` by TramAI configuration. It uses
-the existing OpenAI-compatible adapter and counter seam, and remains
-deterministic unless both `KTCONF_GTC_EU_NVIDIA_BASE_URL` and
-`KTCONF_GTC_EU_NVIDIA_API_KEY` are supplied. The opt-in typed route is
-`POST /invoices/eu-nvidia`, exercised by `./scripts/gtc-eu-nvidia-smoke` with
-`CONFIDENTIAL` input.
+The active application identity is now `eu-scaleway-provider` with
+`eu-scaleway-invoice-model`, declared `EU_CLOUD` by TramAI configuration. It
+reuses the OpenAI-compatible adapter, model alias, and counting seam, and is
+deterministic unless both `KTCONF_GTC_EU_SCALEWAY_BASE_URL` and
+`KTCONF_GTC_EU_SCALEWAY_API_KEY` are supplied. The opt-in typed route is
+`POST /invoices/eu-scaleway`, exercised by `./scripts/gtc-eu-scaleway-smoke`.
+The active temporary model is the configured Mistral Small 24B deployment;
+Mistral is not NVIDIA, Nemotron, or NIM.
 
-Current deployment target remains Nebius `eu-west1` (France),
+Scaleway setup and the replacement path are documented in
+[`SCALEWAY.md`](SCALEWAY.md). The operator ran the real smoke against the
+configured European deployment using model
+`mistral/mistral-small-24b-instruct-2501:bf16`; the initial stale base URL
+returned HTTP 404, and the corrected `/v1` base URL passed catalog validation,
+direct chat, typed application HTTP 200 with `selectedRoute=EU_CLOUD`, allowed
+invocation delta `1`, and forced restricted-EU HTTP 403 with invocation delta
+`0`. No credential value is recorded.
+
+Deterministic verification for the pivot passed with `./gradlew :app:test`
+(`BUILD SUCCESSFUL`) and `./scripts/stress-rehearse` (`20 / 20 PASS`). The
+new `CONFIDENTIAL -> /invoices/eu-scaleway` fixture path returns
+`EU_CLOUD` with the EU counter incrementing once; forced
+`RESTRICTED -> /invoices/boundary/restricted-eu` returns
+`classification-routing-blocked` with EU counter delta `0`. The opt-in smoke
+script fails closed when `SCW_API_KEY` or `SCW_MODEL` is absent; the real
+Scaleway run above used both without exposing either value.
+
+The following Nebius records are retained as historical evidence, not as the
+active EU implementation.
+
+Historical deployment target was Nebius `eu-west1` (France),
 `gpu-h200-sxm`, and the official NIM image
 `nvcr.io/nim/nvidia/nemotron-3.5-lightning-30b-a3b`. Current NVIDIA NIM
 documentation also exposes a tested-version shape using tag `2.0.9-variant`;
@@ -171,7 +193,7 @@ Working title:
 
 Technical tagline:
 
-> **One Spring application. One TramAI policy plane. Three NVIDIA execution boundaries.**
+> **One Spring application. One TramAI policy plane. Three governed execution boundaries.**
 
 Target routes:
 
@@ -182,10 +204,8 @@ LOCAL
   -> NVIDIA Nemotron 3 Nano 4B
 
 EU_CLOUD
-  -> Nebius AI Cloud eu-west1 (France)
-  -> NVIDIA H200
-  -> NVIDIA NIM
-  -> NVIDIA Nemotron
+  -> Scaleway Generative APIs Europe
+  -> Mistral Small 24B (temporary)
 
 GLOBAL_CLOUD
   -> Build.NVIDIA.com hosted API
@@ -200,7 +220,7 @@ JSON-only invoice
     -> trusted classification/residency metadata read locally
     -> proposed route
     -> TramAI placement authorization
-    -> allowed NVIDIA provider only
+    -> allowed configured provider only
 ```
 
 Existing payment/approval/evidence mechanics are to be reused rather than rebuilt.

@@ -36,9 +36,9 @@ class ApplicationContextIT {
     @Test
     fun `both local and cloud providers coexist in one context`() {
         val providers = context.getBeansOfType(ModelProvider::class.java).values.toList()
-        assertEquals(5, providers.size, "expected local + local NVIDIA + EU NVIDIA + cloud + global NVIDIA provider beans")
+        assertEquals(5, providers.size, "expected local + local NVIDIA + EU Scaleway + cloud + global NVIDIA provider beans")
         val ids = providers.map { it.providerId() }.toSet()
-        assertEquals(setOf("local-provider", "local-nvidia-provider", "eu-nvidia-provider", "cloud-provider", "global-nvidia-provider"), ids)
+        assertEquals(setOf("local-provider", "local-nvidia-provider", "eu-scaleway-provider", "cloud-provider", "global-nvidia-provider"), ids)
     }
 
     @Test
@@ -79,8 +79,8 @@ class ApplicationContextIT {
         val localNvidia = context.getBean("localNvidiaProvider") as ModelProvider
         assertTrue(localNvidia is CountingModelProvider)
         assertTrue((localNvidia as CountingModelProvider).delegate is DeterministicProvider)
-        val euNvidia = context.getBean("euNvidiaProvider") as ModelProvider
-        assertTrue(euNvidia is CountingModelProvider)
-        assertTrue((euNvidia as CountingModelProvider).delegate is DeterministicProvider)
+        val euScaleway = context.getBean("euScalewayProvider") as ModelProvider
+        assertTrue(euScaleway is CountingModelProvider)
+        assertTrue((euScaleway as CountingModelProvider).delegate is DeterministicProvider)
     }
 }

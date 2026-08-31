@@ -71,4 +71,32 @@ class InvoiceRoutingTest {
         assertEquals(0, stats.cloudInvocationCount, "denied route must never invoke the cloud provider")
         assertEquals(0, stats.paymentExecutionCount)
     }
+
+    @Test
+    fun `CONFIDENTIAL EU request uses EU Scaleway identity`() {
+        val response = rest.exchange(
+            "/invoices/eu-scaleway",
+            HttpMethod.POST,
+            HttpEntity(DemoRequests.request(dev.tramai.core.policy.DataClassification.CONFIDENTIAL, "KTCONF-001", "KTConf Catering BV", 42_830, "Catering"), headers()),
+            AnalyzeResponse::class.java,
+        )
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals("EU_CLOUD", response.body!!.selectedRoute.name)
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(1, stats.euScalewayInvocationCount)
+    }
+
+    @Test
+    fun `forced RESTRICTED to EU is denied before Scaleway invocation`() {
+        val response = rest.exchange(
+            "/invoices/boundary/restricted-eu",
+            HttpMethod.POST,
+            HttpEntity(DemoRequests.restricted(), headers()),
+            ErrorResponse::class.java,
+        )
+        assertEquals(HttpStatus.FORBIDDEN, response.statusCode)
+        assertEquals("classification-routing-blocked", response.body!!.code)
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(0, stats.euScalewayInvocationCount)
+    }
 }

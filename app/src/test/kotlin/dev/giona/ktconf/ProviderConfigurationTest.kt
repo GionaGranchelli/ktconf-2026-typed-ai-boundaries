@@ -23,9 +23,9 @@ class ProviderConfigurationTest {
         local: Endpoint = Endpoint(),
         localNvidia: Endpoint = Endpoint(),
         cloud: Endpoint = Endpoint(),
-        euNvidia: Endpoint = Endpoint(),
+        euScaleway: Endpoint = Endpoint(),
         globalNvidia: Endpoint = Endpoint(),
-    ) = ProvidersConfiguration(ProviderEndpoints(local = local, localNvidia = localNvidia, cloud = cloud, euNvidia = euNvidia, globalNvidia = globalNvidia))
+    ) = ProvidersConfiguration(ProviderEndpoints(local = local, localNvidia = localNvidia, cloud = cloud, euScaleway = euScaleway, globalNvidia = globalNvidia))
 
     @Test
     fun `no provider config keeps both identities deterministic`() {
@@ -109,22 +109,22 @@ class ProviderConfigurationTest {
     }
 
     @Test
-    fun `EU NVIDIA without endpoint stays deterministic`() {
-        assertTrue(config().euNvidiaProvider().delegate is DeterministicProvider)
+    fun `EU Scaleway without endpoint stays deterministic`() {
+        assertTrue(config().euScalewayProvider().delegate is DeterministicProvider)
     }
 
     @Test
-    fun `EU NVIDIA endpoint selects OpenAI-compatible provider with logical identity`() {
+    fun `EU Scaleway endpoint selects OpenAI-compatible provider with logical identity`() {
         val eu = config(
-            euNvidia = Endpoint(
+            euScaleway = Endpoint(
                 baseUrl = "https://eu.example.invalid/v1",
-                model = "nvidia/nemotron-3.5-lightning-30b-a3b",
+                model = "mistral-small-24b-instruct-2501",
                 apiKey = "eu-test-key",
             ),
-        ).euNvidiaProvider()
+        ).euScalewayProvider()
         val alias = eu.delegate as ModelAliasProvider
-        assertEquals("nvidia/nemotron-3.5-lightning-30b-a3b", alias.actualModel)
-        assertEquals("eu-nvidia-provider", alias.providerId())
+        assertEquals("mistral-small-24b-instruct-2501", alias.actualModel)
+        assertEquals("eu-scaleway-provider", alias.providerId())
         assertTrue(alias.delegate is OpenAiCompatibleProvider)
     }
 }

@@ -68,6 +68,13 @@ class InvoiceController(
         return app.analyzeRestrictedViaCloud(request)
     }
 
+    /** DEMO-ONLY intentional policy-violation proof: force RESTRICTED to EU. */
+    @PostMapping("/boundary/restricted-eu")
+    suspend fun restrictedEu(@RequestBody request: AnalyzeInvoiceRequest): InvoiceAssessment {
+        log.warn("Boundary proof requested: invoiceId={} forced to EU with classification={}", request.invoice.invoiceId, request.classification)
+        return app.analyzeRestrictedViaEu(request)
+    }
+
     /** Opt-in task-002 proof route for hosted NVIDIA Nemotron. */
     @PostMapping("/global-nvidia")
     suspend fun globalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
@@ -78,10 +85,10 @@ class InvoiceController(
     suspend fun localNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
         ResponseEntity.ok(AnalyzeResponse(app.analyzeLocalNvidia(request), InvoiceRoute.LOCAL_NVIDIA))
 
-    /** Opt-in task-004 proof route for Nebius/NVIDIA NIM. */
-    @PostMapping("/eu-nvidia")
-    suspend fun euNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        ResponseEntity.ok(AnalyzeResponse(app.analyzeEuNvidia(request), InvoiceRoute.EU_CLOUD))
+    /** Opt-in task-004 proof route for the configured EU managed endpoint. */
+    @PostMapping("/eu-scaleway")
+    suspend fun euScaleway(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
+        ResponseEntity.ok(AnalyzeResponse(app.analyzeEuScaleway(request), InvoiceRoute.EU_CLOUD))
 
     /** Contest PDF entrypoint: local metadata validation precedes analysis. */
     @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])

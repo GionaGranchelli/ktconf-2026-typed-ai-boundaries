@@ -20,7 +20,7 @@ class GovernanceStatsController(
     @param:Qualifier("globalNvidiaProvider") private val globalNvidiaProvider: CountingModelProvider,
     @param:Qualifier("localProvider") private val localProvider: CountingModelProvider,
     @param:Qualifier("localNvidiaProvider") private val localNvidiaProvider: CountingModelProvider,
-    @param:Qualifier("euNvidiaProvider") private val euNvidiaProvider: CountingModelProvider,
+    @param:Qualifier("euScalewayProvider") private val euScalewayProvider: CountingModelProvider,
     private val ledger: InMemoryPaymentLedger,
     private val email: FakeEmailService,
 ) {
@@ -31,7 +31,7 @@ class GovernanceStatsController(
         globalNvidiaInvocationCount = globalNvidiaProvider.invocationCount(),
         localInvocationCount = localProvider.invocationCount(),
         localNvidiaInvocationCount = localNvidiaProvider.invocationCount(),
-        euNvidiaInvocationCount = euNvidiaProvider.invocationCount(),
+        euScalewayInvocationCount = euScalewayProvider.invocationCount(),
         paymentExecutionCount = ledger.executionCount(),
         emailNotificationCount = email.count(),
     )
@@ -48,5 +48,5 @@ data class StatsResponse(
     val emailNotificationCount: Int = 0,
     val globalNvidiaInvocationCount: Int = 0,
     val localNvidiaInvocationCount: Int = 0,
-    val euNvidiaInvocationCount: Int = 0,
+    val euScalewayInvocationCount: Int = 0,
 )

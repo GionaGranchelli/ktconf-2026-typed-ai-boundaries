@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opt-in smoke for Scaleway Generative APIs. Mistral is temporary EU_CLOUD
+# infrastructure here; it is not NVIDIA, Nemotron, or NIM.
+BASE_URL="${KTCONF_GTC_EU_SCALEWAY_BASE_URL:-${SCW_BASE_URL:-}}"
+API_KEY="${KTCONF_GTC_EU_SCALEWAY_API_KEY:-${SCW_API_KEY:-}}"
+MODEL="${KTCONF_GTC_EU_SCALEWAY_MODEL:-${SCW_MODEL:-}}"
+if [[ -z "$BASE_URL" || -z "$API_KEY" || -z "$MODEL" ]]; then
+  echo "FAIL: set SCW_BASE_URL, SCW_API_KEY, and SCW_MODEL (or KTCONF_GTC_EU_SCALEWAY_* equivalents)" >&2
+  exit 1
+fi
+command -v curl >/dev/null || { echo "FAIL: curl is required" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "FAIL: python3 is required" >&2; exit 1; }
+cd "$(dirname "$0")/.."
+mkdir -p .build
+
+models="$(curl -fsS --max-time 30 -H "Authorization: Bearer ${API_KEY}" "${BASE_URL%/}/models")"
+python3 -c 'import json,sys
+ids={x.get("id") for x in json.load(sys.stdin).get("data",[])}
+model=sys.argv[1]
+if model not in ids: raise SystemExit(f"FAIL: configured model is absent from /models: {model}")
+print(f"catalog: model available ({model})")' "$MODEL" <<<"$models"
+
+payload="$(python3 -c 'import json,sys; print(json.dumps({"model":sys.argv[1],"messages":[{"role":"user","content":"Return exactly the word READY."}],"max_tokens":8,"temperature":0}))' "$MODEL")"
+curl -fsS --max-time 120 -X POST "${BASE_URL%/}/chat/completions" \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer ${API_KEY}" \
+  -d "$payload" >.build/gtc-eu-scaleway-direct.json
+echo "direct: HTTP 200 OpenAI-compatible response"
+
+./gradlew :app:bootJar -q
+./scripts/stage-down >/dev/null 2>&1 || true
+KTCONF_GTC_EU_SCALEWAY_BASE_URL="$BASE_URL" KTCONF_GTC_EU_SCALEWAY_API_KEY="$API_KEY" \
+  KTCONF_GTC_EU_SCALEWAY_MODEL="$MODEL" KTCONF_DEMO_LOCAL_BASE_URL= KTCONF_DEMO_CLOUD_API_KEY= \
+  SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar >.build/stage-gtc-eu-scaleway.log 2>&1 &
+echo "$!" >.build/stage.pid
+trap './scripts/stage-down >/dev/null 2>&1 || true' EXIT
+for i in $(seq 1 60); do
+  curl -sf --max-time 2 http://localhost:8080/governance/healthz >/dev/null && break
+  sleep 1
+done
+
+request='{"classification":"CONFIDENTIAL","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Synthetic contest fixture"}}'
+before="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["euScalewayInvocationCount"])')"
+code="$(curl -sS -o .build/gtc-eu-scaleway-response.json -w '%{http_code}' --max-time 120 -X POST http://localhost:8080/invoices/eu-scaleway -H 'Content-Type: application/json' -d "$request")"
+after="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["euScalewayInvocationCount"])')"
+delta=$((after - before))
+if [[ "$code" != 200 ]] || ! grep -Fq '"selectedRoute":"EU_CLOUD"' .build/gtc-eu-scaleway-response.json || [[ "$delta" -ne 1 ]]; then
+  echo "FAIL: allowed EU application proof HTTP=$code invocation_delta=$delta" >&2
+  exit 1
+fi
+echo "application allowed: HTTP 200, typed InvoiceAssessment, selectedRoute=EU_CLOUD, invocation delta=1"
+
+denied_code="$(curl -sS -o .build/gtc-eu-scaleway-denied.json -w '%{http_code}' --max-time 30 -X POST http://localhost:8080/invoices/boundary/restricted-eu -H 'Content-Type: application/json' -d "${request/CONFIDENTIAL/RESTRICTED}")"
+after_denied="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["euScalewayInvocationCount"])')"
+denied_delta=$((after_denied - after))
+if [[ "$denied_code" != 403 ]] || ! grep -Fq 'classification-routing-blocked' .build/gtc-eu-scaleway-denied.json || [[ "$denied_delta" -ne 0 ]]; then
+  echo "FAIL: restricted EU denial HTTP=$denied_code invocation_delta=$denied_delta" >&2
+  exit 1
+fi
+echo "application denied: HTTP 403 classification-routing-blocked, invocation delta=0"

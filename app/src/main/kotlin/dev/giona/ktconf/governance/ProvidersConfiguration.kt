@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
  * - `local-nvidia-provider` (trust zone LOCAL, contest-only opt-in)
  * - `cloud-provider` (trust zone GLOBAL_CLOUD, declared in application.yml)
  * - `global-nvidia-provider` (trust zone GLOBAL_CLOUD, contest-only opt-in)
- * - `eu-nvidia-provider` (trust zone EU_CLOUD, contest-only opt-in)
+ * - `eu-scaleway-provider` (trust zone EU_CLOUD, contest-only opt-in)
  *
  * Each identity is REAL when its `ktconf.providers.*` endpoint is
  * configured, otherwise deterministic:
@@ -105,16 +105,16 @@ class ProvidersConfiguration(
         return CountingModelProvider(delegate)
     }
 
-    /** Nebius/NIM identity; deterministic until an authenticated endpoint is configured. */
+    /** EU managed inference identity; deterministic until Scaleway is configured. */
     @Bean
-    fun euNvidiaProvider(): CountingModelProvider {
+    fun euScalewayProvider(): CountingModelProvider {
         val delegate: ModelProvider =
-            if (endpoints.euNvidia.baseUrl.isNotBlank() && endpoints.euNvidia.apiKey.isNotBlank()) {
-                log.info("Configuring EU NVIDIA provider with an OpenAI-compatible endpoint")
-                realProvider(endpoints.euNvidia, "eu-nvidia-provider")
+            if (endpoints.euScaleway.baseUrl.isNotBlank() && endpoints.euScaleway.apiKey.isNotBlank()) {
+                log.info("Configuring EU Scaleway provider with an OpenAI-compatible endpoint")
+                realProvider(endpoints.euScaleway, "eu-scaleway-provider")
             } else {
-                log.info("Configuring deterministic EU NVIDIA provider")
-                DeterministicProvider(providerId = "eu-nvidia-provider", script = ::cloudScript)
+                log.info("Configuring deterministic EU Scaleway provider")
+                DeterministicProvider(providerId = "eu-scaleway-provider", script = ::cloudScript)
             }
         return CountingModelProvider(delegate)
     }

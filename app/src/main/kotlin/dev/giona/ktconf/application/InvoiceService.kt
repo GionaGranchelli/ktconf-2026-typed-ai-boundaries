@@ -53,7 +53,7 @@ class InvoiceService(
                         InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
                         InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
                         InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidia(document)
-                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuNvidia(document)
+                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(document)
                         InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
                     },
                     selectedRoute = route,
@@ -87,6 +87,16 @@ class InvoiceService(
         }
     }
 
+    /** DEMO-ONLY boundary proof: force a RESTRICTED document to EU_CLOUD. */
+    suspend fun analyzeRestrictedViaEu(request: AnalyzeInvoiceRequest): InvoiceAssessment {
+        val document = request.toClassifiedDocument()
+        return telemetry.traceModelCall(document.classification, InvoiceRoute.EU_CLOUD) {
+            ai.analyzeEuScaleway(document)
+        }.also {
+            log.error("Boundary proof unexpectedly completed: invoiceId={} reached EU provider", request.invoice.invoiceId)
+        }
+    }
+
     /** Explicit task-002 smoke path; normal application routing is unchanged. */
     suspend fun analyzeGlobalNvidia(request: AnalyzeInvoiceRequest): InvoiceAssessment {
         val document = request.toClassifiedDocument()
@@ -104,10 +114,10 @@ class InvoiceService(
     }
 
     /** Explicit task-004 smoke path; normal route selection is unchanged. */
-    suspend fun analyzeEuNvidia(request: AnalyzeInvoiceRequest): InvoiceAssessment {
+    suspend fun analyzeEuScaleway(request: AnalyzeInvoiceRequest): InvoiceAssessment {
         val document = request.toClassifiedDocument()
         return telemetry.traceModelCall(document.classification, InvoiceRoute.EU_CLOUD) {
-            ai.analyzeEuNvidia(document)
+            ai.analyzeEuScaleway(document)
         }
     }
 }
