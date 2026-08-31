@@ -44,7 +44,7 @@ class WorkflowDemoService(
         }
 
         localStep("route") { state, _ ->
-            state.copy(route = state.routeOverride ?: state.request.classification.toRoute())
+            state.copy(route = state.request.classification.toRoute())
         }
 
         aiStep(
@@ -92,8 +92,8 @@ class WorkflowDemoService(
         localStep("finalize") { state, _ -> state.copy(outcome = state.toOutcome()) }
     }.build { it.outcome ?: error("workflow did not finalize") }
 
-    suspend fun analyze(request: AnalyzeInvoiceRequest, routeOverride: InvoiceRoute? = null): WorkflowOutcome = workflow.run(
-        initialState = InvoiceWorkflowState(request, routeOverride = routeOverride),
+    suspend fun analyze(request: AnalyzeInvoiceRequest): WorkflowOutcome = workflow.run(
+        initialState = InvoiceWorkflowState(request),
         context = WorkflowContext(workflowId = "invoice-${request.invoice.invoiceId}-${UUID.randomUUID()}"),
         observer = observer,
     )
@@ -101,7 +101,6 @@ class WorkflowDemoService(
 
 data class InvoiceWorkflowState(
     val request: AnalyzeInvoiceRequest,
-    val routeOverride: InvoiceRoute? = null,
     val document: ClassifiedDocument<InvoiceDocument>? = null,
     val route: InvoiceRoute? = null,
     val assessment: InvoiceAssessment? = null,

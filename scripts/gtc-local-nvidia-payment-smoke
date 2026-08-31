@@ -6,14 +6,17 @@ set -euo pipefail
 BASE_URL="${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:-http://127.0.0.1:1234/v1}"
 MODEL="${KTCONF_GTC_LOCAL_NVIDIA_MODEL:-nvidia/nemotron-3-nano-4b}"
 API_KEY="${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:-}"
+PDF_FILE="${1:-app/src/test/resources/fixtures/payment-local-invoice.pdf}"
 
 cd "$(dirname "$0")/.."
 command -v curl >/dev/null || { echo "FAIL: curl is required" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "FAIL: python3 is required" >&2; exit 1; }
+[[ -f "$PDF_FILE" ]] || { echo "FAIL: payment PDF not found: $PDF_FILE" >&2; exit 1; }
 
 auth=()
 if [[ -n "$API_KEY" ]]; then auth=(-H "Authorization: Bearer ${API_KEY}"); fi
-curl -fsS --max-time 30 "${auth[@]}" "${BASE_URL}/models" >/dev/null
+models_json=$(curl -fsS --max-time 30 "${auth[@]}" "${BASE_URL}/models")
+printf '%s' "$models_json" | MODEL="$MODEL" python3 -c 'import json,os,sys; ids={m["id"] for m in json.load(sys.stdin).get("data",[])}; assert os.environ["MODEL"] in ids, "configured model is not advertised by /models"'
 echo "catalog: local NVIDIA endpoint reachable"
 
 ./gradlew :app:bootJar -q
@@ -32,15 +35,16 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
-request='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-PAY-001","supplierName":"KTConf AV & Stage Services BV","amountCents":1840000,"currency":"EUR","description":"Synthetic contest fixture"}}'
 code=$(curl -sS -o .build/gtc-local-nvidia-payment-pending.json -w '%{http_code}' --max-time 120 \
-  -X POST http://127.0.0.1:8080/invoices/analyze/local-nvidia \
-  -H 'Content-Type: application/json' -d "$request")
+  -X POST http://127.0.0.1:8080/invoices/analyze-pdf \
+  -F "file=@${PDF_FILE};type=application/pdf")
 [[ "$code" == 202 ]] || { echo "FAIL: payment request returned HTTP $code" >&2; exit 1; }
-approval_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["approvalId"])' .build/gtc-local-nvidia-payment-pending.json)
-before=$(curl -fsS http://127.0.0.1:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["paymentExecutionCount"])')
+approval_id=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["toolName"] == "schedule-payment"; assert d["selectedRoute"] == "LOCAL_NVIDIA"; assert d["metadata"]["classification"] == "RESTRICTED"; assert d["metadata"]["residency"] == "LOCAL_ONLY"; print(d["approvalId"])' .build/gtc-local-nvidia-payment-pending.json)
+stats_before=$(curl -fsS http://127.0.0.1:8080/governance/stats)
+before=$(printf '%s' "$stats_before" | python3 -c 'import json,sys; print(json.load(sys.stdin)["paymentExecutionCount"])')
+local_before=$(printf '%s' "$stats_before" | python3 -c 'import json,sys; print(json.load(sys.stdin)["localNvidiaInvocationCount"])')
 [[ "$before" == 0 ]] || { echo "FAIL: payment executed before approval" >&2; exit 1; }
-echo "application: HTTP 202, schedule-payment suspended, payment count=0"
+echo "application: HTTP 202, LOCAL_NVIDIA schedule-payment suspended, payment count=0"
 
 curl -fsS -X POST "http://127.0.0.1:8080/approvals/${approval_id}/approve" >/dev/null
 after=$(curl -fsS http://127.0.0.1:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["paymentExecutionCount"])')
@@ -49,8 +53,13 @@ echo "approval: payment count 0 -> 1"
 
 duplicate=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8080/approvals/${approval_id}/approve")
 [[ "$duplicate" == 409 ]] || { echo "FAIL: duplicate approval returned HTTP $duplicate" >&2; exit 1; }
-echo "duplicate: HTTP 409, payment count remains 1"
+stats_duplicate=$(curl -fsS http://127.0.0.1:8080/governance/stats)
+duplicate_count=$(printf '%s' "$stats_duplicate" | python3 -c 'import json,sys; print(json.load(sys.stdin)["paymentExecutionCount"])')
+local_after=$(printf '%s' "$stats_duplicate" | python3 -c 'import json,sys; print(json.load(sys.stdin)["localNvidiaInvocationCount"])')
+[[ "$duplicate_count" == 1 ]] || { echo "FAIL: duplicate approval changed payment count" >&2; exit 1; }
+[[ "$local_after" == $((local_before + 1)) ]] || { echo "FAIL: local provider invocation count was not exactly +1" >&2; exit 1; }
+echo "duplicate: HTTP 409, payment count remains 1, local invocation delta=$((local_after - local_before))"
 
 evidence=$(curl -fsS "http://127.0.0.1:8080/approvals/${approval_id}/evidence")
-python3 -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["chainValid"] and d["eventCount"] >= 4' "$evidence"
-echo "evidence: audit chain valid"
+python3 -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["chainValid"] and d["eventCount"] >= 4; names=" ".join(str(e) for e in d.get("auditEvents",[])); assert all(x in names for x in ("APPROVAL_SUSPENDED", "APPROVAL_RESUMED", "APPROVAL_COMPLETED"))' "$evidence"
+echo "evidence: audit chain valid with approval lifecycle"

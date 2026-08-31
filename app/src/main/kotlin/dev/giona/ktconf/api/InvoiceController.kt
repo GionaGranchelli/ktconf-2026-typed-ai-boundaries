@@ -77,6 +77,22 @@ class InvoiceController(
         return app.analyzeRestrictedViaEu(request)
     }
 
+    /** DEMO-ONLY hero proof: force the EU-confidential PDF to GLOBAL_CLOUD. */
+    @PostMapping("/boundary/confidential-eu-global", consumes = ["multipart/form-data"])
+    suspend fun confidentialEuGlobal(@RequestPart("file") file: org.springframework.web.multipart.MultipartFile): InvoiceAssessment {
+        val trusted = pdfIngestion.readTrustedMetadata(file)
+        require(trusted.metadata.classification == dev.tramai.core.policy.DataClassification.CONFIDENTIAL)
+        require(trusted.metadata.residency == DataResidency.EU_ONLY)
+        val parsed = pdfIngestion.extractInvoice(trusted)
+        log.warn("Boundary proof requested: confidential EU invoice={} forced to GLOBAL_CLOUD", parsed.request.invoice.invoiceId)
+        return app.analyze(parsed.request, InvoiceRoute.GLOBAL_CLOUD).let { outcome ->
+            when (outcome) {
+                is AnalyzeOutcome.Typed -> outcome.assessment
+                is AnalyzeOutcome.AwaitingApproval -> error("unexpected approval for forced global proof")
+            }
+        }
+    }
+
     /** Opt-in task-002 proof route for hosted NVIDIA Nemotron. */
     @PostMapping("/global-nvidia")
     suspend fun globalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
@@ -112,16 +128,24 @@ class InvoiceController(
     @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])
     suspend fun analyzePdf(@RequestPart("file") file: org.springframework.web.multipart.MultipartFile): ResponseEntity<Any> {
         val trusted = pdfIngestion.readTrustedMetadata(file)
-        // TramAI performs placement authorization at the governed operation
-        // boundary. Keep content preparation as a distinct phase so task-006
-        // can authorize the proposed boundary before this call is made.
+        // The trusted metadata phase precedes local content preparation. The
+        // governed operation below is where TramAI authorizes placement.
         val proposedRoute = trusted.metadata.proposedRoute()
         val parsed = pdfIngestion.extractInvoice(trusted)
         return when (val outcome = app.analyze(parsed.request, proposedRoute)) {
             is AnalyzeOutcome.Typed -> ResponseEntity.ok(
                 PdfAnalyzeResponse(parsed.metadata, outcome.assessment, outcome.selectedRoute),
             )
-            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(outcome)
+            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
+                PdfAwaitingApprovalResponse(
+                    metadata = parsed.metadata,
+                    selectedRoute = outcome.selectedRoute,
+                    approvalId = outcome.approvalId,
+                    workflowRunId = outcome.workflowRunId,
+                    toolName = outcome.toolName,
+                    rationale = outcome.rationale,
+                ),
+            )
         }
     }
 }
@@ -151,4 +175,14 @@ data class PdfAnalyzeResponse(
     val metadata: dev.giona.ktconf.pdf.TrustedPdfMetadata,
     val assessment: InvoiceAssessment,
     val selectedRoute: InvoiceRoute,
+)
+
+data class PdfAwaitingApprovalResponse(
+    val metadata: TrustedPdfMetadata,
+    val selectedRoute: InvoiceRoute,
+    val status: String = "AWAITING_APPROVAL",
+    val approvalId: String,
+    val workflowRunId: String,
+    val toolName: String,
+    val rationale: String,
 )

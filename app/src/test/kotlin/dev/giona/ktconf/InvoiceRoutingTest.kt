@@ -149,4 +149,28 @@ class InvoiceRoutingTest {
         assertEquals(1, stats.euScalewayInvocationCount)
         assertEquals(1, stats.localNvidiaInvocationCount)
     }
+
+    @Test
+    fun `confidential EU PDF forced global is denied before global invocation then succeeds in EU`() {
+        val resource = "fixtures/confidential-eu-invoice.pdf"
+        val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream(resource)).readBytes()
+        fun upload(path: String) = mockMvc.perform(
+            multipart(path).file(MockMultipartFile("file", "confidential-eu-invoice.pdf", "application/pdf", bytes)),
+        ).andReturn()
+
+        val before = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!.globalNvidiaInvocationCount
+        val denied = mockMvc.perform(asyncDispatch(upload("/invoices/boundary/confidential-eu-global")))
+            .andReturn().response
+        assertEquals(HttpStatus.FORBIDDEN.value(), denied.status)
+        assertEquals(true, denied.contentAsString.contains("classification-routing-blocked"))
+        val afterDenied = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!.globalNvidiaInvocationCount
+        assertEquals(0, afterDenied - before)
+
+        val allowed = mockMvc.perform(asyncDispatch(upload("/invoices/analyze-pdf"))).andReturn().response
+        assertEquals(HttpStatus.OK.value(), allowed.status)
+        assertEquals(true, allowed.contentAsString.contains("\"selectedRoute\":\"EU_CLOUD\""))
+        val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
+        assertEquals(1, stats.euScalewayInvocationCount)
+        assertEquals(before, stats.globalNvidiaInvocationCount)
+    }
 }

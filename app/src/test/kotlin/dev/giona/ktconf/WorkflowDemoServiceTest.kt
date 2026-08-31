@@ -95,23 +95,4 @@ class WorkflowDemoServiceTest {
         assertEquals(InvoiceAction.REVIEW_ONLY, pending.assessment.recommendedAction)
     }
 
-    @Test
-    fun `explicit local NVIDIA route still uses the governed payment gate`() {
-        val highValue = assessment.copy(
-            invoiceId = "KTCONF-PAY-001",
-            amountCents = 1_840_000,
-            recommendedAction = InvoiceAction.REQUEST_HUMAN_APPROVAL,
-        )
-        val nvidiaAi = object : InvoiceAnalysisService by ai {
-            override suspend fun analyzeLocalNvidia(document: ClassifiedDocument<InvoiceDocument>) = highValue
-        }
-
-        val result = runBlocking {
-            service(nvidiaAi).analyze(DemoRequests.payment(), InvoiceRoute.LOCAL_NVIDIA)
-        }
-
-        val pending = result as WorkflowOutcome.AwaitingApproval
-        assertEquals("amount-above-5000-eur", pending.approvalGate)
-        assertEquals(InvoiceAction.REQUEST_HUMAN_APPROVAL, pending.assessment.recommendedAction)
-    }
 }

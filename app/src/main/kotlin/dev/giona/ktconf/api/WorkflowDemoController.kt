@@ -3,7 +3,6 @@ package dev.giona.ktconf.api
 import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.workflowdemo.WorkflowOutcome
 import dev.giona.ktconf.workflowdemo.WorkflowDemoService
-import dev.giona.ktconf.application.InvoiceRoute
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -23,11 +22,4 @@ class WorkflowDemoController(
             is WorkflowOutcome.AwaitingApproval -> ResponseEntity.status(202).body(outcome)
         }
 
-    /** Contest proof route: assess with local NVIDIA, then use the same approval gate. */
-    @PostMapping("/analyze/local-nvidia")
-    suspend fun analyzeLocalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        when (val outcome = workflow.analyze(request, InvoiceRoute.LOCAL_NVIDIA)) {
-            is WorkflowOutcome.Completed -> ResponseEntity.ok(outcome.result)
-            is WorkflowOutcome.AwaitingApproval -> ResponseEntity.status(202).body(outcome)
-        }
 }

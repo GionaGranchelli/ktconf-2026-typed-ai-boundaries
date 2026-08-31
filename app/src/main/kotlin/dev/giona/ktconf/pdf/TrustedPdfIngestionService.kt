@@ -90,10 +90,12 @@ class TrustedPdfIngestionService {
             DataClassification.RESTRICTED -> require(residency == DataResidency.LOCAL_ONLY) {
                 "RESTRICTED documents require LOCAL_ONLY residency"
             }
-            DataClassification.CONFIDENTIAL -> require(
-                residency == DataResidency.EU_ONLY || residency == DataResidency.LOCAL_ONLY,
-            ) { "CONFIDENTIAL documents require EU_ONLY or LOCAL_ONLY residency" }
-            DataClassification.PUBLIC, DataClassification.INTERNAL -> Unit
+            DataClassification.CONFIDENTIAL -> require(residency == DataResidency.EU_ONLY) {
+                "CONFIDENTIAL documents require EU_ONLY residency"
+            }
+            DataClassification.PUBLIC, DataClassification.INTERNAL -> require(residency == DataResidency.ANY) {
+                "PUBLIC and INTERNAL documents require ANY residency"
+            }
         }
         return TrustedPdfMetadata(classification, residency)
     }

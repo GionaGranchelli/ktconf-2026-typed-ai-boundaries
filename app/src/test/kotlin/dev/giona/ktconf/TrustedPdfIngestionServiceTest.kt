@@ -46,6 +46,12 @@ class TrustedPdfIngestionServiceTest {
     }
 
     @Test
+    fun `classification and residency must agree with the governed matrix`() {
+        assertFailsWith<IllegalArgumentException> { parser.parse(pdf("CONFIDENTIAL", "LOCAL_ONLY")) }
+        assertFailsWith<IllegalArgumentException> { parser.parse(pdf("PUBLIC", "EU_ONLY")) }
+    }
+
+    @Test
     fun `non PDF and oversized inputs fail closed`() {
         assertFailsWith<IllegalArgumentException> {
             parser.parse(MockMultipartFile("file", "invoice.txt", "text/plain", "not a pdf".toByteArray()))
@@ -58,6 +64,7 @@ class TrustedPdfIngestionServiceTest {
             "fixtures/public-invoice.pdf" to ("PUBLIC" to DataResidency.ANY),
             "fixtures/confidential-eu-invoice.pdf" to ("CONFIDENTIAL" to DataResidency.EU_ONLY),
             "fixtures/restricted-local-invoice.pdf" to ("RESTRICTED" to DataResidency.LOCAL_ONLY),
+            "fixtures/payment-local-invoice.pdf" to ("RESTRICTED" to DataResidency.LOCAL_ONLY),
         )
         cases.forEach { (path, expected) ->
             val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream(path)).readBytes()

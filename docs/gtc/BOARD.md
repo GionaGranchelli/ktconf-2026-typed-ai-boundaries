@@ -31,7 +31,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
-| [task-006](tasks/task-006.md) | DONE | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
+| [task-006](tasks/task-006.md) | REVIEW | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
 | [task-007](tasks/task-007.md) | REVIEW | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
@@ -68,10 +68,13 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
   multipart counter tests are complete. The full app suite passed; malformed
   multipart rejection returned HTTP 400 with all provider counters unchanged.
 
-Task-006 is `DONE`: trusted PDF residency now selects the governed
+Task-006 is `REVIEW`: trusted PDF residency now selects the governed
 `LOCAL_NVIDIA`, `EU_CLOUD`, or `GLOBAL_CLOUD` route, while TramAI authorizes
-the selected operation. Deterministic tests prove one allowed invocation per
-boundary and existing wrong-route tests prove counter delta `0`. Task-007 is
+the selected operation. The PDF metadata contract is fail-closed to the
+classification-aligned residency combinations. Deterministic tests prove one
+allowed invocation per boundary; the confidential-EU forced-global PDF test
+proves HTTP 403 and global counter delta `0`, followed by EU success. Individual
+real route proofs exist, but a combined real PDF run remains pending. Task-007 is
 in `REVIEW`: deterministic payment integration is complete, but its real
 Nemotron payment smoke is pending local endpoint availability. Tasks 008–010
 remain blocked behind task-007.

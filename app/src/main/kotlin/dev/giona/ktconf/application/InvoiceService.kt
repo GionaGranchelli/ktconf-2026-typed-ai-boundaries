@@ -62,6 +62,7 @@ class InvoiceService(
                 log.info("Workflow suspended by approval gate: approvalId={}, workflowRunId={}, tool={}", e.approvalId, e.workflowRunId, e.toolName)
                 val pending = registry.register(e)
                 AnalyzeOutcome.AwaitingApproval(
+                    selectedRoute = route,
                     approvalId = pending.approvalId,
                     workflowRunId = pending.workflowRunId,
                     toolName = pending.toolName,
@@ -135,6 +136,7 @@ sealed interface AnalyzeOutcome {
     ) : AnalyzeOutcome
 
     data class AwaitingApproval(
+        val selectedRoute: InvoiceRoute,
         val approvalId: String,
         val workflowRunId: String,
         val toolName: String,
