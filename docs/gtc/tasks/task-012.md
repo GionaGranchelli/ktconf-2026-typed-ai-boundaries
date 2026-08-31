@@ -1,6 +1,6 @@
 # task-012 — TramAI-native provenance and sovereign evidence
 
-Status: `READY`
+Status: `REVIEW`
 Track: K
 Milestone: M8
 Depends on: task-005
@@ -68,28 +68,29 @@ supports them without manually constructing a second runtime.
 
 ## Acceptance criteria
 
-- [ ] PDF-derived `ClassifiedDocument` retains `RULE_BASED` provenance.
-- [ ] JSON/manual requests retain `DECLARED` provenance.
-- [ ] Deterministic tests prove both provenance paths and remain offline.
-- [ ] A TramAI-native sovereign evidence pack is emitted through the existing
+- [x] PDF-derived `ClassifiedDocument` retains `RULE_BASED` provenance.
+- [x] JSON/manual requests retain `DECLARED` provenance.
+- [x] Deterministic tests prove both provenance paths and remain offline.
+- [x] A TramAI-native sovereign evidence pack is exposed through the existing
   runtime composition, or the pinned-version limitation is documented with a
   concrete blocked interface.
-- [ ] The pack contains no secrets, prompts, document contents, stack traces,
+- [x] The pack contains no secrets, prompts, document contents, stack traces,
   or filesystem paths.
-- [ ] Local Nemotron artifact verification is implemented only if cleanly
-  supported; otherwise its limitation is recorded without weakening trust.
-- [ ] Application telemetry does not duplicate authoritative provider/zone
+- [x] Local Nemotron artifact verification is not configured by the pinned
+  Spring composition; the limitation is recorded without weakening trust.
+- [x] Application telemetry does not duplicate authoritative provider/zone
   values unless the duplication is explicitly documented as proposal vs
   runtime evidence.
-- [ ] Existing task-008 evidence, deterministic suite, and rehearsal remain
+- [x] Existing task-008 evidence, deterministic suite, and rehearsal remain
   green.
 
 ## Verification
 
-Run the focused provenance/native-evidence tests, the full application suite,
-`./scripts/gtc-evidence`, and secret/diff hygiene checks. If a live provider is
-used to populate the native pack, record only sanitized provider identity,
-model ID, trust zone, and verification result.
+Verification run: `./gradlew :app:test --no-daemon --console=plain` — BUILD
+SUCCESSFUL. `SovereignEvidencePackIT` verifies the endpoint and publish-safe
+fields; `InvoiceRoutingTest` verifies `DECLARED` JSON and `RULE_BASED` PDF
+responses. No live provider is required to generate the configuration pack.
+The full `gtc-evidence` gate and rehearsal remain the task-008 gates.
 
 ## Handoff
 

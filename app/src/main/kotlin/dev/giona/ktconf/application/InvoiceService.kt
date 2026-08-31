@@ -7,6 +7,7 @@ import dev.giona.ktconf.domain.toClassifiedDocument
 import dev.giona.ktconf.observability.GovernanceTelemetry
 import dev.tramai.core.exception.ApprovalSuspendedException
 import dev.tramai.core.policy.DataClassification
+import dev.tramai.core.policy.ClassificationSource
 import org.springframework.stereotype.Service
 import org.slf4j.LoggerFactory
 
@@ -37,8 +38,8 @@ class InvoiceService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    suspend fun analyze(request: AnalyzeInvoiceRequest, routeOverride: InvoiceRoute? = null): AnalyzeOutcome {
-        val document = request.toClassifiedDocument()
+    suspend fun analyze(request: AnalyzeInvoiceRequest, routeOverride: InvoiceRoute? = null, classificationSource: ClassificationSource = ClassificationSource.DECLARED): AnalyzeOutcome {
+        val document = request.toClassifiedDocument(classificationSource)
         val route = routeOverride ?: when (document.classification) {
                 DataClassification.PUBLIC,
                 DataClassification.INTERNAL, -> InvoiceRoute.CLOUD
@@ -57,6 +58,7 @@ class InvoiceService(
                         InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
                     },
                     selectedRoute = route,
+                    classificationSource = classificationSource,
                 )
             } catch (e: ApprovalSuspendedException) {
                 log.info("Workflow suspended by approval gate: approvalId={}, workflowRunId={}, tool={}", e.approvalId, e.workflowRunId, e.toolName)
@@ -67,6 +69,7 @@ class InvoiceService(
                     workflowRunId = pending.workflowRunId,
                     toolName = pending.toolName,
                     rationale = "Payment scheduling requires human approval because invoice ${document.payload.invoiceId} is a high-risk write action.",
+                    classificationSource = classificationSource,
                 )
             }
         }
@@ -133,6 +136,7 @@ sealed interface AnalyzeOutcome {
     data class Typed(
         val assessment: InvoiceAssessment,
         val selectedRoute: InvoiceRoute,
+        val classificationSource: ClassificationSource,
     ) : AnalyzeOutcome
 
     data class AwaitingApproval(
@@ -140,6 +144,7 @@ sealed interface AnalyzeOutcome {
         val approvalId: String,
         val workflowRunId: String,
         val toolName: String,
-        val rationale: String
+        val rationale: String,
+        val classificationSource: ClassificationSource,
     ) : AnalyzeOutcome
 }

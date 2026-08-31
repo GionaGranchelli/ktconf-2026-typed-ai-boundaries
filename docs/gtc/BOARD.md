@@ -36,7 +36,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-008](tasks/task-008.md) | REVIEW | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
-| [task-012](tasks/task-012.md) | READY | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
+| [task-012](tasks/task-012.md) | REVIEW | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
 
 ## Evidence checkpoint
 
@@ -106,11 +106,15 @@ counter to the active Scaleway/Mistral implementation: `Scaleway Europe`,
 generic EU-provider label). The UI must not claim Nebius, H200, NVIDIA NIM, or
 Nemotron for the temporary EU route.
 
-Task-012 is a new READY enhancement task. It covers TramAI-native
+Task-012 is a TramAI-native enhancement task. It covers
 `RULE_BASED` PDF provenance and sovereign evidence-pack exposure, with local
 artifact verification and telemetry de-duplication bounded as optional work.
-It is planned separately from the current task-008 evidence review and has
-not been started.
+It is planned separately from the current task-008 evidence review. Its
+implementation is complete and in `REVIEW`; deterministic verification passed.
+The native pack is exposed at `/governance/sovereign-evidence` and documented
+in [`evidence/tramai-sovereign-evidence.md`](evidence/tramai-sovereign-evidence.md).
+Local Nemotron artifact verification remains explicitly unclaimed because the
+pinned Spring composition does not configure an artifact manifest/verifier.
 
 ## Critical path
 

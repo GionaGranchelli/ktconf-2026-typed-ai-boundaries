@@ -256,14 +256,19 @@ the successful-tool-result transition explicitly. The canonical
 suite and 20/20 rehearsal pass. Real Nemotron payment and audit evidence remain
 pending local endpoint availability.
 
-### task-012 — TramAI-native provenance and sovereign evidence (READY)
+### task-012 — TramAI-native provenance and sovereign evidence (REVIEW)
 
 A follow-on task has been created to preserve `ClassificationSource.RULE_BASED`
 for trusted PDF metadata, retain `DECLARED` for ordinary requests, and expose
 TramAI's native sovereign evidence pack through the existing runtime
 composition. Local Nemotron artifact verification and telemetry de-duplication
-are explicitly bounded optional investigations. Task-012 is planned and has
-not started; it does not alter the current 006–008 review statuses.
+are explicitly bounded optional investigations. Task-012 implementation is
+complete: JSON/manual requests retain `ClassificationSource.DECLARED`, PDF
+metadata retains `ClassificationSource.RULE_BASED`, and the publish-safe
+`SovereignEvidencePackV1` is exposed at `/governance/sovereign-evidence`
+through the existing single `SovereignTramai` bean. `SovereignEvidencePackIT`
+and the full application test suite passed. It does not alter the current
+006–008 review statuses.
 
 ## Locked contest direction
 

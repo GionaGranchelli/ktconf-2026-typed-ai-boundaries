@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -59,6 +60,7 @@ class InvoiceRoutingTest {
         assertEquals("KTCONF-001", body.assessment.invoiceId)
         assertEquals("LOW", body.assessment.risk.name)
         assertEquals("CLOUD", body.selectedRoute.name)
+        assertEquals("DECLARED", body.classificationSource.name)
         // The cloud provider WAS invoked for PUBLIC data.
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(1, stats.cloudInvocationCount)
@@ -189,6 +191,7 @@ class InvoiceRoutingTest {
             val response = mockMvc.perform(asyncDispatch(initial)).andReturn().response
             assertEquals(HttpStatus.OK.value(), response.status, "resource=$resource body=${response.contentAsString}")
             assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"$route\""))
+            assertEquals(true, response.contentAsString.contains("\"classificationSource\":\"RULE_BASED\""))
         }
 
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
