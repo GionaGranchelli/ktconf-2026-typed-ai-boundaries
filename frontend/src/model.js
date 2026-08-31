@@ -1,28 +1,50 @@
+/**
+ * Pure presentation-layer model.
+ *
+ * IMPORTANT: allowedBoundaries() derives a *visual hint* from trusted metadata
+ * for pre-flight UI rendering only. The actual TramAI authorization decision
+ * lives on the backend. The UI MUST NOT present a derived visual as proof
+ * that TramAI authorized execution — only backend counters/responses are evidence.
+ */
+
+/** The three canonical execution boundaries for this demo. */
 export const boundaries = [
   {
     id: 'LOCAL_NVIDIA',
     title: 'LOCAL',
-    subtitle: 'Private compute boundary',
-    stack: ['NVIDIA RTX', 'llama.cpp', 'Nemotron 3 Nano'],
+    subtitle: 'Private compute · no network egress',
+    stack: ['NVIDIA RTX GPU', 'llama.cpp runtime', 'Nemotron 3 Nano 4B'],
+    statsKey: 'localNvidiaInvocationCount',
+    description:
+      'Data stays on-device. Required for RESTRICTED classification or LOCAL_ONLY residency.',
   },
   {
     id: 'EU_CLOUD',
     title: 'EU CLOUD',
-    subtitle: 'Regional cloud boundary',
-    stack: ['Nebius · France', 'NVIDIA H200', 'NVIDIA NIM · Nemotron'],
+    subtitle: 'Regional cloud · EU data boundary',
+    stack: ['Scaleway Generative APIs', 'Europe region', 'Mistral Small 24B'],
+    statsKey: 'euScalewayInvocationCount',
+    description:
+      'Data stays within EU jurisdiction. Required for CONFIDENTIAL + EU_ONLY.',
   },
   {
     id: 'GLOBAL_CLOUD',
     title: 'GLOBAL',
-    subtitle: 'Global hosted boundary',
-    stack: ['Build.NVIDIA.com', 'NVIDIA hosted inference', 'Nemotron'],
+    subtitle: 'Hosted NVIDIA inference',
+    stack: ['Build.NVIDIA.com API', 'integrate.api.nvidia.com', 'Nemotron 3.5 Lightning 30B'],
+    statsKey: 'globalNvidiaInvocationCount',
+    description:
+      'Public / unrestricted data. Denied when residency requires EU or local processing.',
   },
 ]
 
+/**
+ * Derive which boundaries are *visually* allowed based on trusted metadata.
+ * Presentation-only — backend TramAI policy is authoritative.
+ */
 export function allowedBoundaries(metadata) {
   if (!metadata) return new Set()
-  const classification = metadata.classification
-  const residency = metadata.residency
+  const { classification, residency } = metadata
 
   if (classification === 'RESTRICTED' || residency === 'LOCAL_ONLY') {
     return new Set(['LOCAL_NVIDIA'])
@@ -33,19 +55,69 @@ export function allowedBoundaries(metadata) {
   return new Set(['LOCAL_NVIDIA', 'EU_CLOUD', 'GLOBAL_CLOUD'])
 }
 
+/**
+ * Map a backend route string to a boundary ID.
+ * Returns null for legacy routes — never fabricate an NVIDIA mapping.
+ */
 export function routeToBoundary(route) {
-  if (route === 'LOCAL_NVIDIA') return 'LOCAL_NVIDIA'
-  if (route === 'EU_CLOUD') return 'EU_CLOUD'
-  if (route === 'GLOBAL_CLOUD') return 'GLOBAL_CLOUD'
-  return null
+  const map = {
+    LOCAL_NVIDIA: 'LOCAL_NVIDIA',
+    EU_CLOUD: 'EU_CLOUD',
+    GLOBAL_CLOUD: 'GLOBAL_CLOUD',
+  }
+  return map[route] ?? null
 }
 
+/** Format cents as a currency string. */
 export function formatMoney(amountCents, currency = 'EUR') {
-  if (amountCents === undefined || amountCents === null) return '—'
-  return new Intl.NumberFormat('en', { style: 'currency', currency }).format(amountCents / 100)
+  if (amountCents == null) return '—'
+  return new Intl.NumberFormat('en-DE', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+  }).format(amountCents / 100)
 }
 
+/** Compute counter delta between two stats snapshots. Returns null if either is absent. */
 export function counterDelta(before, after, key) {
   if (!before || !after) return null
   return (after[key] ?? 0) - (before[key] ?? 0)
 }
+
+/** Map a backend risk string to a CSS pill class. */
+export function riskPillClass(risk) {
+  if (!risk) return 'pill--neutral'
+  const r = risk.toUpperCase()
+  if (r === 'HIGH') return 'pill--high'
+  if (r === 'MEDIUM') return 'pill--medium'
+  if (r === 'LOW') return 'pill--low'
+  return 'pill--neutral'
+}
+
+/**
+ * Policy matrix reference — mirrors docs/gtc/ARCHITECTURE.md.
+ * Backend is authoritative; this is documentation-only visualization.
+ */
+export const policyMatrix = [
+  {
+    classification: 'PUBLIC',
+    residency: 'ANY',
+    LOCAL_NVIDIA: true,
+    EU_CLOUD: true,
+    GLOBAL_CLOUD: true,
+  },
+  {
+    classification: 'CONFIDENTIAL',
+    residency: 'EU_ONLY',
+    LOCAL_NVIDIA: true,
+    EU_CLOUD: true,
+    GLOBAL_CLOUD: false,
+  },
+  {
+    classification: 'RESTRICTED',
+    residency: 'LOCAL_ONLY',
+    LOCAL_NVIDIA: true,
+    EU_CLOUD: false,
+    GLOBAL_CLOUD: false,
+  },
+]

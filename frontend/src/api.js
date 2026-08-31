@@ -8,7 +8,10 @@ export class ApiError extends Error {
 }
 
 async function request(url, options = {}) {
-  const response = await fetch(url, options)
+  const response = await fetch(url, {
+    ...options,
+    headers: { Accept: 'application/json', ...(options.headers || {}) },
+  })
   const contentType = response.headers.get('content-type') || ''
   const body = contentType.includes('application/json')
     ? await response.json()
@@ -16,8 +19,8 @@ async function request(url, options = {}) {
 
   if (!response.ok) {
     const message = typeof body === 'object'
-      ? body.message || body.reason || body.code || `Request failed (${response.status})`
-      : body || `Request failed (${response.status})`
+      ? body.message || body.reason || body.error || body.code || `HTTP ${response.status}`
+      : String(body) || `HTTP ${response.status}`
     throw new ApiError(message, response.status, body)
   }
 
