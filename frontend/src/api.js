@@ -57,17 +57,25 @@ export function getEvidence(approvalId) {
 }
 
 /**
- * DEMO-ONLY boundary proof: send RESTRICTED data to the cloud operation.
+ * DEMO-ONLY boundary proof: send a CONFIDENTIAL/EU_ONLY invoice to GLOBAL_CLOUD.
  * TramAI must deny it before any provider is invoked (HTTP 403).
  * api.js will throw ApiError with status 403 — the caller must catch it.
  * The cloud invocation counter must not change (delta = 0).
  */
-export function attemptForbiddenRoute(classification = 'RESTRICTED') {
+export function attemptForbiddenRoute(file = null) {
+  if (file) {
+    const data = new FormData()
+    data.append('file', file)
+    return request('/invoices/boundary/confidential-eu-global', {
+      method: 'POST',
+      body: data,
+    })
+  }
   return request('/invoices/boundary/restricted-cloud', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      classification,
+      classification: 'RESTRICTED',
       invoice: {
         invoiceId: 'PROOF-DENY-001',
         supplierName: 'TramAI Policy Verifier',
@@ -78,4 +86,5 @@ export function attemptForbiddenRoute(classification = 'RESTRICTED') {
     }),
   })
 }
+
 

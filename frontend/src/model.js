@@ -22,10 +22,10 @@ export const boundaries = [
     id: 'EU_CLOUD',
     title: 'EU CLOUD',
     subtitle: 'Regional cloud · EU data boundary',
-    stack: ['Nebius AI Cloud · eu-west1', 'NVIDIA H200 SXM', 'NVIDIA NIM · Nemotron'],
-    statsKey: 'euNvidiaInvocationCount',
+    stack: ['Scaleway Generative APIs', 'Europe region · France', 'Mistral Small 24B'],
+    statsKey: 'euScalewayInvocationCount',
     description:
-      'Data stays within EU jurisdiction (France). Runs on NVIDIA H200 via Nebius. Required for CONFIDENTIAL + EU_ONLY.',
+      'Data stays within EU jurisdiction. Sourced via Scaleway Europe. Required for CONFIDENTIAL + EU_ONLY.',
   },
   {
     id: 'GLOBAL_CLOUD',
@@ -128,9 +128,10 @@ export const policyMatrix = [
  */
 export const providerIdentity = {
   LOCAL_NVIDIA:  { logicalModel: 'local-nvidia-invoice-model',  provider: 'local-nvidia-provider',  trustZone: 'LOCAL',        infra: 'NVIDIA RTX GPU',             runtime: 'llama.cpp',          model: 'Nemotron 3 Nano 4B Q4_K_M' },
-  EU_CLOUD:      { logicalModel: 'eu-nvidia-invoice-model',     provider: 'eu-nvidia-provider',     trustZone: 'EU_CLOUD',     infra: 'Nebius eu-west1 · H200 SXM', runtime: 'NVIDIA NIM',         model: 'Nemotron 3.5 Lightning 30B' },
+  EU_CLOUD:      { logicalModel: 'eu-scaleway-invoice-model',   provider: 'eu-scaleway-provider',   trustZone: 'EU_CLOUD',     infra: 'Scaleway Europe',            runtime: 'Scaleway APIs',      model: 'Mistral Small 24B' },
   GLOBAL_CLOUD:  { logicalModel: 'global-nvidia-invoice-model', provider: 'global-nvidia-provider', trustZone: 'GLOBAL_CLOUD', infra: 'Build.NVIDIA.com API',        runtime: 'NVIDIA hosted inf',  model: 'Nemotron 3.5 Lightning 30B A3B' },
   CLOUD:         { logicalModel: 'cloud-invoice-model',         provider: 'cloud-provider',         trustZone: 'GLOBAL_CLOUD', infra: 'Deterministic (cloud)',       runtime: '—',                  model: '—' },
   LOCAL:         { logicalModel: 'local-invoice-model',         provider: 'local-provider',         trustZone: 'LOCAL',        infra: 'Deterministic (local)',       runtime: '—',                  model: '—' },
 }
+
 

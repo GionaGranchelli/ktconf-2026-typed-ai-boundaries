@@ -126,13 +126,7 @@ async function processDocument() {
     assessment.value    = result.assessment     ?? null
 
     if (result.approvalId) {
-      // P0-4: enrich 202 object with context that the raw AwaitingApproval body omits
-      approval.value = {
-        ...result,
-        metadata:      result.metadata      ?? metadata.value,
-        selectedRoute: result.selectedRoute  ?? selectedRoute.value,
-        assessment:    result.assessment     ?? assessment.value,
-      }
+      approval.value = result
       lastAction.value = 'Model finished reasoning · runtime awaiting human authority'
     } else {
       lastAction.value = selectedRoute.value
@@ -231,7 +225,7 @@ async function runForbiddenRouteProof() {
   try {
     const before = await getStats()
     try {
-      await attemptForbiddenRoute('RESTRICTED')
+      await attemptForbiddenRoute(file.value)
       // Should never succeed — TramAI must deny
       const after = await getStats()
       denialResult.value = { error: null, before, after, unexpectedSuccess: true, isDenied: false }
@@ -317,7 +311,7 @@ function reset() {
       <div class="panel-heading">
         <div>
           <span class="eyebrow">Policy denial proof</span>
-          <div class="panel-title">Attempt RESTRICTED → GLOBAL CLOUD</div>
+          <div class="panel-title">Attempt {{ metadata?.classification || 'RESTRICTED' }} → GLOBAL CLOUD</div>
           <div class="panel-subtitle">TramAI must deny before any provider is invoked · delta must be 0</div>
         </div>
         <button class="btn btn--ghost btn--sm" :disabled="denialBusy" @click="runForbiddenRouteProof">
