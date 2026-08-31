@@ -403,3 +403,21 @@ ul, ol { list-style: none; }
   .page-content { padding: 14px 16px; }
   .meta-grid, .metric-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Denial proof panel ─────────────────────────────────────── */
+.panel--denial-proof { border-color: rgba(232,69,69,0.18); }
+.denial-result { margin-top: 12px; }
+.denial-result__status { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.denial-result__reason { font-size: 11px; color: var(--muted-light); }
+.denial-result__counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.denial-result__fail { color: var(--danger); font-weight: 700; padding: 10px; border: 1px solid var(--danger-border); border-radius: var(--r-sm); }
+.text-accent { color: var(--accent-bright); }
+
+/* ── Replay result ──────────────────────────────────────────── */
+.replay-result { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-sm); display: flex; flex-direction: column; gap: 3px; }
+.replay-result--rejected { border: 1px solid var(--line-mid); background: var(--accent-dim); }
+.replay-result--warn     { border: 1px solid var(--danger-border); background: var(--danger-dim); }
+.replay-result__label { font-size: 9.5px; font-weight: 800; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent-bright); }
+.replay-result--warn .replay-result__label { color: var(--danger); }
+.replay-result__msg { font-size: 11.5px; color: var(--muted-light); line-height: 1.5; }
+

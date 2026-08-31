@@ -18,13 +18,13 @@ import EvidencePage      from './views/EvidencePage.vue'
 
 // ── Navigation ─────────────────────────────────────────────────
 const views = [
-  { id: 'overview',      label: 'Overview',       icon: 'grid' },
-  { id: 'document-flow', label: 'Document Flow',  icon: 'file' },
-  { id: 'policy-matrix', label: 'Policy Matrix',  icon: 'shield' },
-  { id: 'evidence',      label: 'Evidence',        icon: 'chain' },
+  { id: 'live-governance', label: 'Live Governance', icon: 'play' },
+  { id: 'policy-matrix',   label: 'Policy Matrix',   icon: 'shield' },
+  { id: 'evidence',        label: 'Evidence',         icon: 'chain' },
+  { id: 'overview',        label: 'Overview',          icon: 'grid' },
 ]
 
-const activeView = ref('overview')
+const activeView = ref('live-governance')
 const pageTitle  = computed(() => views.find(v => v.id === activeView.value)?.label ?? '')
 
 // ── Backend health ──────────────────────────────────────────────
@@ -90,8 +90,13 @@ function onStatsUpdated(stats) {
       >
         <!-- Inline SVG icons — no icon library needed -->
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <!-- play / live governance -->
+          <template v-if="v.icon === 'play'">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6.5 5.5l5 2.5-5 2.5V5.5z" fill="currentColor" stroke="none"/>
+          </template>
           <!-- grid -->
-          <template v-if="v.icon === 'grid'">
+          <template v-else-if="v.icon === 'grid'">
             <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"/>
             <rect x="9"   y="1.5" width="5.5" height="5.5" rx="1"/>
             <rect x="1.5" y="9"   width="5.5" height="5.5" rx="1"/>
@@ -155,8 +160,13 @@ function onStatsUpdated(stats) {
 
       <!-- Page content -->
       <main class="page-content">
+        <DocumentFlowPage
+          v-if="activeView === 'live-governance'"
+          @stats-updated="onStatsUpdated"
+        />
+
         <OverviewPage
-          v-if="activeView === 'overview'"
+          v-else-if="activeView === 'overview'"
           :stats="globalStats"
           :session-before="sessionBefore"
         />
