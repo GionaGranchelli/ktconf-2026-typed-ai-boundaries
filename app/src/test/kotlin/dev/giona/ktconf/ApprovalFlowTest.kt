@@ -14,6 +14,11 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
+import org.springframework.mock.web.MockMultipartFile
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -22,11 +27,15 @@ import kotlin.test.assertNotNull
  * duplicate rejected; deny → no payment → continuation refused.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ApprovalFlowTest {
 
     @Autowired
     lateinit var rest: TestRestTemplate
+
+    @Autowired
+    lateinit var mockMvc: MockMvc
 
     private fun headers() = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
 
@@ -118,5 +127,26 @@ class ApprovalFlowTest {
         )
         assertEquals(HttpStatus.OK, evidence.statusCode)
         assertEquals(true, evidence.body!!.chainValid)
+    }
+
+    @Test
+    fun `canonical payment PDF denial preserves zero payment and refuses continuation`() {
+        val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/payment-local-invoice.pdf")).readBytes()
+        val started = mockMvc.perform(
+            multipart("/invoices/analyze-pdf")
+                .file(MockMultipartFile("file", "payment-local-invoice.pdf", "application/pdf", bytes)),
+        ).andReturn()
+        val response = mockMvc.perform(asyncDispatch(started)).andReturn().response
+        assertEquals(HttpStatus.ACCEPTED.value(), response.status)
+        assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"LOCAL_NVIDIA\""))
+        assertEquals(true, response.contentAsString.contains("\"toolName\":\"schedule-payment\""))
+        val approvalId = Regex("\\\"approvalId\\\":\\\"([^\\\"]+)").find(response.contentAsString)!!.groupValues[1]
+        assertEquals(0, stats().paymentExecutionCount)
+
+        val denied = post("/approvals/$approvalId/deny", null, DenyView::class.java)
+        assertEquals(HttpStatus.OK, denied.statusCode)
+        val resumeAfterDeny = post("/approvals/$approvalId/approve", null, ErrorResponse::class.java)
+        assertEquals(HttpStatus.CONFLICT, resumeAfterDeny.statusCode)
+        assertEquals(0, stats().paymentExecutionCount)
     }
 }

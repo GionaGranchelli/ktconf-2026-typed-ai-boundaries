@@ -230,6 +230,13 @@ suspension, 0 -> 1 after approval, duplicate rejection, denial, and valid
 audit evidence. The real payment smoke is not yet claimed: the local endpoint
 at `127.0.0.1:1234` was unreachable during verification.
 
+The assessment/tool prompt now states the amount-based risk/action rules and
+the successful-tool-result transition explicitly. The canonical
+`payment-local-invoice.pdf` denial test proves `202` suspension, payment count
+`0`, denial, and subsequent resume rejection with `409`. The full deterministic
+suite and 20/20 rehearsal pass. Real Nemotron payment and audit evidence remain
+pending local endpoint availability.
+
 ## Locked contest direction
 
 Working title:

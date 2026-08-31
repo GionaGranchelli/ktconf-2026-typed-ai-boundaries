@@ -29,8 +29,10 @@ interface InvoiceAnalysisService {
 
         const val ASSESSMENT_PROMPT: String =
             "Analyze the invoice document and return a structured InvoiceAssessment. " +
-                "Any value above 5,000 EUR is HIGH risk; any value at or below 5,000 EUR " +
-                "is LOW risk. Set recommendedAction according to the workflow state. Return confidence " +
+                "Any value above 5,000 EUR is HIGH risk and uses " +
+                "recommendedAction=REQUEST_HUMAN_APPROVAL. Any value at or below 5,000 EUR " +
+                "is LOW risk and uses recommendedAction=REVIEW_ONLY, unless a successful " +
+                "workflow tool result changes the action. Return confidence " +
                 "as a number from 0.0 to 1.0 inclusive. The recommendedAction field " +
                 "must be a JSON string enum, exactly one of REVIEW_ONLY, " +
                 "REQUEST_HUMAN_APPROVAL, or SCHEDULE_PAYMENT; do not return an object " +
@@ -41,6 +43,8 @@ interface InvoiceAnalysisService {
                 "schedule-payment tool; TramAI will enforce approval before execution. " +
                 "Before a successful schedule-payment tool result, an amount above " +
                 "5,000 EUR must use REQUEST_HUMAN_APPROVAL and request that tool. " +
+                "For an amount at or below 5,000 EUR, do not request schedule-payment " +
+                "and return REVIEW_ONLY. " +
                 "After a successful schedule-payment tool result, do not request the " +
                 "tool again and return SCHEDULE_PAYMENT."
     }

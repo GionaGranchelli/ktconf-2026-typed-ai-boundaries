@@ -14,7 +14,7 @@ stream
 BT
 /F1 12 Tf
 50 750 Td
-(invoiceId=KTCONF-PAY-PDF-001) Tj
+(invoiceId=KTCONF-PAY-001) Tj
 0 -20 Td (supplierName=KTConf AV and Stage Services BV) Tj
 0 -20 Td (amountCents=1840000) Tj
 0 -20 Td (currency=EUR) Tj

@@ -44,6 +44,11 @@ The opt-in real command is `./scripts/gtc-local-nvidia-payment-smoke`, which
 uploads `payment-local-invoice.pdf` and checks the model catalog, exact-once
 counter, provider invocation delta, and approval audit lifecycle.
 
+The canonical PDF denial test additionally proves payment remains at `0` and
+later continuation is rejected with HTTP `409`. The assessment prompt states
+the amount-based risk/action rule for tool-free operations and the explicit
+post-tool `SCHEDULE_PAYMENT` transition.
+
 Real closure is pending: the local endpoint at `127.0.0.1:1234` was not
 reachable during this run, so no real Nemotron payment proposal or real audit
 claim is made.

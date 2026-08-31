@@ -79,6 +79,13 @@ in `REVIEW`: deterministic payment integration is complete, but its real
 Nemotron payment smoke is pending local endpoint availability. Tasks 008–010
 remain blocked behind task-007.
 
+Latest closure checkpoint: the assessment/tool prompt explicitly defines the
+EUR 5,000 risk/action rule and the post-`schedule-payment` state transition.
+The canonical payment PDF denial test proves denial leaves payment count at
+`0` and later continuation returns `409`. Full deterministic tests and
+rehearsal remain green; no real Nemotron payment or combined real-PDF claim is
+made.
+
 Task-011 is maintained on the separate `task/011-gtc-governance-console`
 branch and was not modified here. Before merging it, update the EU card and
 counter to the active Scaleway/Mistral implementation: `Scaleway Europe`,
