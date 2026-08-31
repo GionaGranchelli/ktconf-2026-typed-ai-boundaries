@@ -10,7 +10,8 @@
 -->
 <script setup>
 import { computed, ref } from 'vue'
-import BoundaryCard from '../components/BoundaryCard.vue'
+import BoundaryCard   from '../components/BoundaryCard.vue'
+import WorkflowTrace  from '../components/WorkflowTrace.vue'
 import {
   analyzePdf, approve, deny, getEvidence, getStats,
 } from '../api.js'
@@ -200,8 +201,23 @@ function reset() {
       </div>
     </div>
 
+    <!-- Live workflow trace — reconstructed from state already tracked here -->
+    <WorkflowTrace
+      class="gap-top"
+      :file="file"
+      :busy="busy"
+      :metadata="metadata"
+      :selected-route="selectedRoute"
+      :assessment="assessment"
+      :approval="approval"
+      :evidence="evidence"
+      :stats-before="statsBefore"
+      :stats-after="statsAfter"
+    />
+
     <!-- Row 1: Input + Governance -->
-    <div class="grid-doc">
+    <div class="grid-doc gap-top">
+
       <!-- 01 · INPUT -->
       <div class="panel">
         <div class="panel-heading">
