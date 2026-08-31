@@ -33,7 +33,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
 | [task-006](tasks/task-006.md) | REVIEW | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
 | [task-007](tasks/task-007.md) | REVIEW | G | 006 | Adapt payment approval flow to real Nemotron path |
-| [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
+| [task-008](tasks/task-008.md) | REVIEW | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
 
@@ -76,8 +76,9 @@ allowed invocation per boundary; the confidential-EU forced-global PDF test
 proves HTTP 403 and global counter delta `0`, followed by EU success. Individual
 real route proofs exist, but a combined real PDF run remains pending. Task-007 is
 in `REVIEW`: deterministic payment integration is complete, but its real
-Nemotron payment smoke is pending local endpoint availability. Tasks 008–010
-remain blocked behind task-007.
+Nemotron payment smoke is pending local endpoint availability. Task-008 is now
+the owner of the remaining real-provider evidence runs; tasks 009–010 remain
+blocked behind task-008.
 
 Latest closure checkpoint: the assessment/tool prompt explicitly defines the
 EUR 5,000 risk/action rule and the post-`schedule-payment` state transition.

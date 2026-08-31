@@ -1,6 +1,6 @@
 # task-008 — Contest evidence and proof suite
 
-Status: `BLOCKED`
+Status: `REVIEW`
 Track: H
 Milestone: M7
 Depends on: task-006, task-007
@@ -54,3 +54,10 @@ Do not invent a benchmark percentage unless the sample set and methodology are c
 ## Handoff
 
 Provide claim -> test/evidence mapping, commands, outputs, sample counts, limitations, and the final publish-safe evidence locations.
+
+Implementation evidence: `scripts/gtc-evidence` runs the full deterministic
+application suite and the 20-scenario rehearsal, then prints a concise proof
+table. The publish-safe evidence index is `docs/gtc/evidence/README.md`; live
+provider scripts remain separate and no live result is inferred from the
+offline gate. Task-006 combined real PDF evidence and task-007 real Nemotron
+payment/audit evidence remain pending infrastructure availability.

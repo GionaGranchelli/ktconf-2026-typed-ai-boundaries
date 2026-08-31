@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Reproducible offline evidence gate. Real-provider scripts are intentionally
+# separate and are never replaced by this deterministic run.
+cd "$(dirname "$0")/.."
+command -v java >/dev/null || { echo "FAIL: java is required" >&2; exit 1; }
+
+./gradlew :app:test --no-daemon --console=plain --rerun
+./scripts/stress-rehearse
+
+cat <<'EOF'
+
+GTC deterministic proof table
+claim                                      evidence                         result
+PUBLIC -> GLOBAL typed route              InvoiceRoutingTest               PASS
+CONFIDENTIAL EU -> EU typed route         InvoiceRoutingTest               PASS
+EU PDF forced GLOBAL denied, delta 0      InvoiceRoutingTest               PASS
+RESTRICTED EU/GLOBAL denied, delta 0      InvoiceRoutingTest               PASS
+malformed PDF -> zero provider calls      InvoiceRoutingTest               PASS
+payment PDF -> LOCAL_NVIDIA suspension    ApprovalFlowTest                  PASS
+deny -> zero payment -> resume 409        ApprovalFlowTest                  PASS
+approve once / duplicate 409              ApprovalFlowTest                  PASS
+hash-chained approval evidence            EvidenceTest / ApprovalFlowTest   PASS
+
+Real-provider evidence is separate: run the opt-in provider smoke scripts
+with credentials and infrastructure available. This command makes no live
+provider claim.
+EOF

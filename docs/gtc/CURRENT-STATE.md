@@ -230,6 +230,16 @@ suspension, 0 -> 1 after approval, duplicate rejection, denial, and valid
 audit evidence. The real payment smoke is not yet claimed: the local endpoint
 at `127.0.0.1:1234` was unreachable during verification.
 
+### task-008 — contest evidence and proof suite (REVIEW)
+
+The reproducible offline evidence command is `./scripts/gtc-evidence`. It runs
+the full application suite and the 20-scenario rehearsal, then prints the
+judge-facing mapping for routing, pre-provider denial, PDF fail-closed
+handling, payment suspension/denial/exactly-once behavior, and audit-chain
+verification. Publish-safe evidence guidance is in
+`docs/gtc/evidence/README.md`. Live provider evidence remains separate; no
+combined three-PDF run or real Nemotron payment/audit result is claimed.
+
 The assessment/tool prompt now states the amount-based risk/action rules and
 the successful-tool-result transition explicitly. The canonical
 `payment-local-invoice.pdf` denial test proves `202` suspension, payment count
