@@ -153,6 +153,11 @@ provider is Scaleway Generative APIs with Mistral Small 24B; it is not an
 NVIDIA/Nemotron/NIM proof. A suitable managed EU Nemotron deployment remains
 the preferred later upgrade.
 
+The remainder of the original Nebius/NIM plan below is retained as historical
+investigation context only. It is not the active P0 implementation and must
+not be resumed by downstream agents. Use [`SCALEWAY.md`](SCALEWAY.md),
+task-004, and the active `eu-scaleway-*` configuration instead.
+
 ## Locked provider decision
 
 - Cloud partner: **Nebius AI Cloud**
@@ -216,11 +221,11 @@ Do not blindly copy this shape into automation: verify NIM startup needs, cache 
 
 ## Phase D — application integration
 
-- [ ] Add `eu-nvidia-provider` configuration.
+- [x] Add `eu-scaleway-provider` configuration.
 - [ ] Wrap with `CountingModelProvider`.
 - [ ] Add the provider to the sovereign allowlist and model mapping.
 - [ ] Assign the correct regional trust zone.
-- [ ] Prove `CONFIDENTIAL / EU_ONLY -> EU_CLOUD -> Nebius NIM -> typed 200`.
+- [x] Prove `CONFIDENTIAL / EU_ONLY -> EU_CLOUD -> Scaleway/Mistral -> typed 200`.
 - [ ] Force `LOCAL_ONLY -> EU_CLOUD` and prove denial before counter increment.
 - [ ] Record region (`eu-west1`), GPU type (H200), actual NIM image digest/tag and model ID as contest evidence.
 

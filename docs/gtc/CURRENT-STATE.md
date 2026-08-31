@@ -93,6 +93,18 @@ new `CONFIDENTIAL -> /invoices/eu-scaleway` fixture path returns
 script fails closed when `SCW_API_KEY` or `SCW_MODEL` is absent; the real
 Scaleway run above used both without exposing either value.
 
+The deterministic stage scripts and `ScriptSanitizationTest` now clear all
+contest real-provider variables, including generic `SCW_*` fallbacks, local
+and global NVIDIA configuration, and namespaced EU configuration. This
+prevents ambient shell exports from changing the offline conference path.
+Sanitized real-run evidence is stored in
+`docs/gtc/evidence/scaleway-smoke.md`.
+
+The separate `task/011-gtc-governance-console` branch has not been modified.
+Before it is merged, its EU presentation must use the active provider name,
+model, and `euScalewayInvocationCount` (or a generic EU-provider metric), not
+the historical Nebius/H200/NIM/Nemotron labels.
+
 The following Nebius records are retained as historical evidence, not as the
 active EU implementation.
 
@@ -106,33 +118,30 @@ endpoint CLI supports `--platform gpu-h200-sxm` and MysteryBox-backed
 
 Verification: provider/configuration and Spring context tests pass after the
 EU provider is added. Nebius CLI authentication is now configured through the
-federated profile, and the existing active project
-`project-e01wv8bkpa003ccxnn0pq5` (`default-project-eu-west1`) is usable. Tenant
+federated profile, and the existing default `eu-west1` project is usable. Tenant
 project creation was denied by IAM, so no new project was attempted after the
 existing project was discovered.
 
 Capacity evidence: `eu-west1` reports fresh medium on-demand availability for
 `gpu-h200-sxm` / `1gpu-16vcpu-200gb`.
 
-Deployment evidence: the first endpoint attempt (`aiendpoint-e01c7e05rge6v9n60e`)
-used `:latest` and failed with Nebius operation `code=13` internal error; it
-was removed. A replacement endpoint named `gtc-eu-nvidia-nim` is now
-provisioned as `aiendpoint-e01g0gsb84100nz7bf` using the pinned image
+Deployment evidence: the first endpoint attempt used `:latest` and failed with
+Nebius operation `code=13` internal error; it was removed. A replacement
+endpoint using the pinned image
 `nvcr.io/nim/nvidia/nemotron-3.5-lightning-30b-a3b:2.0.9-variant`, both NGC
 SecretStash selectors, `NIM_MODEL_NAME`, `NIM_SERVED_MODEL_NAME`,
 `NIM_PASSTHROUGH_ARGS=--reasoning-parser nemotron_v3`, H200 single-GPU preset,
-250 GiB disk, and 16 GiB shared memory. Its managed URL is
-`https://port8000-bwj90gkky5s9154.tunnel.applications.eu-west1.nebius.cloud`.
+250 GiB disk, and 16 GiB shared memory was also unsuccessful.
 At the latest checkpoint the replacement state is still `STARTING` after a
 restart requested by the operator. The original create operation remains
 failed with Nebius `code=13` (`Operation failed with internal error`); the
-restart operation `opvmapp-e01t25eft3y8r13egt` is still unfinished, and no
+restart operation remained unfinished, and no
 successful inference has been observed. Direct NIM inference and the typed
 `EU_CLOUD` application proof remain pending.
 
 After NGC key rotation, inspection showed the existing endpoint still pinned
 to the previous registry secret version. A clean replacement was initiated;
-the delete operation `opvmapp-e01ya8nz7bj2ty2p17` is still in progress, so the
+the delete operation was left in progress, so the
 replacement endpoint has not yet been created.
 
 Subsequent Nebius attempts created two H200 endpoints, but both failed before
@@ -141,20 +150,19 @@ workload startup with compute `code=8` (`NotEnoughResources`): the requested
 failure, not evidence of an invalid NGC key or NIM image. No direct EU NIM
 inference has succeeded.
 
-A separate capacity diagnostic endpoint `gtc-eu-nim-capacity-smoke`
-(`aiendpoint-e01dprnhphd6desh7h`) was then created with the same `eu-west1`
+A separate capacity diagnostic endpoint was then created with the same `eu-west1`
 H200 and `1gpu-16vcpu-200gb` request, but the smaller official image
 `nvcr.io/nim/nvidia/nemotron-3-nano:1.7.0-variant`. At the latest checkpoint
 it reached `Workload initialization started` and then failed with Nebius
-operation `code=13` (`Operation failed with internal error`) under
-`opvmapp-e01yr81fnyxjwgz7wb`; no inference result is available.
+operation `code=13` (`Operation failed with internal error`); no inference
+result is available.
 
-For a regional comparison, endpoint `gtc-eu-north-nim-capacity-smoke`
-(`aiendpoint-e00tb5k1b689ms14sy`) was created in the tenant's `eu-north1`
+For a regional comparison, a diagnostic endpoint was created in the tenant's
+`eu-north1`
 project with the same small Nemotron 3 Nano NIM image and 1-GPU preset, using
 the region's H100 platform. It reached `Workload initialization started` and
 then failed with Nebius operation `code=13` (`Operation failed with internal
-error`) under `opvmapp-e00r10q4etdddc0g1q`; no inference result is available.
+error`); no inference result is available.
 
 The paired diagnostics show two distinct failures: the original large-model
 attempts were rejected with compute `code=8` due to capacity, while the small
@@ -282,7 +290,7 @@ Required action:
 - if credentials/model-download access are required, create/use an NVIDIA NGC Personal API key with the required Catalog permission;
 - store registry credentials in Nebius MysteryBox, never git.
 
-### 4. Nebius H200 quota/capacity
+### 4. Historical Nebius H200 quota/capacity
 
 Preferred EU target:
 
@@ -298,7 +306,7 @@ Required action:
 - check quota/capacity now;
 - request quota immediately if unavailable because cloud-access lead time is the main schedule risk.
 
-### 5. Nebius registry strategy
+### 5. Historical Nebius registry strategy
 
 Initial conclusion:
 
@@ -337,7 +345,7 @@ After baseline verification, the following can proceed independently:
 | A | TramAI trust-zone semantics | full three-boundary policy matrix expressible/tested |
 | B | GLOBAL NVIDIA | hosted Nemotron returns typed-compatible response |
 | C | LOCAL NVIDIA | RTX llama.cpp Nemotron endpoint answers OpenAI request |
-| D | Nebius/NIM | France H200 endpoint serves NIM/Nemotron |
+| D | Scaleway/Mistral | European Generative APIs deployment serves typed-compatible inference |
 | E | PDF metadata | synthetic PDF is parsed locally and fails closed without trusted label |
 
 Integration should wait until the provider endpoints and policy semantics are independently proven.
@@ -348,7 +356,7 @@ The contest branch must eventually demonstrate:
 
 ```text
 PUBLIC -> GLOBAL NVIDIA -> success
-EU_ONLY -> Nebius France / NVIDIA H200 / NIM -> success
+CONFIDENTIAL + EU_ONLY -> Scaleway Europe / Mistral -> typed success
 LOCAL_ONLY -> local NVIDIA RTX -> success
 
 EU_ONLY forced -> GLOBAL -> denied, global invocation delta 0

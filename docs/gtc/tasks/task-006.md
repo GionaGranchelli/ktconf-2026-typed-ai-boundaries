@@ -1,4 +1,4 @@
-# task-006 — Integrate three governed NVIDIA boundaries
+# task-006 — Integrate three governed execution boundaries
 
 Status: `BLOCKED`
 Track: F
@@ -8,11 +8,11 @@ Blocks: task-007, task-008
 
 ## Objective
 
-Integrate the proven LOCAL, EU_CLOUD, and GLOBAL_CLOUD NVIDIA paths into one Spring application and one TramAI governance plane while preserving deterministic CI and KTConf behavior.
+Integrate the proven LOCAL NVIDIA, temporary EU_CLOUD Scaleway/Mistral, and GLOBAL NVIDIA paths into one Spring application and one TramAI governance plane while preserving deterministic CI and KTConf behavior. A later EU Nemotron deployment must not change governance semantics.
 
 ## Scope
 
-- Add contest-specific provider identities/configuration for all three real NVIDIA routes.
+- Add/validate contest-specific provider identities/configuration for all three real routes.
 - Wire the real PDF flow into placement authorization.
 - Keep provider trust zones explicit configuration.
 - Preserve `CountingModelProvider` or equivalent per-route proof counters.
@@ -23,13 +23,13 @@ Integrate the proven LOCAL, EU_CLOUD, and GLOBAL_CLOUD NVIDIA paths into one Spr
 ## Required primary scenarios
 
 1. PUBLIC -> GLOBAL_CLOUD -> real Build.NVIDIA.com Nemotron -> typed result.
-2. CONFIDENTIAL + EU -> GLOBAL proposed -> denied, GLOBAL delta 0 -> EU_CLOUD -> Nebius NVIDIA NIM -> typed result.
+2. CONFIDENTIAL + EU -> GLOBAL proposed -> denied, GLOBAL delta 0 -> EU_CLOUD -> Scaleway/Mistral -> typed result.
 3. RESTRICTED -> EU/GLOBAL denied -> LOCAL RTX Nemotron -> typed result.
 
 ## Acceptance criteria
 
 - [ ] One process/runtime exposes all three logical providers.
-- [ ] All three allowed real inference paths succeed.
+- [ ] LOCAL NVIDIA, temporary EU Scaleway/Mistral, and GLOBAL NVIDIA allowed real paths succeed.
 - [ ] Denied route counters remain delta `0`.
 - [ ] Trust zone is not inferred from URL/vendor.
 - [ ] No vendor-specific residency checks bypass TramAI.

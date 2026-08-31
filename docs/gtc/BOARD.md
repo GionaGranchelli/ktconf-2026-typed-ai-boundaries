@@ -31,7 +31,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | REVIEW | E | — | Add fail-closed real PDF + trusted metadata ingestion |
-| [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed NVIDIA execution boundaries |
+| [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
@@ -42,39 +42,37 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 - task-003 is `DONE`: local smoke passed with RTX 3060 / driver 580.173.02,
   llama.cpp 9986, Nemotron `nvidia/nemotron-3-nano-4b`, direct HTTP 200, typed
   application HTTP 200, `selectedRoute=LOCAL_NVIDIA`, and invocation count 1.
-- task-004 is `DONE`: the first endpoint attempt failed with Nebius
-  `code=13` internal error and was removed. A corrected replacement is
-  provisioned in the existing `eu-west1` project with H200 capacity and was
-  restarted after its create operation also reported `code=13`. It is still
-  `STARTING` under restart operation `opvmapp-e01t25eft3y8r13egt`; no direct
-  NIM inference is claimed until startup and an HTTP proof succeed. After
-  NGC key rotation, the endpoint was found pinned to the previous registry
-  secret version; deletion for a clean replacement is in progress under
-  `opvmapp-e01ya8nz7bj2ty2p17`. Two subsequent H200 attempts failed before
-  workload startup with compute `code=8` (`NotEnoughResources`) while
-  scheduling `1gpu-16vcpu-200gb`; this is capacity evidence, not a validated
-  key or NIM failure.
-  A separate small-model diagnostic using the same H200 preset, endpoint
-  `aiendpoint-e01dprnhphd6desh7h`, reached workload initialization and ended
-  with `code=13`. A second regional diagnostic in `eu-north1` on H100,
-  endpoint `aiendpoint-e00tb5k1b689ms14sy`, did the same. Neither produced
-  inference; model size is now unlikely to be the sole cause, while NIM
-  runtime, secret/image access, and Serverless AI causes remain open.
-  The active EU implementation now uses `eu-scaleway-provider` and
-  `eu-scaleway-invoice-model` in `EU_CLOUD`, reusing the OpenAI-compatible,
-  model-alias, and counting-provider composition. The real Scaleway smoke
-  passed: model catalog, direct chat, typed application HTTP 200 with
-  `selectedRoute=EU_CLOUD`, allowed invocation delta `1`, and restricted
-  forced-EU denial HTTP 403 with invocation delta `0`.
-  completes.
+- task-004 is `DONE`: Nebius H200/H100 attempts remain historical evidence
+  of `code=13` workload failures and `code=8 NotEnoughResources` scheduling
+  failures; no Nebius inference is claimed. The active EU implementation uses
+  `eu-scaleway-provider` and `eu-scaleway-invoice-model` in `EU_CLOUD`,
+  reusing the OpenAI-compatible, model-alias, and counting-provider
+  composition. The real Scaleway smoke passed model catalog validation,
+  direct chat, typed application HTTP 200 with `selectedRoute=EU_CLOUD`,
+  allowed invocation delta `1`, and forced restricted-EU HTTP 403 with
+  invocation delta `0`.
+- The deterministic stage scripts now clear every contest real-provider
+  family (`LOCAL_NVIDIA`, `EU_SCALEWAY`, `GLOBAL_NVIDIA`) plus generic
+  `SCW_*` fallbacks. `ScriptSanitizationTest` covers those variables, so an
+  operator's exported Scaleway environment cannot alter the offline stage.
+- Sanitized real-run evidence is recorded in
+  [`evidence/scaleway-smoke.md`](evidence/scaleway-smoke.md); it contains no
+  endpoint UUID, account identifier, URL, token, or key.
 - task-005 is `REVIEW`: PDFBox ingestion, documented metadata contract, three
   synthetic fixtures, and fail-closed parser tests are complete. The focused
   parser suite passed 5/5 and the full app suite passed. A multipart endpoint
   counter test remains follow-on hardening.
 
 Tasks 006–010 were not started. Their dependency chain remains blocked until
-the real-provider proofs for tasks 002–004 and the review of task-005 are
-resolved.
+the remaining task-002 real-provider review and task-005 review are resolved;
+task-004's Scaleway real-provider proof is complete.
+
+Task-011 is maintained on the separate `task/011-gtc-governance-console`
+branch and was not modified here. Before merging it, update the EU card and
+counter to the active Scaleway/Mistral implementation: `Scaleway Europe`,
+`Generative APIs`, `Mistral Small 24B`, and `euScalewayInvocationCount` (or a
+generic EU-provider label). The UI must not claim Nebius, H200, NVIDIA NIM, or
+Nemotron for the temporary EU route.
 
 ## Critical path
 

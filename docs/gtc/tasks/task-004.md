@@ -33,29 +33,17 @@ metadata download, and NIM profile selection were independently proven
 outside Nebius. Nebius remains documented as a possible future NVIDIA/Nemotron
 route, not the active EU provider.
 
-## Previous preferred path
-
-`nvcr.io` NIM image -> Nebius secret-backed registry auth -> Nebius Serverless AI / supported GPU endpoint -> NVIDIA H200 -> Nemotron.
-
-Do not assume the old one-click Nebius NIM application still exists.
-
 ## Scope
 
-- Verify Nebius `eu-west1` availability, quota, supported NVIDIA GPU preset, and current Serverless AI/custom-container flow.
-- Verify the selected official NIM image/model and its GPU memory requirements.
-- Determine whether NGC registry credentials are required; if so, use a proper NGC Personal API key and Nebius secret storage.
-- Deploy and smoke-test the endpoint before application integration.
-- Record region and infrastructure evidence sufficient to substantiate an `EU_CLOUD` deployment claim.
-- Preserve an OpenAI-compatible or otherwise clean adapter surface for task-006.
 - Rename the active EU provider/model to truthful neutral identities.
+- Preserve an OpenAI-compatible adapter surface for task-006.
 - Add deterministic allow/deny and counter tests for the EU provider seam.
 - Add an opt-in direct and typed Scaleway smoke script.
 - Document Scaleway setup, structured-output behavior, limitations, and the
   future Nemotron upgrade path.
 
-## Fallback
-
-If Serverless AI cannot pull/start the NIM reliably, use a Nebius NVIDIA GPU VM and run the official NIM container directly. Mirroring into Nebius Container Registry is allowed only if necessary for reliability/reproducibility.
+Known limitation: the Scaleway deployment is temporary and uses Mistral; a
+future EU Nemotron deployment is a separate infrastructure upgrade.
 
 ## Non-goals
 
@@ -73,7 +61,7 @@ If Serverless AI cannot pull/start the NIM reliably, use a Nebius NVIDIA GPU VM 
 - [x] Confidential -> EU_CLOUD succeeds through deterministic fixture/provider.
 - [x] Restricted forced EU is denied before provider invocation, delta `0`.
 - [x] Local/global providers and deterministic KTConf paths remain green.
-- [x] Nebius failure history and Scaleway setup are documented.
+- [x] Nebius failure history and Scaleway setup are documented separately.
 - [x] Real smoke is marked separately and only after `/models`, direct chat,
   typed application, and counter proofs succeed.
 

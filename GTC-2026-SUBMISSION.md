@@ -2,7 +2,7 @@
 
 > Working title: **The Model Is Not the Authority**
 >
-> Technical tagline: **One Spring application. One TramAI policy plane. Three NVIDIA execution boundaries.**
+> Technical tagline: **One Spring application. One TramAI policy plane. Three governed execution boundaries.**
 
 This branch is an isolated contest workstream. It MUST NOT destabilize the KTConf conference path on `main`.
 
@@ -15,9 +15,9 @@ The contest demo should make this understandable in under 60 seconds:
 1. A real PDF arrives with trusted classification/residency metadata.
 2. Metadata is read locally before document content is sent to any model.
 3. TramAI evaluates which execution boundary is allowed.
-4. NVIDIA inference runs only in an allowed boundary:
+4. Inference runs only in an allowed boundary:
    - `LOCAL`: NVIDIA RTX + local Nemotron.
-   - `EU_CLOUD`: Nebius AI Cloud in an EU region on NVIDIA GPU + self-hosted NVIDIA NIM/Nemotron.
+   - `EU_CLOUD`: temporary Scaleway Generative APIs Europe + Mistral Small 24B.
    - `GLOBAL_CLOUD`: NVIDIA-hosted NIM API from Build.NVIDIA.com.
 5. A deliberately wrong route is denied **before provider invocation** and the provider counter proves delta `0`.
 6. Nemotron proposes a consequential payment action.
@@ -36,7 +36,7 @@ The implementation and presentation are designed explicitly around the four equa
 | Criterion | What this branch must prove | Target |
 |---|---|---:|
 | Technical innovation | Runtime authority is independent of model output and application routing | 9+/10 |
-| NVIDIA / partner technology | NVIDIA model + NVIDIA hosted API + NVIDIA local GPU + NVIDIA NIM on Nebius NVIDIA GPU | 9+/10 |
+| NVIDIA / partner technology | NVIDIA model + NVIDIA hosted API + NVIDIA local GPU; temporary EU path is Scaleway/Mistral | 9+/10 |
 | Impact / usefulness | Real enterprise document/data-residency + high-risk action governance | 9+/10 |
 | Documentation / presentation | Reproducible repo, visible evidence, 60-second working demo | 9+/10 |
 
@@ -70,7 +70,7 @@ Never make normal tests, `preflight`, or the KTConf stage dependent on:
 
 - internet access;
 - NVIDIA API availability;
-- Nebius availability;
+- managed EU provider availability;
 - a local GPU;
 - a secret being present.
 
@@ -101,23 +101,23 @@ Target policy:
 
 The central proof is not automatic model selection. It is that a selected route is independently authorized or denied before provider invocation.
 
-### 5. NVIDIA everywhere that matters
+### 5. NVIDIA where intended, EU provider kept replaceable
 
 Preferred topology:
 
 - **GLOBAL**: Build.NVIDIA.com hosted API (`https://integrate.api.nvidia.com/v1`) using `nvidia/nemotron-3.5-lightning-30b-a3b` as the first candidate.
-- **EU**: Nebius AI Cloud `eu-west1` (France) on one NVIDIA H200 using the official NVIDIA NIM image for the chosen Nemotron model.
+- **EU**: Scaleway Generative APIs European deployment using Mistral Small 24B as a temporary unblocker; this is not NVIDIA/Nemotron/NIM.
 - **LOCAL**: local NVIDIA RTX using `nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF` via llama.cpp as the first candidate.
 
 Model choice can change only when a milestone proves incompatibility. Prefer the Nemotron family across all boundaries so the story is about **placement policy**, not model-vendor switching.
 
-### 6. Nebius is the EU NVIDIA partner story
+### 6. Scaleway is the temporary EU managed-inference path
 
-Preferred EU deployment is **Nebius `eu-west1` (France), NVIDIA H200, self-hosted NVIDIA NIM**.
+The active EU implementation is **Scaleway Generative APIs in Europe with Mistral Small 24B**. It unblocks governance integration while the preferred final EU Nemotron deployment is unavailable.
 
-Do not use the discontinued Nebius one-click NVIDIA NIM standalone application.
+Mistral must not be presented as NVIDIA, Nemotron, or NIM. The original Nebius investigation remains in `docs/gtc/NVIDIA-NEBIUS.md`.
 
-Preferred implementation path is Nebius Serverless AI endpoint because it can run a container image on an NVIDIA GPU and can authenticate to a private registry such as NVIDIA NGC (`nvcr.io`). A raw VM is fallback if NIM startup or endpoint constraints require more control.
+The later Nemotron upgrade should replace the EU endpoint/model configuration without changing TramAI's `EU_CLOUD` semantics.
 
 ### 7. No secrets in git
 
@@ -130,7 +130,7 @@ Never commit:
 - registry passwords;
 - real customer documents.
 
-Use environment variables locally and Nebius MysteryBox/secret references for cloud deployment.
+Use environment variables locally and the provider's secret mechanism for cloud deployment.
 
 ## Desired final architecture
 
@@ -153,12 +153,12 @@ Use environment variables locally and Nebius MysteryBox/secret references for cl
              v              v               v
            LOCAL         EU_CLOUD       GLOBAL_CLOUD
              |              |               |
-        NVIDIA RTX      Nebius France     NVIDIA API
-             |          NVIDIA H200         Catalog
-        llama.cpp            |               |
-             |          NVIDIA NIM           |
-      Nemotron 3 Nano        |        Nemotron 3.5 Lightning
-            4B          Nemotron family      |
+        NVIDIA RTX      Scaleway Europe   NVIDIA API
+             |          Mistral Small 24B   Catalog
+        llama.cpp       Generative APIs       |
+             |                |               |
+      Nemotron 3 Nano      Mistral       Nemotron 3.5 Lightning
+            4B                              |
              \              |               /
               +-------------+--------------+
                             |
@@ -182,10 +182,10 @@ Use environment variables locally and Nebius MysteryBox/secret references for cl
 The branch is not submission-ready until all P0 proofs below are real and repeatable:
 
 1. `PUBLIC -> GLOBAL_CLOUD -> NVIDIA hosted Nemotron -> HTTP 200 typed result`.
-2. `CONFIDENTIAL/EU_ONLY -> EU_CLOUD -> Nebius NVIDIA H200/NIM -> HTTP 200 typed result`.
+2. `CONFIDENTIAL/EU_ONLY -> EU_CLOUD -> Scaleway/Mistral -> HTTP 200 typed result` (temporary).
 3. `RESTRICTED/LOCAL_ONLY -> LOCAL -> NVIDIA RTX/local Nemotron -> HTTP 200 typed result`.
 4. Forced `EU_ONLY -> GLOBAL_CLOUD` is denied before provider invocation; global NVIDIA invocation delta is `0`.
-5. Forced `LOCAL_ONLY -> EU_CLOUD` is denied before provider invocation; Nebius/NIM invocation delta is `0`.
+5. Forced `LOCAL_ONLY -> EU_CLOUD` is denied before provider invocation; EU provider invocation delta is `0`.
 6. A real PDF enters through the same application and metadata is parsed locally before inference.
 7. Nemotron proposes a payment action; TramAI returns `AWAITING_APPROVAL` and payment count remains `0`.
 8. Approve once -> payment count `1`.
@@ -207,7 +207,7 @@ Agents should read these before implementation:
 
 1. [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md) — milestones, dependencies and acceptance criteria.
 2. [`docs/gtc/ARCHITECTURE.md`](docs/gtc/ARCHITECTURE.md) — target runtime and security architecture.
-3. [`docs/gtc/NVIDIA-NEBIUS.md`](docs/gtc/NVIDIA-NEBIUS.md) — current provider/deployment research and commands.
+3. [`docs/gtc/NVIDIA-NEBIUS.md`](docs/gtc/NVIDIA-NEBIUS.md) — historical Nebius/NIM investigation and fallback record.
 4. [`docs/gtc/AGENT-GUIDE.md`](docs/gtc/AGENT-GUIDE.md) — working rules, task ownership and evidence expectations.
 5. [`docs/gtc/SUBMISSION-CHECKLIST.md`](docs/gtc/SUBMISSION-CHECKLIST.md) — freeze, recording and publication gates.
 
@@ -215,6 +215,6 @@ Agents should read these before implementation:
 
 This branch succeeds when a reviewer with no TramAI context can watch a ~60 second screen recording and understand:
 
-> A document carries a trusted handling requirement. The application chooses an inference route. TramAI independently prevents an illegal placement before an NVIDIA provider sees the content. The document is processed by an allowed NVIDIA deployment, the model proposes an action, and TramAI still prevents that action from becoming authority without policy and human approval.
+> A document carries a trusted handling requirement. The application chooses an inference route. TramAI independently prevents an illegal placement before the selected provider sees the content. The document is processed by an allowed deployment, the model proposes an action, and TramAI still prevents that action from becoming authority without policy and human approval.
 
 The repository must then provide enough deterministic and real-provider evidence for a technical judge to verify that the video is not a mocked UI story.

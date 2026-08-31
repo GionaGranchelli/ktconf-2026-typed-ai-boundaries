@@ -31,14 +31,13 @@ A zero-context reviewer can understand this sentence:
 
 ### EU_CLOUD
 
-- [ ] Nebius EU region is recorded.
-- [ ] Region evidence shows an EU location.
-- [ ] Actual GPU platform recorded as NVIDIA hardware.
-- [ ] Exact NIM image tag/digest recorded.
-- [ ] Exact model ID recorded.
+- [ ] Scaleway European deployment is recorded.
+- [ ] Region/location evidence is recorded.
+- [ ] Exact Mistral deployment model ID is recorded.
 - [ ] Endpoint auth enabled.
-- [ ] Registry/NGC secret absent from git/logs/video.
+- [ ] Scaleway secret absent from git/logs/video.
 - [ ] EU_ONLY -> EU real smoke is green.
+- [ ] Temporary Mistral provider is not described as NVIDIA/Nemotron/NIM.
 
 ### LOCAL
 
@@ -135,7 +134,7 @@ Target:
 ```text
 00-08  Real PDF arrives; privacy label shown.
 08-18  Wrong GLOBAL route proposed for EU-only document -> DENIED -> delta 0.
-18-30  Same document -> Nebius France -> NVIDIA H200 -> NIM/Nemotron -> success.
+18-30  Same document -> Scaleway Europe -> Mistral Small 24B -> success.
 30-39  Restricted document -> LOCAL NVIDIA only -> success.
 39-51  Nemotron proposes EUR 18,400 payment -> HUMAN APPROVAL REQUIRED.
 51-56  Approve -> payment 0 -> 1; duplicate remains 1.
@@ -177,9 +176,8 @@ README hero/problem
 Allowed only with corresponding evidence:
 
 - [ ] "Denied before provider invocation."
-- [ ] "EU route ran in Nebius `eu-west1` France."
-- [ ] "EU route ran on NVIDIA H200."
-- [ ] "EU route used NVIDIA NIM."
+- [ ] "EU route ran through the configured Scaleway European deployment."
+- [ ] "EU route used the configured Mistral model."
 - [ ] "Global route used NVIDIA-hosted Nemotron."
 - [ ] "Restricted route stayed on local NVIDIA inference for the demonstrated run."
 - [ ] "High-risk payment required human approval."

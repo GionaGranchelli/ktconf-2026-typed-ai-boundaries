@@ -24,7 +24,7 @@ Create one bounded, rehearsable command flow that produces the exact visible pro
 1. Drop/open EU-confidential PDF.
 2. Show trusted metadata read locally.
 3. Propose GLOBAL -> TramAI DENIED -> GLOBAL delta 0.
-4. Route to EU_CLOUD -> Nebius/NVIDIA NIM success.
+4. Route to EU_CLOUD -> Scaleway/Mistral success (temporary provider).
 5. Show RESTRICTED -> LOCAL only.
 6. Show Nemotron proposes €18,400 payment.
 7. TramAI suspends -> human approve -> payment 0 -> 1.

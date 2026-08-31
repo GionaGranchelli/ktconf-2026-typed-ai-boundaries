@@ -16,7 +16,7 @@ Build a bounded proof suite covering:
 
 - PUBLIC -> GLOBAL success;
 - EU-confidential -> GLOBAL denied before invocation;
-- EU-confidential -> Nebius EU success;
+- EU-confidential -> Scaleway/Mistral EU success;
 - RESTRICTED -> EU denied and GLOBAL denied;
 - RESTRICTED -> LOCAL success;
 - malformed/missing metadata -> fail closed, zero provider calls;

@@ -119,17 +119,18 @@ Owns:
 
 Do not change EU or global policy semantics.
 
-### Track D — Nebius / EU NVIDIA
+### Track D — EU managed inference
 
 Owns:
 
-- Nebius account/region/quota verification;
-- H200 endpoint deployment;
-- NGC/NIM registry secret handling;
-- NIM startup and model compatibility;
-- endpoint auth;
+- Scaleway Generative APIs European deployment;
+- OpenAI-compatible endpoint and model verification;
+- endpoint auth and secret handling;
 - EU provider smoke proof;
 - infrastructure evidence.
+
+The active P0 route is Scaleway/Mistral. The failed Nebius investigation is
+historical and must not be resumed unless the task contract explicitly changes.
 
 This track should first prove the endpoint independently of the Spring application.
 
@@ -233,9 +234,9 @@ A claim can be made when the repository has a repeatable test/evidence path.
 Examples:
 
 - provider invocation delta is zero for a denied route;
-- Nebius endpoint reports/was created in `eu-west1`;
-- selected VM platform is NVIDIA H200;
-- NIM image tag/digest is recorded;
+- Scaleway European deployment is recorded;
+- configured EU model ID is recorded;
+- OpenAI-compatible `/models` and chat proofs are recorded;
 - payment ledger changed 0 -> 1 once;
 - audit chain verifier passed.
 

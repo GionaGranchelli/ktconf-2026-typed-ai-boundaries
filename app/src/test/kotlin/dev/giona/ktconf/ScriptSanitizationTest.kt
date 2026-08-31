@@ -6,9 +6,9 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * The deterministic stage scripts must sanitize BOTH real-provider
- * families (local z840/Qwen AND cloud DeepSeek). A key accidentally
- * present in the operator's shell must never reach the stage process.
+ * The deterministic stage scripts must sanitize every real-provider family.
+ * A key accidentally present in the operator's shell must never reach the
+ * stage process.
  */
 class ScriptSanitizationTest {
 
@@ -21,6 +21,18 @@ class ScriptSanitizationTest {
         "KTCONF_DEMO_CLOUD_BASE_URL",
         "KTCONF_DEMO_CLOUD_MODEL",
         "KTCONF_DEMO_CLOUD_API_KEY",
+        "KTCONF_GTC_LOCAL_NVIDIA_BASE_URL",
+        "KTCONF_GTC_LOCAL_NVIDIA_MODEL",
+        "KTCONF_GTC_LOCAL_NVIDIA_API_KEY",
+        "KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL",
+        "KTCONF_GTC_GLOBAL_NVIDIA_MODEL",
+        "KTCONF_GTC_GLOBAL_NVIDIA_API_KEY",
+        "KTCONF_GTC_EU_SCALEWAY_BASE_URL",
+        "KTCONF_GTC_EU_SCALEWAY_MODEL",
+        "KTCONF_GTC_EU_SCALEWAY_API_KEY",
+        "SCW_BASE_URL",
+        "SCW_MODEL",
+        "SCW_API_KEY",
     )
 
     @Test
