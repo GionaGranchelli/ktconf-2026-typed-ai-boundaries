@@ -18,7 +18,7 @@ const totalNvidia = computed(() => {
   return (
     (props.stats.globalNvidiaInvocationCount ?? 0) +
     (props.stats.localNvidiaInvocationCount  ?? 0) +
-    (props.stats.euScalewayInvocationCount   ?? 0)
+    (props.stats.euNvidiaInvocationCount     ?? 0)
   )
 })
 
@@ -26,10 +26,10 @@ const nvidiaSessionDelta = computed(() => {
   if (!props.sessionBefore || !props.stats) return null
   const before = (props.sessionBefore.globalNvidiaInvocationCount ?? 0)
                + (props.sessionBefore.localNvidiaInvocationCount  ?? 0)
-               + (props.sessionBefore.euScalewayInvocationCount   ?? 0)
+               + (props.sessionBefore.euNvidiaInvocationCount     ?? 0)
   const after  = (props.stats.globalNvidiaInvocationCount ?? 0)
                + (props.stats.localNvidiaInvocationCount  ?? 0)
-               + (props.stats.euScalewayInvocationCount   ?? 0)
+               + (props.stats.euNvidiaInvocationCount     ?? 0)
   return after - before
 })
 

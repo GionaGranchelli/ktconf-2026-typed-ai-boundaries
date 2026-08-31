@@ -196,17 +196,26 @@ async function proveReplayRejection() {
   busy.value = true
   localError.value = ''
   try {
-    await approve(approval.value.approvalId)
-    replayResult.value = {
-      rejected: false,
-      message: 'UNEXPECTED: duplicate approval was not rejected by TramAI.',
-    }
-  } catch (e) {
-    // 409 / 403 is the expected, correct outcome
-    replayResult.value = {
-      rejected: true,
-      status: e.status,
-      message: e.message || 'Duplicate approval rejected.',
+    const statsBeforeReplay = await getStats().catch(() => statsAfter.value)
+    try {
+      await approve(approval.value.approvalId)
+      replayResult.value = {
+        rejected: false,
+        message: 'UNEXPECTED: duplicate approval was executed by backend.',
+      }
+    } catch (e) {
+      const statsAfterReplay = await getStats().catch(() => statsAfter.value)
+      const paymentDelta = (statsAfterReplay?.paymentExecutionCount ?? 0) - (statsBeforeReplay?.paymentExecutionCount ?? 0)
+      const isExpectedError = (e.status === 409 || e.status === 403 || e.status === 400 || e.status === 422)
+      const exactOnceVerified = isExpectedError && paymentDelta === 0
+
+      replayResult.value = {
+        rejected: exactOnceVerified,
+        status: e.status,
+        message: exactOnceVerified
+          ? `Duplicate approval rejected by TramAI (HTTP ${e.status}). Payment count unchanged (${statsAfterReplay?.paymentExecutionCount ?? 1}).`
+          : `Replay test failed: ${e.message || `HTTP ${e.status}`}`,
+      }
     }
   } finally {
     try { statsAfter.value = await getStats(); emit('stats-updated', statsAfter.value) } catch {}
@@ -225,10 +234,22 @@ async function runForbiddenRouteProof() {
       await attemptForbiddenRoute('RESTRICTED')
       // Should never succeed — TramAI must deny
       const after = await getStats()
-      denialResult.value = { error: null, before, after, unexpectedSuccess: true }
+      denialResult.value = { error: null, before, after, unexpectedSuccess: true, isDenied: false }
     } catch (e) {
       const after = await getStats()
-      denialResult.value = { error: e, before, after, unexpectedSuccess: false }
+      const isDenied = (e.status === 403)
+      const reasonCode = (typeof e.body === 'object' && (e.body?.reasonCode || e.body?.message))
+        ? (e.body.reasonCode || e.body.message)
+        : (e.message || 'classification-routing-blocked')
+      denialResult.value = {
+        error: e,
+        status: e.status,
+        reasonCode,
+        isDenied,
+        before,
+        after,
+        unexpectedSuccess: false,
+      }
     }
   } finally {
     denialBusy.value = false
@@ -309,11 +330,11 @@ function reset() {
         <div v-if="denialResult.unexpectedSuccess" class="denial-result__fail">
           ⚠ UNEXPECTED: provider was reached — TramAI policy breach!
         </div>
-        <template v-else>
+        <template v-else-if="denialResult.isDenied && providerDeltaZero">
           <div class="denial-result__status">
             <span class="pill pill--denied">403 DENIED</span>
             <span class="denial-result__reason font-mono">
-              {{ denialResult.error?.body?.reasonCode || denialResult.error?.message || 'classification-routing-blocked' }}
+              {{ denialResult.reasonCode }}
             </span>
           </div>
           <div class="denial-result__counters">
@@ -327,16 +348,20 @@ function reset() {
             </div>
             <div class="metric-cell">
               <span class="metric-label">Delta</span>
-              <span class="metric-value" :class="{ 'text-accent': providerDeltaZero }">
-                {{ providerDeltaZero ? '0 ✓' : deltaGlobal }}
-              </span>
+              <span class="metric-value text-accent">0 ✓</span>
             </div>
             <div class="metric-cell">
               <span class="metric-label">Provider status</span>
-              <span class="metric-value" style="font-size:0.85rem;">
-                {{ providerDeltaZero ? 'NEVER INVOKED' : 'INVOKED ⚠' }}
-              </span>
+              <span class="metric-value" style="font-size:0.85rem;">NEVER INVOKED</span>
             </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="denial-result__status">
+            <span class="pill pill--high">PROOF FAILED (HTTP {{ denialResult.status || 'ERROR' }})</span>
+            <span class="denial-result__reason font-mono">
+              {{ denialResult.reasonCode }}
+            </span>
           </div>
         </template>
       </div>

@@ -23,7 +23,7 @@ export const boundaries = [
     title: 'EU CLOUD',
     subtitle: 'Regional cloud · EU data boundary',
     stack: ['Nebius AI Cloud · eu-west1', 'NVIDIA H200 SXM', 'NVIDIA NIM · Nemotron'],
-    statsKey: 'euScalewayInvocationCount',
+    statsKey: 'euNvidiaInvocationCount',
     description:
       'Data stays within EU jurisdiction (France). Runs on NVIDIA H200 via Nebius. Required for CONFIDENTIAL + EU_ONLY.',
   },
