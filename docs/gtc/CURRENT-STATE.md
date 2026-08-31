@@ -220,15 +220,18 @@ rejection occurs before `InvoiceService` is called, so no provider operation is
 entered; the existing route-denial integration test remains the explicit
 provider-counter proof for TramAI's deny-before-invocation behavior.
 
-### task-007 — governed payment on NVIDIA path
+### task-007 — governed payment on the LOCAL NVIDIA execution boundary
 
 Task-007 implementation is complete and in review. An explicit
 `/invoices/analyze/local-nvidia` route uses the local NVIDIA typed operation
 with the existing `schedule-payment` tool metadata, then TramAI suspends the
 high-value action for approval. Deterministic tests prove payment count 0 at
 suspension, 0 -> 1 after approval, duplicate rejection, denial, and valid
-audit evidence. The real payment smoke is not yet claimed: the local endpoint
-at `127.0.0.1:1234` was unreachable during verification.
+audit evidence. The real Qwen-on-RTX payment smoke passed: HTTP 202 suspension,
+approval 0 -> 1, duplicate HTTP 409 with count unchanged, and valid audit
+chain. Sanitized evidence is in `docs/gtc/evidence/local-nvidia-payment-smoke.md`.
+Nemotron was evaluated for this action path but is not claimed as a payment
+proposer.
 
 ### task-008 — contest evidence and proof suite (REVIEW)
 
@@ -253,10 +256,10 @@ The assessment/tool prompt now states the amount-based risk/action rules and
 the successful-tool-result transition explicitly. The canonical
 `payment-local-invoice.pdf` denial test proves `202` suspension, payment count
 `0`, denial, and subsequent resume rejection with `409`. The full deterministic
-suite and 20/20 rehearsal pass. Real Nemotron payment and audit evidence remain
-pending local endpoint availability.
+suite and 20/20 rehearsal pass. Real Qwen payment and audit evidence are
+recorded; real Nemotron payment is not claimed.
 
-### task-012 — TramAI-native provenance and sovereign evidence (REVIEW)
+### task-012 — TramAI-native provenance and sovereign evidence (DONE)
 
 A follow-on task has been created to preserve `ClassificationSource.RULE_BASED`
 for trusted PDF metadata, retain `DECLARED` for ordinary requests, and expose
@@ -439,7 +442,7 @@ LOCAL_ONLY -> local NVIDIA RTX -> success
 EU_ONLY forced -> GLOBAL -> denied, global invocation delta 0
 LOCAL_ONLY forced -> EU -> denied, EU invocation delta 0
 
-Nemotron -> schedule-payment(EUR 18,400)
+Qwen on local NVIDIA RTX -> schedule-payment(EUR 18,400)
 TramAI -> HUMAN_REQUIRED
 payment count -> 0
 approve -> 1

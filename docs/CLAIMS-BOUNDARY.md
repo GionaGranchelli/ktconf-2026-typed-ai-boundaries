@@ -109,9 +109,11 @@ What this demo proves — and what it deliberately does **not** claim.
   request forced to cloud is denied BEFORE DeepSeek is called (cloud
   invocation delta 0).
 - The real path proves the typed contract and boundary behavior against real
-  models. The task-007 contest claim additionally requires a real local
-  Nemotron payment proposal and real workflow audit evidence; deterministic
-  payment tests are not a substitute for that pending live proof.
+  models. The task-007 contest action proof uses Qwen
+  `qwen/qwen3.8-27b` on the local NVIDIA boundary; it proves a real payment
+  proposal, TramAI approval suspension/resume, exactly-once execution and
+  workflow audit evidence. Nemotron typed inference remains separately proven;
+  no Nemotron payment proposal is claimed.
 
 ## Evidence rule
 

@@ -61,7 +61,8 @@ table while also selecting the named contest proof tests directly. The
 publish-safe evidence index is `docs/gtc/evidence/README.md`; the combined
 live runner is `scripts/gtc-real-boundaries-smoke`. Live results are not
 inferred from the offline gate. Task-006 combined real PDF evidence and
-task-007 real Nemotron payment/audit evidence remain pending infrastructure
+task-007 real local-Qwen payment/audit evidence is recorded; Nemotron payment
+is not claimed
 availability.
 
 Latest execution: `./scripts/gtc-evidence` passed, including the full suite,

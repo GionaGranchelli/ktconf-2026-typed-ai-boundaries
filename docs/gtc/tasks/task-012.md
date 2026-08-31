@@ -1,6 +1,6 @@
 # task-012 — TramAI-native provenance and sovereign evidence
 
-Status: `REVIEW`
+Status: `DONE`
 Track: K
 Milestone: M8
 Depends on: task-005

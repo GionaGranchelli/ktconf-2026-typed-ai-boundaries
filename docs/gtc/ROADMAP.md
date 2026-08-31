@@ -333,15 +333,15 @@ Every matrix cell is tested and the forbidden cells deny before provider invocat
 
 ---
 
-# M6 — Governed consequential action with real Nemotron
+# M6 — Governed consequential action on the LOCAL NVIDIA boundary
 
 **Priority:** P0  
 **Goal:** Reuse the existing payment governance to prove model output is not authorization.
 
 ## Tasks
 
-- [ ] Run the existing payment/tool-capable path with a real Nemotron provider.
-- [ ] Ensure the model can propose/invoke `schedule-payment` through the existing tool contract.
+- [x] Run the existing payment/tool-capable path with a real local Qwen model on NVIDIA RTX.
+- [x] Ensure the model can propose/invoke `schedule-payment` through the existing tool contract.
 - [ ] Preserve tool metadata:
   - permission `payment.schedule`;
   - risk `HIGH`;
@@ -428,7 +428,7 @@ Optional P2: add prompt-injection documents, but do not make system safety depen
 08-18 App proposes illegal global route; TramAI denies; provider delta 0.
 18-30 Same EU-only document succeeds on Nebius France / NVIDIA H200 / NIM.
 30-39 Restricted PDF -> LOCAL NVIDIA only.
-39-51 Nemotron proposes EUR 18,400 payment; TramAI pauses for human approval.
+39-51 Local NVIDIA Qwen action model proposes EUR 18,400 payment; TramAI pauses for human approval.
 51-56 Approve; execution count 0 -> 1; duplicate stays 1.
 56-60 Audit chain VALID + tagline.
 ```

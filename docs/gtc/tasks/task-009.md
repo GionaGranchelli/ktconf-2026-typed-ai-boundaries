@@ -26,7 +26,7 @@ Create one bounded, rehearsable command flow that produces the exact visible pro
 3. Propose GLOBAL -> TramAI DENIED -> GLOBAL delta 0.
 4. Route to EU_CLOUD -> Scaleway/Mistral success (temporary provider).
 5. Show RESTRICTED -> LOCAL only.
-6. Show Nemotron proposes €18,400 payment.
+6. Show the local NVIDIA Qwen action model proposes €18,400 payment.
 7. TramAI suspends -> human approve -> payment 0 -> 1.
 8. Show duplicate reject/audit `VALID` as final proof.
 9. End card: `The model reasons. TramAI governs.`

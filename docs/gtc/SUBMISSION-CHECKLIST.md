@@ -136,7 +136,7 @@ Target:
 08-18  Wrong GLOBAL route proposed for EU-only document -> DENIED -> delta 0.
 18-30  Same document -> Scaleway Europe -> Mistral Small 24B -> success.
 30-39  Restricted document -> LOCAL NVIDIA only -> success.
-39-51  Nemotron proposes EUR 18,400 payment -> HUMAN APPROVAL REQUIRED.
+39-51  Local NVIDIA Qwen action model proposes EUR 18,400 payment -> HUMAN APPROVAL REQUIRED.
 51-56  Approve -> payment 0 -> 1; duplicate remains 1.
 56-60  Audit chain VALID + "The model reasons. TramAI governs."
 ```

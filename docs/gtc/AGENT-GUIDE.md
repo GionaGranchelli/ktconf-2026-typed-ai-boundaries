@@ -155,7 +155,7 @@ Owns:
 
 - full document -> provider -> typed result flow;
 - forced-route denial scenarios;
-- payment/approval path with real Nemotron;
+- payment/approval path with a real local action model on NVIDIA RTX;
 - contest scripts;
 - evidence pack;
 - demo rehearsal.

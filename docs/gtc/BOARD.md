@@ -32,12 +32,11 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
 | [task-006](tasks/task-006.md) | REVIEW | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
-| [task-007](tasks/task-007.md) | REVIEW | G | 006 | Adapt payment approval flow to real Nemotron path |
+| [task-007](tasks/task-007.md) | REVIEW | G | 006 | Govern payment on the LOCAL NVIDIA execution boundary |
 | [task-008](tasks/task-008.md) | REVIEW | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
-| [task-011](tasks/task-011.md) | REVIEW | UI | 005 implementation; final binds 006–008 | Build Vue/Vite GTC Governance Console |
-| [task-009](tasks/task-009.md) | BLOCKED | I | 008,011 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
+| [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
-| [task-012](tasks/task-012.md) | REVIEW | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
+| [task-012](tasks/task-012.md) | DONE | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
 
 ## Evidence checkpoint
 
@@ -77,8 +76,10 @@ classification-aligned residency combinations. Deterministic tests prove one
 allowed invocation per boundary; the confidential-EU forced-global PDF test
 proves HTTP 403 and global counter delta `0`, followed by EU success. Individual
 real route proofs exist, but a combined real PDF run remains pending. Task-007 is
-in `REVIEW`: deterministic payment integration is complete, but its real
-Nemotron payment smoke is pending local endpoint availability. Task-008 is now
+in `REVIEW`: deterministic payment integration is complete and the real local
+Qwen-on-RTX payment smoke passed; its sanitized evidence is recorded in
+[`evidence/local-nvidia-payment-smoke.md`](evidence/local-nvidia-payment-smoke.md).
+Task-008 is now
 the owner of the remaining real-provider evidence runs; tasks 009–010 remain
 blocked behind task-008.
 
@@ -97,16 +98,49 @@ Latest closure checkpoint: the assessment/tool prompt explicitly defines the
 EUR 5,000 risk/action rule and the post-`schedule-payment` state transition.
 The canonical payment PDF denial test proves denial leaves payment count at
 `0` and later continuation returns `409`. Full deterministic tests and
-rehearsal remain green; no real Nemotron payment or combined real-PDF claim is
-made.
+rehearsal remain green. The real Qwen-on-RTX payment proof passed and is
+documented; no real Nemotron payment or combined real-PDF claim is made.
 
-Task-011 is in `REVIEW`: Vue/Vite GTC Governance Console rebased and integrated
-against contest head (`npm run build` passes 28 modules, 0 errors, 108 kB JS / 23.5 kB CSS).
-Live Governance hero view includes WorkflowTrace timeline, fail-closed Policy Denial proof
-(using `POST /invoices/boundary/confidential-eu-global`), fail-closed Replay protection proof,
-AuditTimeline, and ProofStrip hero summary. Directly consumes backend `PdfAwaitingApprovalResponse`
-and uses `euScalewayInvocationCount`.
+Task-011 is maintained on the separate `task/011-gtc-governance-console`
+branch and was not modified here. Before merging it, update the EU card and
+counter to the active Scaleway/Mistral implementation: `Scaleway Europe`,
+`Generative APIs`, `Mistral Small 24B`, and `euScalewayInvocationCount` (or a
+generic EU-provider label). The UI must not claim Nebius, H200, NVIDIA NIM, or
+Nemotron for the temporary EU route.
 
-Task-012 is a TramAI-native enhancement task. It covers
-preserving TramAI classification provenance across boundaries and exposing the
-native sovereign evidence pack via `GET /governance/sovereign-evidence`.
+Task-012 is a DONE TramAI-native enhancement task. It covers
+`RULE_BASED` PDF provenance and sovereign evidence-pack exposure, with local
+artifact verification and telemetry de-duplication bounded as optional work.
+It is planned separately from the current task-008 evidence review. Its
+implementation is complete and in `REVIEW`; deterministic verification passed.
+The native pack is exposed at `/governance/sovereign-evidence` and documented
+in [`evidence/tramai-sovereign-evidence.md`](evidence/tramai-sovereign-evidence.md).
+Local Nemotron artifact verification remains explicitly unclaimed because the
+pinned Spring composition does not configure an artifact manifest/verifier.
+
+## Critical path
+
+```text
+001 ─┐
+002 ─┤
+003 ─┤
+004 ─┼─> 006 -> 007 -> 008 -> 009 -> 010
+005 ─┘
+```
+
+Tasks 001–005 are intentionally parallel. Do not serialize them unless resource contention requires it.
+
+## Global definition of done
+
+The branch is submission-ready only when all of the following are true:
+
+1. A real PDF is accepted only after trusted classification/residency metadata is parsed locally.
+2. The same application exposes three governed execution boundaries: NVIDIA-backed `LOCAL` and `GLOBAL_CLOUD`, plus temporary Scaleway/Mistral `EU_CLOUD`.
+3. At least one real successful inference is proven for each boundary.
+4. A disallowed route is denied before provider invocation and the corresponding provider counter delta is exactly `0`.
+5. A real local model on NVIDIA RTX can propose the governed payment action but cannot execute it without TramAI's human-approval gate.
+6. Approval resumes exactly once in demo scope; duplicate approval is rejected.
+7. Hash-chained audit evidence verifies.
+8. The deterministic offline path remains green.
+9. No secrets appear in source, logs, screenshots, video, evidence, or Git history.
+10. A reviewer can understand the project and reproduce the primary proof from the repository without reading chat history.

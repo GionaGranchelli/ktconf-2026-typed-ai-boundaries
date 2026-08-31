@@ -20,7 +20,7 @@ The contest demo should make this understandable in under 60 seconds:
    - `EU_CLOUD`: temporary Scaleway Generative APIs Europe + Mistral Small 24B.
    - `GLOBAL_CLOUD`: NVIDIA-hosted NIM API from Build.NVIDIA.com.
 5. A deliberately wrong route is denied **before provider invocation** and the provider counter proves delta `0`.
-6. Nemotron proposes a consequential payment action.
+6. The local NVIDIA action model proposes a consequential payment action.
 7. TramAI suspends execution because the tool is `HIGH` risk and requires human approval.
 8. Approval resumes the workflow exactly once; duplicate approval remains rejected.
 9. Hash-chained audit evidence verifies the execution.
@@ -187,7 +187,7 @@ The branch is not submission-ready until all P0 proofs below are real and repeat
 4. Forced `EU_ONLY -> GLOBAL_CLOUD` is denied before provider invocation; global NVIDIA invocation delta is `0`.
 5. Forced `LOCAL_ONLY -> EU_CLOUD` is denied before provider invocation; EU provider invocation delta is `0`.
 6. A real PDF enters through the same application and metadata is parsed locally before inference.
-7. Nemotron proposes a payment action; TramAI returns `AWAITING_APPROVAL` and payment count remains `0`.
+7. The local NVIDIA Qwen action model proposes a payment action; TramAI returns `AWAITING_APPROVAL` and payment count remains `0`.
 8. Approve once -> payment count `1`.
 9. Approve the same continuation again -> rejected, payment count stays `1`.
 10. Audit/evidence endpoint reports an ordered valid chain for the execution.
