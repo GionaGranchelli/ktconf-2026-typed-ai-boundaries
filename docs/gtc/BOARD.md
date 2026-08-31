@@ -34,7 +34,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-006](tasks/task-006.md) | BLOCKED | F | 001,002,003,004,005 | Integrate three governed NVIDIA execution boundaries |
 | [task-007](tasks/task-007.md) | BLOCKED | G | 006 | Adapt payment approval flow to real Nemotron path |
 | [task-008](tasks/task-008.md) | BLOCKED | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
-| [task-011](tasks/task-011.md) | IN_PROGRESS | UI | 005 implementation; final binds 006–008 | Build Vue/Vite GTC Governance Console |
+| [task-011](tasks/task-011.md) | REVIEW | UI | 005 implementation; final binds 006–008 | Build Vue/Vite GTC Governance Console |
 | [task-009](tasks/task-009.md) | BLOCKED | I | 008,011 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
 
@@ -51,11 +51,12 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
   synthetic fixtures, and fail-closed parser tests are complete. The focused
   parser suite passed 5/5 and the full app suite passed. A multipart endpoint
   counter test remains follow-on hardening.
-- task-011 is `IN_PROGRESS` on `task/011-gtc-governance-console`: Vue/Vite
-  source is being built against the real PDF, stats, approval, and evidence
-  endpoints. Final visual proof remains dependent on tasks 006–008. No UI
-  build is claimed until npm dependencies can be installed and `npm run build`
-  is executed in a networked environment.
+- task-011 is `REVIEW` on `task/011-gtc-governance-console`: Vue/Vite multi-view
+  GTC Governance Console built and verified (`npm run build` passes 28 modules,
+  0 errors, 108 kB JS / 23.5 kB CSS). Live Governance hero view includes
+  WorkflowTrace timeline, fail-closed Policy Denial proof, fail-closed Replay
+  protection proof, AuditTimeline, and ProofStrip hero summary. Sourced from
+  real backend endpoints (`/invoices/analyze-pdf`, `/approvals/*`, `/governance/*`).
 
 Tasks 006–010 remain on their dependency chain. Task-011 can progress in
 parallel because the task-005 API implementation already exists, but task-009
