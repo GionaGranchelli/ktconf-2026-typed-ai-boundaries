@@ -59,7 +59,7 @@ interface InvoiceAnalysisService {
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
-    /** Explicit contest smoke operation for local NVIDIA Nemotron. */
+    /** Explicit contest typed-inference operation for the configured local NVIDIA model. */
     @Operation(
         prompt = ASSESSMENT_PROMPT,
         model = "local-nvidia-invoice-model",

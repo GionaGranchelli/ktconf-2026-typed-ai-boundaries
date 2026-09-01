@@ -15,12 +15,14 @@ import OverviewPage      from './views/OverviewPage.vue'
 import DocumentFlowPage  from './views/DocumentFlowPage.vue'
 import PolicyMatrixPage  from './views/PolicyMatrixPage.vue'
 import EvidencePage      from './views/EvidencePage.vue'
+import HistoryPage       from './views/HistoryPage.vue'
 
 // ── Navigation ─────────────────────────────────────────────────
 const views = [
   { id: 'live-governance', label: 'Live Governance', icon: 'play' },
   { id: 'policy-matrix',   label: 'Policy Matrix',   icon: 'shield' },
   { id: 'evidence',        label: 'Evidence',         icon: 'chain' },
+  { id: 'history',         label: 'Document History', icon: 'file' },
   { id: 'overview',        label: 'Overview',          icon: 'grid' },
 ]
 
@@ -138,14 +140,17 @@ function onStatsUpdated(stats) {
           TramAI · <strong>{{ pageTitle }}</strong>
         </div>
         <div class="topbar__right">
-          <!-- Live total NVIDIA calls pill -->
+          <button class="btn btn--ghost btn--sm" @click="activeView = 'history'">
+            Document history
+          </button>
+          <!-- Live total provider calls pill -->
           <span v-if="globalStats" style="font-size:11.5px;color:var(--muted);">
-            NVIDIA calls:
+            Provider calls:
             <strong style="color:var(--accent-bright);font-family:var(--font-mono)">
               {{
                 (globalStats.globalNvidiaInvocationCount ?? 0)
                 + (globalStats.localNvidiaInvocationCount  ?? 0)
-                + (globalStats.euNvidiaInvocationCount     ?? 0)
+                + (globalStats.euScalewayInvocationCount   ?? 0)
               }}
             </strong>
           </span>
@@ -169,6 +174,7 @@ function onStatsUpdated(stats) {
           v-else-if="activeView === 'overview'"
           :stats="globalStats"
           :session-before="sessionBefore"
+          @navigate-history="activeView = 'history'"
         />
 
         <DocumentFlowPage
@@ -183,6 +189,11 @@ function onStatsUpdated(stats) {
         <EvidencePage
           v-else-if="activeView === 'evidence'"
           :stats="globalStats"
+        />
+
+        <HistoryPage
+          v-else-if="activeView === 'history'"
+          @navigate-home="activeView = 'live-governance'"
         />
       </main>
     </div>

@@ -3,6 +3,9 @@ package dev.giona.ktconf.application
 import dev.giona.ktconf.ai.InvoiceAnalysisService
 import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.domain.InvoiceAssessment
+import dev.giona.ktconf.domain.InvoiceAction
+import dev.giona.ktconf.domain.InvoiceDocument
+import dev.giona.ktconf.domain.InvoiceRisk
 import dev.giona.ktconf.domain.toClassifiedDocument
 import dev.giona.ktconf.observability.GovernanceTelemetry
 import dev.tramai.core.exception.ApprovalSuspendedException
@@ -49,14 +52,15 @@ class InvoiceService(
             }
         return telemetry.traceModelCall(document.classification, route) {
             try {
+                val rawAssessment = when (route) {
+                    InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
+                    InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
+                    InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidiaPayment(document)
+                    InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(document)
+                    InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
+                }
                 AnalyzeOutcome.Typed(
-                    assessment = when (route) {
-                        InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
-                        InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
-                        InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidiaPayment(document)
-                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(document)
-                        InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
-                    },
+                    assessment = reconcileAssessment(document.payload, rawAssessment),
                     selectedRoute = route,
                     classificationSource = classificationSource,
                 )
@@ -123,6 +127,50 @@ class InvoiceService(
         return telemetry.traceModelCall(document.classification, InvoiceRoute.EU_CLOUD) {
             ai.analyzeEuScaleway(document)
         }
+    }
+
+    /**
+     * The model may return a well-typed but semantically inconsistent result.
+     * Trusted invoice fields and the deterministic approval threshold remain
+     * authoritative; this prevents a model from labeling €1,200 as HIGH or
+     * changing the amount shown to the operator.
+     */
+    private fun reconcileAssessment(invoice: InvoiceDocument, model: InvoiceAssessment): InvoiceAssessment {
+        val highRisk = invoice.amountCents > APPROVAL_THRESHOLD_CENTS
+        val expectedRisk = if (highRisk) InvoiceRisk.HIGH else InvoiceRisk.LOW
+        val expectedAction = when {
+            !highRisk -> InvoiceAction.REVIEW_ONLY
+            model.recommendedAction == InvoiceAction.SCHEDULE_PAYMENT -> InvoiceAction.SCHEDULE_PAYMENT
+            else -> InvoiceAction.REQUEST_HUMAN_APPROVAL
+        }
+        val inconsistent = model.invoiceId != invoice.invoiceId ||
+            model.supplierName != invoice.supplierName ||
+            model.amountCents != invoice.amountCents ||
+            model.currency != invoice.currency ||
+            model.risk != expectedRisk ||
+            model.recommendedAction != expectedAction
+        return model.copy(
+            invoiceId = invoice.invoiceId,
+            supplierName = invoice.supplierName,
+            amountCents = invoice.amountCents,
+            currency = invoice.currency,
+            risk = expectedRisk,
+            recommendedAction = expectedAction,
+            rationale = if (inconsistent) trustedRationale(invoice, highRisk) else model.rationale,
+        )
+    }
+
+    private fun trustedRationale(invoice: InvoiceDocument, highRisk: Boolean): String {
+        val euros = "%.2f".format(java.util.Locale.ROOT, invoice.amountCents / 100.0)
+        return if (highRisk) {
+            "Trusted invoice amount is €$euros and exceeds the €5,000 approval threshold; human approval is required."
+        } else {
+            "Trusted invoice amount is €$euros and is below the €5,000 approval threshold; no human approval is required."
+        }
+    }
+
+    private companion object {
+        const val APPROVAL_THRESHOLD_CENTS = 500_000L
     }
 }
 

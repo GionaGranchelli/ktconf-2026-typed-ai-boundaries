@@ -23,7 +23,7 @@ Start the Spring backend on port 8080, then:
 ./scripts/gtc-ui-dev
 ```
 
-Vite runs on `http://localhost:5173` and proxies API requests to Spring. Override the backend with `GTC_BACKEND_URL` if needed.
+Vite runs on `http://localhost:3001` and proxies API requests to Spring. Override the backend with `GTC_BACKEND_URL` if needed.
 
 ## Production build
 

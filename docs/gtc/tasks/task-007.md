@@ -1,6 +1,6 @@
 # task-007 — Governed payment on the LOCAL NVIDIA execution boundary
 
-Status: `REVIEW`
+Status: `DONE`
 Track: G
 Milestone: M6
 Depends on: task-006

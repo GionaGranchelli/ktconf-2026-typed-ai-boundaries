@@ -80,7 +80,7 @@ Synthetic fixtures available:
 
 ## F. Model vs authority proof
 
-- [ ] Real Nemotron can produce/propose the payment action in the contest path.
+- [x] Real Qwen on the local NVIDIA RTX boundary produces/proposes the payment action in the contest path; Nemotron payment is not claimed.
 - [ ] `schedule-payment` remains `HIGH` risk.
 - [ ] `HUMAN_REQUIRED` remains enforced by runtime.
 - [ ] At suspension, payment count = `0`.

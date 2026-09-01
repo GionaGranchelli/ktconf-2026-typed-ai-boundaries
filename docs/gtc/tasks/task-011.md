@@ -1,8 +1,8 @@
 # task-011 — GTC Governance Console (Vue/Vite)
 
-Status: **IN_PROGRESS**  
+Status: **REVIEW**  
 Track: UI / submission presentation  
-Owner branch: `task/011-gtc-governance-console`  
+Owner branch: `contest/gtc-nvidia-submission`  
 Primary dependency: task-005 PDF contract is implemented and in review.  
 Final acceptance depends on tasks 006–008 exposing the completed three-boundary, payment, and evidence flows.
 
@@ -33,8 +33,8 @@ real PDF
 3. Provide drag/drop PDF upload backed by `POST /invoices/analyze-pdf`.
 4. Read governance counters from `GET /governance/stats` before/after execution.
 5. Visualize all three target NVIDIA boundaries:
-   - LOCAL — NVIDIA RTX / local Nemotron;
-   - EU_CLOUD — Nebius France / NVIDIA H200 / NVIDIA NIM / Nemotron;
+   - LOCAL — NVIDIA RTX / local Qwen action model;
+   - EU_CLOUD — Scaleway Europe / Generative APIs / Mistral Small 24B;
    - GLOBAL_CLOUD — Build.NVIDIA.com / hosted Nemotron.
 6. Clearly distinguish `ALLOWED`, `DENIED`, and `SELECTED` states.
 7. Never relabel legacy `LOCAL` / `CLOUD` responses as NVIDIA routes while task-006 is incomplete.
@@ -86,8 +86,8 @@ Tasks 006–008 may extend/normalize these contracts. The UI should adapt withou
 - [x] stats/counter calls wired;
 - [x] approval/deny/evidence calls wired;
 - [x] legacy route responses are shown honestly rather than mapped to NVIDIA;
-- [ ] dependency install succeeds in a networked environment;
-- [ ] `npm run build` passes;
+- [x] dependency install succeeds in a networked environment;
+- [x] `npm run build` passes;
 - [ ] visual smoke completed against a running Spring app.
 
 ### Final task acceptance
@@ -128,7 +128,29 @@ Record browser-visible outputs and exact backend counters in the handoff.
 
 ## Current checkpoint
 
-The first Vue/Vite slice has been authored on this branch. The execution environment used to create the branch could not resolve `registry.npmjs.org` (`EAI_AGAIN`), so dependency installation and `npm run build` are explicitly **not claimed yet**. The source uses current Vue 3 / Vite 8 versions and must be verified by the next networked agent before REVIEW.
+The Vue/Vite console is now bootable from this contest branch. Its entrypoint is
+`frontend/index.html` → `frontend/src/main.js` → `frontend/src/App.vue`; development runs on port 3001 and
+proxies the Spring API on port 8080. `npm install` and `npm run build` pass on
+Node 22.23.1 / npm 10.9.8. The remaining gate is a browser visual smoke against
+the running Spring application; no live provider or frontend-generated claim is
+being added by this UI task.
+
+The workflow trace now has an explicit terminal `Flow complete` state. A typed
+result with no pending tool call completes there and labels tool interception
+and human decision `NOT REQUIRED`; a high-risk result still proceeds through
+TramAI suspension, human decision, evidence, and then completion. This is a
+presentation state derived from backend responses, not frontend authorization.
+The consequential-action panel also exposes a prominent backend-backed
+Payment status: `NOT REQUESTED`, `AWAITING APPROVAL`, `SCHEDULED` with the
+exactly-once ledger count, or `DENIED` with no side effect.
+For a suspended PDF payment request, section 03 now displays the backend's
+locally parsed invoice context (amount, supplier, invoice ID, and description)
+while clearly labelling it as pre-approval context rather than a typed model
+assessment.
+Slow provider and approval operations now show a full-screen progress overlay
+with the current governed phase and an explicit no-side-effect-until-authorized
+message. Audit evidence is rendered with human-readable lifecycle labels,
+decision/actor/tool details, timestamps, and a shortened event-hash fingerprint.
 
 ## Handoff requirement
 

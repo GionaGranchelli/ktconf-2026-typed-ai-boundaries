@@ -29,6 +29,7 @@ class ApprovalService(
     private val workflowApprovals: WorkflowHumanApprovalGateway,
     private val approvalStore: ApprovalStore,
     private val runtime: SovereignTramaiRuntime,
+    private val history: DocumentHistoryService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -57,6 +58,7 @@ class ApprovalService(
         // transition (APPROVED), so any retry is rejected there (409).
         val assessment = runtime.resumeApprovalTyped<InvoiceAssessment>(command)
         registry.complete(approvalId, PendingApprovalRegistry.State.COMPLETED)
+        history.updateApproval(approvalId, "SCHEDULED", assessment)
         log.info("Approved workflow completed: approvalId={}, invoiceId={}, action={}", approvalId, assessment.invoiceId, assessment.recommendedAction)
         return assessment
     }
@@ -91,6 +93,7 @@ class ApprovalService(
             log.info("Denied continuation was rejected by TramAI: approvalId={}", approvalId)
         }
         registry.complete(approvalId, PendingApprovalRegistry.State.DENIED)
+        history.updateApproval(approvalId, "DENIED")
         log.info("Workflow marked denied: approvalId={}", approvalId)
         return DenyOutcome(
             approvalId = approvalId,

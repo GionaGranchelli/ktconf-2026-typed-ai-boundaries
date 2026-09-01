@@ -1,6 +1,6 @@
 # task-006 — Integrate three governed execution boundaries
 
-Status: `REVIEW`
+Status: `DONE`
 Track: F
 Milestone: M5
 Depends on: task-001, task-002, task-003, task-004, task-005
@@ -24,14 +24,16 @@ Integrate the proven LOCAL NVIDIA, temporary EU_CLOUD Scaleway/Mistral, and GLOB
 
 1. PUBLIC -> GLOBAL_CLOUD -> real Build.NVIDIA.com Nemotron -> typed result.
 2. CONFIDENTIAL + EU -> GLOBAL proposed -> denied, GLOBAL delta 0 -> EU_CLOUD -> Scaleway/Mistral -> typed result.
-3. RESTRICTED -> EU/GLOBAL denied -> LOCAL RTX Nemotron -> typed result.
+3. RESTRICTED -> EU/GLOBAL denied -> LOCAL NVIDIA RTX with Qwen
+   `qwen/qwen3.8-27b` -> typed result.
 
 ## Acceptance criteria
 
 - [x] One process/runtime exposes all three logical providers.
 - [x] Deterministic LOCAL NVIDIA, temporary EU Scaleway/Mistral, and GLOBAL NVIDIA allowed paths succeed.
 - [x] Individual real provider smoke proofs exist for all three boundaries.
-- [ ] One combined real PDF run across all three providers is pending.
+- [x] One combined real PDF run across all three providers passed; sanitized
+  evidence is recorded in `docs/gtc/evidence/combined-real-boundaries.md`.
 - [x] Denied route counters remain delta `0`.
 - [x] Trust zone is not inferred from URL/vendor.
 - [x] No vendor-specific residency checks bypass TramAI.
@@ -51,4 +53,7 @@ RESTRICTED/LOCAL_ONLY. The deterministic application test proves one allowed
 invocation per boundary. The forced confidential-EU-to-GLOBAL PDF proof and
 restricted EU/GLOBAL tests prove denial before invocation with delta `0`, then
 the same confidential PDF succeeds in EU. Real provider evidence remains in
-`docs/gtc/evidence/`; this integration does not claim a combined live PDF run.
+`docs/gtc/evidence/`. The historical task-003 Nemotron proof covers local typed
+inference; the stable live LOCAL model for the combined and action flows is
+Qwen `qwen/qwen3.8-27b` on NVIDIA RTX. The combined real PDF run passed and is
+recorded in `docs/gtc/evidence/combined-real-boundaries.md`.

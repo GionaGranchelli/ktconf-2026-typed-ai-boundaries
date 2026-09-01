@@ -23,18 +23,18 @@ object DemoResponses {
         """,
     )
 
-    /** KTCONF-RESTRICTED-001: valid assessment for the advisory invoice. */
-    val restrictedAdvisoryAssessment: ModelResponse = json(
+    /** Restricted local fixture: a low-risk €42 invoice requiring no human gate. */
+    fun restrictedLocalAssessment(invoiceId: String): ModelResponse = json(
         """
         {
-          "invoiceId": "KTCONF-RESTRICTED-001",
-          "supplierName": "ACME Acquisition Advisory",
-          "amountCents": 8250000,
+          "invoiceId": "$invoiceId",
+          "supplierName": "Synthetic Local Supplier",
+          "amountCents": 4200,
           "currency": "EUR",
-          "risk": "HIGH",
+          "risk": "LOW",
           "recommendedAction": "REVIEW_ONLY",
           "confidence": 0.91,
-          "rationale": "MERGER-2026 advisory services require internal review; no payment scheduled"
+          "rationale": "Restricted local invoice is below the approval threshold; no human approval required"
         }
         """,
     )

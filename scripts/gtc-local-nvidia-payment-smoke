@@ -4,7 +4,7 @@ set -euo pipefail
 # Opt-in task-007 smoke. Requires a running local NVIDIA-compatible endpoint.
 # No credentials or document content are printed.
 BASE_URL="${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:-http://127.0.0.1:1234/v1}"
-MODEL="${KTCONF_GTC_LOCAL_NVIDIA_MODEL:-nvidia/nemotron-3-nano-4b}"
+MODEL="${KTCONF_GTC_LOCAL_NVIDIA_MODEL:-qwen/qwen3.8-27b}"
 API_KEY="${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:-}"
 PDF_FILE="${1:-app/src/test/resources/fixtures/payment-local-invoice.pdf}"
 

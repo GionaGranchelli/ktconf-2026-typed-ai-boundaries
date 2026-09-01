@@ -35,10 +35,11 @@ export function getStats() {
   return request('/governance/stats')
 }
 
-export function analyzePdf(file) {
+export function analyzePdf(file, forceRoute = null) {
   const data = new FormData()
   data.append('file', file)
-  return request('/invoices/analyze-pdf', {
+  const query = forceRoute ? `?forceRoute=${encodeURIComponent(forceRoute)}` : ''
+  return request(`/invoices/analyze-pdf${query}`, {
     method: 'POST',
     body: data,
   })
@@ -56,6 +57,14 @@ export function getEvidence(approvalId) {
   return request(`/approvals/${encodeURIComponent(approvalId)}/evidence`)
 }
 
+export function getDocumentHistory() {
+  return request('/governance/documents')
+}
+
+export function getDocumentHistoryRecord(id) {
+  return request(`/governance/documents/${encodeURIComponent(id)}`)
+}
+
 /**
  * DEMO-ONLY boundary proof: send a CONFIDENTIAL/EU_ONLY invoice to GLOBAL_CLOUD.
  * TramAI must deny it before any provider is invoked (HTTP 403).
@@ -64,12 +73,7 @@ export function getEvidence(approvalId) {
  */
 export function attemptForbiddenRoute(file = null) {
   if (file) {
-    const data = new FormData()
-    data.append('file', file)
-    return request('/invoices/boundary/confidential-eu-global', {
-      method: 'POST',
-      body: data,
-    })
+    return analyzePdf(file, 'GLOBAL_CLOUD')
   }
   return request('/invoices/boundary/restricted-cloud', {
     method: 'POST',
@@ -86,5 +90,3 @@ export function attemptForbiddenRoute(file = null) {
     }),
   })
 }
-
-

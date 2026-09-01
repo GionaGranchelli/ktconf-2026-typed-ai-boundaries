@@ -1,6 +1,6 @@
 # task-008 — Contest evidence and proof suite
 
-Status: `REVIEW`
+Status: `DONE`
 Track: H
 Milestone: M7
 Depends on: task-006, task-007
@@ -45,7 +45,7 @@ Do not invent a benchmark percentage unless the sample set and methodology are c
 
 - [x] Every deterministic headline contest claim maps to a machine-observable proof.
 - [x] Denied routes prove invocation delta `0`.
-- [ ] Real-provider smoke results are captured without secrets/document contents.
+- [x] Real-provider smoke results are captured without secrets/document contents.
 - [x] Deterministic proof suite is repeatable offline.
 - [x] Evidence output is safe to publish.
 - [x] Claims-boundary docs are updated for all new GTC behavior.
@@ -60,13 +60,13 @@ application suite and the 20-scenario rehearsal, then prints a concise proof
 table while also selecting the named contest proof tests directly. The
 publish-safe evidence index is `docs/gtc/evidence/README.md`; the combined
 live runner is `scripts/gtc-real-boundaries-smoke`. Live results are not
-inferred from the offline gate. Task-006 combined real PDF evidence and
-task-007 real local-Qwen payment/audit evidence is recorded; Nemotron payment
-is not claimed
-availability.
+inferred from the offline gate. Task-006 combined real PDF evidence is
+complete and recorded in `docs/gtc/evidence/combined-real-boundaries.md`.
+Task-007 real local-Qwen payment/audit evidence is complete and recorded;
+Nemotron payment is not claimed.
 
 Latest execution: `./scripts/gtc-evidence` passed, including the full suite,
-named contest tests, and 20/20 rehearsal. The combined live runner was blocked
-by missing sourced provider configuration before startup, and the local
-payment smoke could not connect to `127.0.0.1:1234`; no real-provider claim is
-made.
+named contest tests, and 20/20 rehearsal. The combined live runner passed with
+Qwen on LOCAL_NVIDIA, Scaleway Mistral in EU_CLOUD, and hosted NVIDIA Nemotron
+in GLOBAL_CLOUD. The Qwen local payment smoke also passed. All live evidence
+is sanitized and recorded in `docs/gtc/evidence/`.

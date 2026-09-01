@@ -13,12 +13,14 @@ const props = defineProps({
   sessionBefore: { type: Object, default: null },
 })
 
+const emit = defineEmits(['navigate-history'])
+
 const totalNvidia = computed(() => {
   if (!props.stats) return '—'
   return (
     (props.stats.globalNvidiaInvocationCount ?? 0) +
     (props.stats.localNvidiaInvocationCount  ?? 0) +
-    (props.stats.euNvidiaInvocationCount     ?? 0)
+    (props.stats.euScalewayInvocationCount   ?? 0)
   )
 })
 
@@ -26,10 +28,10 @@ const nvidiaSessionDelta = computed(() => {
   if (!props.sessionBefore || !props.stats) return null
   const before = (props.sessionBefore.globalNvidiaInvocationCount ?? 0)
                + (props.sessionBefore.localNvidiaInvocationCount  ?? 0)
-               + (props.sessionBefore.euNvidiaInvocationCount     ?? 0)
+               + (props.sessionBefore.euScalewayInvocationCount   ?? 0)
   const after  = (props.stats.globalNvidiaInvocationCount ?? 0)
                + (props.stats.localNvidiaInvocationCount  ?? 0)
-               + (props.stats.euNvidiaInvocationCount     ?? 0)
+               + (props.stats.euScalewayInvocationCount   ?? 0)
   return after - before
 })
 
@@ -40,7 +42,12 @@ const allowedAll = new Set(['LOCAL_NVIDIA', 'EU_CLOUD', 'GLOBAL_CLOUD'])
 <template>
   <div>
     <!-- KPI row -->
-    <span class="eyebrow-label">Live governance counters</span>
+    <div class="overview-heading">
+      <span class="eyebrow-label">Live governance counters</span>
+      <button class="btn btn--ghost btn--sm" @click="emit('navigate-history')">
+        View processed documents
+      </button>
+    </div>
     <div class="grid-4">
       <KpiCard
         label="NVIDIA Invocations"

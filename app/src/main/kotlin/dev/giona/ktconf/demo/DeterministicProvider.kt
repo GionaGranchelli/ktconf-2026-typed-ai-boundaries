@@ -79,7 +79,7 @@ fun localScript(invoiceId: String, toolResultPresent: Boolean, request: ModelReq
     request.model == "local-assessment-model" && invoiceId == "KTCONF-001" ->
         DemoResponses.cateringAssessment
     request.model == "local-assessment-model" && invoiceId == "KTCONF-RESTRICTED-001" ->
-        DemoResponses.restrictedAdvisoryAssessment
+        DemoResponses.restrictedLocalAssessment(invoiceId)
     request.model == "local-assessment-model" && invoiceId == "KTCONF-INVALID-001" ->
         DemoResponses.invalidOutput
     invoiceId.startsWith("KTCONF-PAY-") && !toolResultPresent ->
@@ -88,7 +88,7 @@ fun localScript(invoiceId: String, toolResultPresent: Boolean, request: ModelReq
     invoiceId.startsWith("KTCONF-PAY-") ->
         DemoResponses.payAssessment(paymentAmount(invoiceId).first, paymentAmount(invoiceId).second)
 
-    invoiceId == "KTCONF-RESTRICTED-001" || invoiceId == "KTCONF-RESTRICTED" -> DemoResponses.restrictedAdvisoryAssessment
+    invoiceId == "KTCONF-RESTRICTED-001" || invoiceId == "KTCONF-RESTRICTED" -> DemoResponses.restrictedLocalAssessment(invoiceId)
     invoiceId == "KTCONF-INVALID-001" -> DemoResponses.invalidOutput
     invoiceId == "KTCONF-001" || invoiceId == "KTCONF-PUBLIC" || invoiceId == "KTCONF-EU" -> DemoResponses.cateringAssessment
     else -> error("local provider: no deterministic response for invoice $invoiceId")

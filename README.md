@@ -171,6 +171,29 @@ outer asynchronous workflow request allows 180 seconds. Override the latter with
 
 The normal `stage-up` path remains offline and does not export telemetry.
 
+### Run the API and governance console with Docker
+
+The repository also includes a single-container Compose deployment. It builds
+the Vue console into the Spring Boot jar, serves the API on port `8080`, and
+serves the console at <http://localhost:8080/gtc/>.
+
+```bash
+docker compose up --build
+```
+
+Provider credentials are opt-in environment variables and are never stored in
+the image. Without them, the application uses its deterministic providers. To
+connect a host llama.cpp server from the container, set for example:
+
+```bash
+export KTCONF_GTC_LOCAL_NVIDIA_BASE_URL=http://host.docker.internal:1234/v1
+export KTCONF_GTC_LOCAL_NVIDIA_MODEL=qwen/qwen3.8-27b
+```
+
+Set the existing global NVIDIA and Scaleway variables in the shell when live
+cloud inference is intended. `host.docker.internal` is configured in Compose
+for Linux as well as Docker Desktop.
+
 Key line for the room: *"The HTTP request is finished. The workflow isn't."*
 Then: *"And suddenly this doesn't look like an AI problem anymore. It looks
 like distributed systems."*

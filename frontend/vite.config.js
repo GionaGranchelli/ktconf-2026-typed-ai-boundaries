@@ -3,11 +3,13 @@ import vue from '@vitejs/plugin-vue'
 
 const backend = process.env.GTC_BACKEND_URL || 'http://localhost:8080'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [vue()],
-  base: '/gtc/',
+  // Keep the dev server convenient at / while Spring serves the packaged
+  // console from /gtc/.
+  base: command === 'build' ? '/gtc/' : '/',
   server: {
-    port: 5173,
+    port: 3001,
     strictPort: true,
     proxy: {
       '/invoices': backend,
@@ -21,4 +23,4 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
   },
-})
+}))

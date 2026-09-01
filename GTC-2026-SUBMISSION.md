@@ -16,9 +16,9 @@ The contest demo should make this understandable in under 60 seconds:
 2. Metadata is read locally before document content is sent to any model.
 3. TramAI evaluates which execution boundary is allowed.
 4. Inference runs only in an allowed boundary:
-   - `LOCAL`: NVIDIA RTX + local Nemotron.
+   - `LOCAL`: NVIDIA RTX + local Qwen action model (Nemotron typed proof retained separately).
    - `EU_CLOUD`: temporary Scaleway Generative APIs Europe + Mistral Small 24B.
-   - `GLOBAL_CLOUD`: NVIDIA-hosted NIM API from Build.NVIDIA.com.
+   - `GLOBAL_CLOUD`: NVIDIA-hosted OpenAI-compatible API from Build.NVIDIA.com.
 5. A deliberately wrong route is denied **before provider invocation** and the provider counter proves delta `0`.
 6. The local NVIDIA action model proposes a consequential payment action.
 7. TramAI suspends execution because the tool is `HIGH` risk and requires human approval.
@@ -107,7 +107,7 @@ Preferred topology:
 
 - **GLOBAL**: Build.NVIDIA.com hosted API (`https://integrate.api.nvidia.com/v1`) using `nvidia/nemotron-3.5-lightning-30b-a3b` as the first candidate.
 - **EU**: Scaleway Generative APIs European deployment using Mistral Small 24B as a temporary unblocker; this is not NVIDIA/Nemotron/NIM.
-- **LOCAL**: local NVIDIA RTX using `nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF` via llama.cpp as the first candidate.
+- **LOCAL**: local NVIDIA RTX using `qwen/qwen3.8-27b` as the stable live action model; the separate Nemotron typed-inference proof is retained.
 
 Model choice can change only when a milestone proves incompatibility. Prefer the Nemotron family across all boundaries so the story is about **placement policy**, not model-vendor switching.
 
@@ -183,7 +183,7 @@ The branch is not submission-ready until all P0 proofs below are real and repeat
 
 1. `PUBLIC -> GLOBAL_CLOUD -> NVIDIA hosted Nemotron -> HTTP 200 typed result`.
 2. `CONFIDENTIAL/EU_ONLY -> EU_CLOUD -> Scaleway/Mistral -> HTTP 200 typed result` (temporary).
-3. `RESTRICTED/LOCAL_ONLY -> LOCAL -> NVIDIA RTX/local Nemotron -> HTTP 200 typed result`.
+3. `RESTRICTED/LOCAL_ONLY -> LOCAL -> NVIDIA RTX/local Qwen -> HTTP 200 typed result`.
 4. Forced `EU_ONLY -> GLOBAL_CLOUD` is denied before provider invocation; global NVIDIA invocation delta is `0`.
 5. Forced `LOCAL_ONLY -> EU_CLOUD` is denied before provider invocation; EU provider invocation delta is `0`.
 6. A real PDF enters through the same application and metadata is parsed locally before inference.

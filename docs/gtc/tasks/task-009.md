@@ -1,6 +1,6 @@
 # task-009 — `gtc-demo` and 60-second recording flow
 
-Status: `BLOCKED`
+Status: `READY`
 Track: I
 Milestone: M8a
 Depends on: task-008

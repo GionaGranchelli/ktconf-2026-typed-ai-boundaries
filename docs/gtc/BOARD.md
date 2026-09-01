@@ -31,12 +31,14 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-003](tasks/task-003.md) | DONE | C | — | Prove LOCAL RTX + Nemotron inference |
 | [task-004](tasks/task-004.md) | DONE | D | — | Prove EU_CLOUD managed inference via Scaleway Generative APIs |
 | [task-005](tasks/task-005.md) | DONE | E | — | Add fail-closed real PDF + trusted metadata ingestion |
-| [task-006](tasks/task-006.md) | REVIEW | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
-| [task-007](tasks/task-007.md) | REVIEW | G | 006 | Govern payment on the LOCAL NVIDIA execution boundary |
-| [task-008](tasks/task-008.md) | REVIEW | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
-| [task-009](tasks/task-009.md) | BLOCKED | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
+| [task-006](tasks/task-006.md) | DONE | F | 001,002,003,004,005 | Integrate three governed execution boundaries |
+| [task-007](tasks/task-007.md) | DONE | G | 006 | Govern payment on the LOCAL NVIDIA execution boundary |
+| [task-008](tasks/task-008.md) | DONE | H | 006,007 | Build contest evidence pack and adversarial/misroute proof suite |
+| [task-009](tasks/task-009.md) | READY | I | 008 | Build `scripts/gtc-demo` and 60-second deterministic recording flow |
 | [task-010](tasks/task-010.md) | BLOCKED | J | 009 | Final scoring review, freeze, README/submission assets |
 | [task-012](tasks/task-012.md) | DONE | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
+| [task-011](tasks/task-011.md) | REVIEW | UI | 005–008 | GTC governance console for the real backend evidence |
+| [task-013](tasks/task-013.md) | REVIEW | UI | 006–011 | Backend-owned uploaded-document workflow history |
 
 ## Evidence checkpoint
 
@@ -75,24 +77,24 @@ the selected operation. The PDF metadata contract is fail-closed to the
 classification-aligned residency combinations. Deterministic tests prove one
 allowed invocation per boundary; the confidential-EU forced-global PDF test
 proves HTTP 403 and global counter delta `0`, followed by EU success. Individual
-real route proofs exist, but a combined real PDF run remains pending. Task-007 is
-in `REVIEW`: deterministic payment integration is complete and the real local
+real route proofs exist, and the combined real PDF run passed. Task-007 is
+`DONE`: deterministic payment integration is complete and the real local
 Qwen-on-RTX payment smoke passed; its sanitized evidence is recorded in
 [`evidence/local-nvidia-payment-smoke.md`](evidence/local-nvidia-payment-smoke.md).
-Task-008 is now
-the owner of the remaining real-provider evidence runs; tasks 009–010 remain
-blocked behind task-008.
+Task-008 is `DONE`: deterministic and combined real-provider evidence are
+recorded; task-009 is now `READY` and task-010 remains blocked behind it.
 
 The combined live command is `scripts/gtc-real-boundaries-smoke`; it requires
 all three configured provider families and uploads the three synthetic PDFs in
-one Spring process. No live result is recorded until that command and the
-payment smoke complete successfully against the final evidence revision.
+one Spring process. The command and payment smoke completed successfully; their
+sanitized evidence is recorded under `docs/gtc/evidence/`.
 
-Live execution checkpoint: `./scripts/gtc-evidence` passed, but the combined
-runner stopped before startup because the sourced shell lacked the local/global
-model configuration and Scaleway API key. The local payment runner then failed
-to connect to `127.0.0.1:1234`. Therefore no new live artifact or closure status
-was recorded; 006, 007, and 008 remain `REVIEW`, and 009 remains `BLOCKED`.
+Live execution checkpoint: `./scripts/gtc-evidence` passed. The combined real
+runner passed with GLOBAL hosted Nemotron, EU Scaleway/Mistral, and LOCAL
+Qwen-on-RTX, including all denial counter deltas. The local Qwen payment
+runner passed suspension, approval, duplicate rejection, and audit validation.
+Sanitized artifacts are recorded under `docs/gtc/evidence/`; 006, 007, and 008
+are closed and 009 is ready.
 
 Latest closure checkpoint: the assessment/tool prompt explicitly defines the
 EUR 5,000 risk/action rule and the post-`schedule-payment` state transition.
@@ -100,13 +102,36 @@ The canonical payment PDF denial test proves denial leaves payment count at
 `0` and later continuation returns `409`. Full deterministic tests and
 rehearsal remain green. The real Qwen-on-RTX payment proof passed and is
 documented; no real Nemotron payment or combined real-PDF claim is made.
+An audit also removed stale active-path defaults: restricted-local deterministic
+output now matches its €42 PDF, and local-NVIDIA payment defaults to Qwen.
+Typed model output is also reconciled against the trusted invoice amount and
+the €5,000 approval threshold before it is returned to the dashboard.
 
-Task-011 is maintained on the separate `task/011-gtc-governance-console`
-branch and was not modified here. Before merging it, update the EU card and
-counter to the active Scaleway/Mistral implementation: `Scaleway Europe`,
-`Generative APIs`, `Mistral Small 24B`, and `euScalewayInvocationCount` (or a
-generic EU-provider label). The UI must not claim Nebius, H200, NVIDIA NIM, or
-Nemotron for the temporary EU route.
+Task-011 is now present on this branch as a Vue/Vite governance console. It
+uses the active Scaleway/Mistral EU identity and `euScalewayInvocationCount`,
+keeps LOCAL Qwen and GLOBAL Nemotron labels truthful, and proxies the real
+Spring endpoints from port 3001 to port 8080. `npm run build` passes on Node
+22.23.1 / npm 10.9.8. Browser visual smoke against a running Spring app is
+still pending; no provider or governance semantics are implemented in the UI.
+
+Task-013 adds backend-owned demo-session history for uploaded PDFs at
+`/governance/documents` and a Document History dashboard page. Details include
+trusted metadata, selected route, invoice context, typed assessment or
+approval, payment status, and readable tool/notification/audit events. History
+is intentionally in-memory and resets when the application restarts. It is
+reachable from the persistent dashboard top bar as `Document history`, and
+the Overview page also exposes `View processed documents`. Each record now
+also shows upload and policy outcome events, including automatic approval when
+no human gate is required. Denied forced-route PDF attempts are also retained
+with status `DENIED`, their TramAI reason code, and a provider-not-invoked
+timeline event.
+
+Containerized demo packaging is also available through `Dockerfile` and
+`docker-compose.yml`: the frontend is embedded into the Spring Boot image,
+the API is exposed on `:8080`, and the console is served at `/gtc/`. Compose
+passes provider configuration only from the operator environment and maps
+`host.docker.internal` for an optional host llama.cpp endpoint. Deterministic
+container startup was verified with health HTTP 200 and console HTTP 200.
 
 Task-012 is a DONE TramAI-native enhancement task. It covers
 `RULE_BASED` PDF provenance and sovereign evidence-pack exposure, with local

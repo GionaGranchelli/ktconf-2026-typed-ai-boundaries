@@ -108,10 +108,49 @@ prevents ambient shell exports from changing the offline conference path.
 Sanitized real-run evidence is stored in
 `docs/gtc/evidence/scaleway-smoke.md`.
 
-The separate `task/011-gtc-governance-console` branch has not been modified.
-Before it is merged, its EU presentation must use the active provider name,
-model, and `euScalewayInvocationCount` (or a generic EU-provider metric), not
-the historical Nebius/H200/NIM/Nemotron labels.
+Task-011 is now present on this branch as the Vue/Vite governance console.
+The Vite entrypoint is `frontend/index.html`, development runs on
+port 3001, and API paths proxy to Spring Boot on port 8080. The UI presents
+LOCAL NVIDIA RTX/Qwen, EU Scaleway/Mistral, and GLOBAL hosted Nemotron
+truthfully, and reads route/counter/approval/evidence state from backend
+responses. `npm run build` passes on Node 22.23.1 / npm 10.9.8. Browser visual
+smoke against the running Spring app remains pending; the UI does not make
+provider or governance decisions.
+
+Task-013 adds a backend-owned Document History page. PDF uploads are listed at
+`/governance/documents`; selecting one shows trusted metadata, route, invoice
+context, assessment or approval, payment state, and readable tool/notification
+and audit events. This is demo-scoped in-memory history and resets on backend
+restart. It is reachable directly from the dashboard top bar (`Document
+history`) and from Overview (`View processed documents`). The timeline always
+shows document upload and policy outcome events; low-risk documents explicitly
+show automatic approval when no human gate is required. Forced-route PDF
+denials are also retained with status `DENIED`, the TramAI reason code, selected
+route, and a timeline event proving the provider was not invoked.
+
+The governance console now shows an explicit terminal `Flow complete` state.
+LOW-risk typed results finish there with tool/human steps marked `NOT REQUIRED`;
+high-risk payment flows continue through suspension, decision, and verified
+evidence before completion. The terminal state is presentation-only and comes
+from backend result state.
+
+For suspended PDF payment requests, the console's model-result panel also shows
+the backend's locally parsed invoice context—amount, supplier, invoice ID, and
+description—clearly labelled as pre-approval context rather than a typed model
+assessment.
+
+The console now provides full-screen feedback during PDF analysis, approval,
+denial, and replay checks. Its audit timeline maps backend enforcement points
+to readable lifecycle labels and shows decision, actor/tool, timestamp, and a
+short hash fingerprint instead of displaying opaque events only as `(event)`.
+
+The API and console can be run together with `docker compose up --build`.
+The multi-stage image builds the root `frontend/` application, embeds its
+assets in the Spring Boot jar, and serves the console at
+`http://localhost:8080/gtc/`. The deterministic container was verified with
+`/governance/healthz` HTTP 200 and `/gtc/` HTTP 200. Provider keys remain
+environment-only; an optional host llama.cpp endpoint is reachable as
+`http://host.docker.internal:1234/v1` from Compose.
 
 The following Nebius records are retained as historical evidence, not as the
 active EU implementation.
@@ -200,7 +239,7 @@ for every provider. TramAI's governed operation remains the provider
 authorization boundary; task-006 must use the metadata phase to choose the
 boundary before extracted content is sent to a provider.
 
-### task-006 — governed three-boundary integration (REVIEW)
+### task-006 — governed three-boundary integration (DONE)
 
 Task-006 remains in review. The PDF endpoint now derives the proposed execution
 boundary from trusted residency metadata: `ANY` selects `GLOBAL_CLOUD`,
@@ -211,7 +250,9 @@ metadata contract is fail-closed to PUBLIC/INTERNAL + ANY, CONFIDENTIAL +
 EU_ONLY, and RESTRICTED + LOCAL_ONLY. A dedicated confidential-EU forced-global
 multipart proof returns 403 with global invocation delta `0`, and the same PDF
 succeeds on EU. Individual real provider proofs exist, but a combined real PDF
-run across all three providers is still pending.
+run across all three providers passed using hosted Nemotron, Scaleway Mistral,
+and Qwen on the local NVIDIA RTX boundary. Sanitized evidence is recorded in
+`docs/gtc/evidence/combined-real-boundaries.md`.
 
 Verification: `./gradlew :app:test --tests
 dev.giona.ktconf.TrustedPdfIngestionServiceTest --no-daemon --console=plain
@@ -222,7 +263,7 @@ provider-counter proof for TramAI's deny-before-invocation behavior.
 
 ### task-007 — governed payment on the LOCAL NVIDIA execution boundary
 
-Task-007 implementation is complete and in review. An explicit
+Task-007 implementation is complete and `DONE`. An explicit
 `/invoices/analyze/local-nvidia` route uses the local NVIDIA typed operation
 with the existing `schedule-payment` tool metadata, then TramAI suspends the
 high-value action for approval. Deterministic tests prove payment count 0 at
@@ -233,17 +274,18 @@ chain. Sanitized evidence is in `docs/gtc/evidence/local-nvidia-payment-smoke.md
 Nemotron was evaluated for this action path but is not claimed as a payment
 proposer.
 
-### task-008 — contest evidence and proof suite (REVIEW)
+### task-008 — contest evidence and proof suite (DONE)
 
 The reproducible offline evidence command is `./scripts/gtc-evidence`. It runs
 the full application suite and the 20-scenario rehearsal, then prints the
 judge-facing mapping for routing, pre-provider denial, PDF fail-closed
 handling, payment suspension/denial/exactly-once behavior, and audit-chain
 verification. Publish-safe evidence guidance is in
-`docs/gtc/evidence/README.md`. Live provider evidence remains separate; no
-combined three-PDF run or real Nemotron payment/audit result is claimed.
-The combined live runner is `scripts/gtc-real-boundaries-smoke`; it is
-credential-gated and has not been claimed as passed.
+`docs/gtc/evidence/README.md`. Live provider evidence remains separate; the
+combined three-PDF run and real Qwen payment/audit result are recorded, with no
+real Nemotron payment claim. The combined live runner is
+`scripts/gtc-real-boundaries-smoke`; its successful result is recorded in
+`docs/gtc/evidence/combined-real-boundaries.md`.
 
 Execution checkpoint: the offline evidence gate passed. The combined live
 runner was attempted from a sourced shell but stopped before application
@@ -289,7 +331,16 @@ Target routes:
 LOCAL
   -> NVIDIA RTX
   -> llama.cpp
-  -> NVIDIA Nemotron 3 Nano 4B
+  -> Qwen qwen/qwen3.8-27b for stable live typed/action flows
+     (Nemotron typed-inference proof retained separately)
+
+The restricted-local deterministic PDF and assessment are aligned at
+`amountCents=4200` (€42), LOW risk, with automatic approval when no human gate
+is required.
+
+Typed assessments are reconciled in trusted application code against the
+trusted invoice fields and €5,000 threshold, so a model cannot return a
+contradictory amount/risk/action combination to the operator.
 
 EU_CLOUD
   -> Scaleway Generative APIs Europe

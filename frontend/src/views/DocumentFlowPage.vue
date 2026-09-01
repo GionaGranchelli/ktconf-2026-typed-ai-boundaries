@@ -2,7 +2,7 @@
   DocumentFlowPage (Live Governance) — Hero demo screen.
 
   Flow: PDF upload → trusted metadata → TramAI route decision →
-        Nemotron assessment → HIGH-risk suspension → human approve/deny →
+        Typed assessment → HIGH-risk suspension → human approve/deny →
         payment counter proof → audit evidence → replay protection proof
 
   P0-2: DenialProof panel — intentional forbidden route with delta=0 proof
@@ -34,12 +34,15 @@ const emit = defineEmits(['stats-updated'])
 const file          = ref(null)
 const dragging      = ref(false)
 const busy          = ref(false)
+const loadingMessage = ref('')
 const localError    = ref('')
 const metadata      = ref(null)
+const invoice       = ref(null)
 const assessment    = ref(null)
 const selectedRoute = ref(null)
 const approval      = ref(null)
 const evidence      = ref(null)
+const approvalDecision = ref(null)
 const statsBefore   = ref(null)
 const statsAfter    = ref(null)
 const lastAction    = ref('Waiting for a classified document')
@@ -50,6 +53,10 @@ const replayResult  = ref(null)
 // ── P0-2: denial proof state ───────────────────────────────────
 const denialBusy    = ref(false)
 const denialResult  = ref(null)
+const forceGlobalRoute = ref(false)
+const useSelectedForDenial = computed(() =>
+  Boolean(file.value && metadata.value && metadata.value.residency !== 'ANY')
+)
 
 // ── Derived ────────────────────────────────────────────────────
 const allowedSet       = computed(() => allowedBoundaries(metadata.value))
@@ -59,6 +66,17 @@ const amount           = computed(() => assessment.value
   : '—')
 const hasRun = computed(() =>
   Boolean(metadata.value || assessment.value || approval.value))
+const flowComplete = computed(() =>
+  Boolean(assessment.value && !busy.value && (!approval.value || evidence.value)))
+const paymentStatus = computed(() => {
+  if (!assessment.value) return { label: 'NOT EVALUATED', detail: 'No invoice assessment yet.', tone: 'neutral' }
+  if (!approval.value) return { label: 'NOT REQUESTED', detail: 'No schedule-payment tool call was requested.', tone: 'neutral' }
+  if (!evidence.value) return { label: 'AWAITING APPROVAL', detail: 'Payment execution count: 0 before human approval.', tone: 'pending' }
+  if (approvalDecision.value === 'approve') {
+    return { label: 'SCHEDULED', detail: `Ledger execution count: ${statsAfter.value?.paymentExecutionCount ?? '—'} · exactly once`, tone: 'success' }
+  }
+  return { label: 'DENIED', detail: `Payment execution count: ${statsAfter.value?.paymentExecutionCount ?? '0'} · no side effect`, tone: 'denied' }
+})
 
 const providerDeltas = computed(() => {
   const result = {}
@@ -79,6 +97,7 @@ const providerDeltaZero = computed(() => deltaGlobal.value === 0)
 
 // Workflow step index (1–5) for step indicator
 const step = computed(() => {
+  if (flowComplete.value)  return 6
   if (evidence.value)   return 5
   if (approval.value)   return 4
   if (assessment.value) return 3
@@ -108,8 +127,10 @@ function onDrop(event) {
 async function processDocument() {
   if (!file.value || busy.value) return
   busy.value      = true
+  loadingMessage.value = 'Reading trusted metadata and evaluating TramAI policy…'
   localError.value = ''
-  metadata.value  = null
+    metadata.value  = null
+    invoice.value   = null
   assessment.value= null
   selectedRoute.value = null
   approval.value  = null
@@ -119,9 +140,10 @@ async function processDocument() {
 
   try {
     statsBefore.value = await getStats()
-    const result = await analyzePdf(file.value)
+    const result = await analyzePdf(file.value, forceGlobalRoute.value ? 'GLOBAL_CLOUD' : null)
 
     metadata.value      = result.metadata      ?? null
+    invoice.value       = result.invoice       ?? null
     selectedRoute.value = result.selectedRoute  ?? null
     assessment.value    = result.assessment     ?? null
 
@@ -145,6 +167,7 @@ async function processDocument() {
     } catch { /* preserve original error */ }
   } finally {
     busy.value = false
+    loadingMessage.value = ''
   }
 }
 
@@ -152,9 +175,11 @@ async function processDocument() {
 async function approvePayment() {
   if (!approval.value?.approvalId || busy.value) return
   busy.value = true
+  loadingMessage.value = 'Resuming the governed workflow after approval…'
   localError.value = ''
   try {
     assessment.value = await approve(approval.value.approvalId)
+    approvalDecision.value = 'approve'
     statsAfter.value = await getStats()
     evidence.value   = await getEvidence(approval.value.approvalId)
     lastAction.value = 'Human approved · payment executed · workflow resumed'
@@ -163,6 +188,7 @@ async function approvePayment() {
     localError.value = e.message || 'Approval failed.'
   } finally {
     busy.value = false
+    loadingMessage.value = ''
   }
 }
 
@@ -170,9 +196,11 @@ async function approvePayment() {
 async function denyPayment() {
   if (!approval.value?.approvalId || busy.value) return
   busy.value = true
+  loadingMessage.value = 'Recording the denial and closing the governed workflow…'
   localError.value = ''
   try {
     await deny(approval.value.approvalId)
+    approvalDecision.value = 'deny'
     statsAfter.value = await getStats()
     evidence.value   = await getEvidence(approval.value.approvalId)
     lastAction.value = 'Human denied · side effect remains blocked'
@@ -181,6 +209,7 @@ async function denyPayment() {
     localError.value = e.message || 'Denial failed.'
   } finally {
     busy.value = false
+    loadingMessage.value = ''
   }
 }
 
@@ -188,6 +217,7 @@ async function denyPayment() {
 async function proveReplayRejection() {
   if (!approval.value?.approvalId || busy.value) return
   busy.value = true
+  loadingMessage.value = 'Checking replay protection against TramAI…'
   localError.value = ''
   try {
     const statsBeforeReplay = await getStats().catch(() => statsAfter.value)
@@ -214,6 +244,7 @@ async function proveReplayRejection() {
   } finally {
     try { statsAfter.value = await getStats(); emit('stats-updated', statsAfter.value) } catch {}
     busy.value = false
+    loadingMessage.value = ''
   }
 }
 
@@ -225,8 +256,10 @@ async function runForbiddenRouteProof() {
   try {
     const before = await getStats()
     try {
-      await attemptForbiddenRoute(file.value)
-      // Should never succeed — TramAI must deny
+      // Reuse a selected restricted/EU PDF when available. Otherwise use the
+      // dedicated synthetic restricted request.
+      await attemptForbiddenRoute(useSelectedForDenial.value ? file.value : null)
+      // Should never succeed for the selected restricted/EU document.
       const after = await getStats()
       denialResult.value = { error: null, before, after, unexpectedSuccess: true, isDenied: false }
     } catch (e) {
@@ -254,10 +287,12 @@ async function runForbiddenRouteProof() {
 function reset() {
   file.value = null
   metadata.value = null
+  invoice.value = null
   assessment.value = null
   selectedRoute.value = null
   approval.value = null
   evidence.value = null
+  approvalDecision.value = null
   statsBefore.value = null
   statsAfter.value = null
   localError.value = ''
@@ -269,6 +304,15 @@ function reset() {
 
 <template>
   <div>
+    <div v-if="busy" class="loading-overlay" role="status" aria-live="polite">
+      <div class="loading-card">
+        <div class="loading-orbit"><span /><span /><span /></div>
+        <div class="loading-title">TramAI is governing this step</div>
+        <div class="loading-message">{{ loadingMessage || 'Working…' }}</div>
+        <div class="loading-track"><span /></div>
+        <div class="loading-caption">The browser is waiting for the backend response. No side effect executes before authorization.</div>
+      </div>
+    </div>
     <!-- Step indicator -->
     <div class="step-indicator">
       <div class="step" :class="{ 'step--done': step > 1, 'step--active': step === 1 }">
@@ -289,6 +333,10 @@ function reset() {
       <div class="step__connector" />
       <div class="step" :class="{ 'step--done': step >= 5, 'step--active': step === 5 }">
         <span class="step__num">5</span><span class="step__label">Evidence</span>
+      </div>
+      <div class="step__connector" />
+      <div class="step" :class="{ 'step--done': step === 6, 'step--active': step === 6 }">
+        <span class="step__num">6</span><span class="step__label">Complete</span>
       </div>
     </div>
 
@@ -311,12 +359,12 @@ function reset() {
       <div class="panel-heading">
         <div>
           <span class="eyebrow">Policy denial proof</span>
-          <div class="panel-title">Attempt {{ metadata?.classification || 'RESTRICTED' }} → GLOBAL CLOUD</div>
-          <div class="panel-subtitle">TramAI must deny before any provider is invoked · delta must be 0</div>
+          <div class="panel-title">{{ useSelectedForDenial ? `Attempt ${metadata.classification} → GLOBAL CLOUD` : 'Attempt RESTRICTED → GLOBAL CLOUD' }}</div>
+          <div class="panel-subtitle">{{ useSelectedForDenial ? 'Reusing the selected PDF with an explicit forced route' : 'TramAI must deny before any provider is invoked · delta must be 0' }}</div>
         </div>
         <button class="btn btn--ghost btn--sm" :disabled="denialBusy" @click="runForbiddenRouteProof">
           <span v-if="denialBusy" class="spinner" />
-          {{ denialBusy ? 'Verifying…' : 'Prove denial' }}
+          {{ denialBusy ? 'Verifying…' : (useSelectedForDenial ? 'Force route & prove denial' : 'Prove denial') }}
         </button>
       </div>
 
@@ -417,6 +465,14 @@ function reset() {
           </div>
         </div>
 
+        <div v-if="file" class="route-proof-switch">
+          <label class="route-proof-switch__toggle"><input v-model="forceGlobalRoute" type="checkbox" /><span /></label>
+          <span class="route-proof-switch__copy"><strong>Force GLOBAL_CLOUD for this upload</strong><small>Use the same PDF with an explicit cloud route. TramAI allows PUBLIC data and denies RESTRICTED/EU_ONLY data.</small></span>
+          <button v-if="useSelectedForDenial" class="btn btn--ghost btn--sm" :disabled="denialBusy || !forceGlobalRoute" @click="runForbiddenRouteProof">
+            {{ denialBusy ? 'Checking…' : 'Run denial proof' }}
+          </button>
+        </div>
+
         <p class="microcopy">
           Trusted metadata is read server-side before inference.
           This UI displays backend evidence; it does not classify documents.
@@ -467,16 +523,34 @@ function reset() {
           </div>
           <p class="assessment-rationale">{{ assessment.rationale }}</p>
         </div>
+        <div v-else-if="invoice" class="invoice-context">
+          <span class="context-label">INVOICE CONTEXT · BEFORE APPROVAL</span>
+          <div class="assessment-amount">{{ formatMoney(invoice.amountCents, invoice.currency) }}</div>
+          <div class="assessment-supplier">{{ invoice.supplierName }}</div>
+          <div class="assessment-tags">
+            <span class="pill pill--high">HIGH-RISK WRITE</span>
+            <span class="pill pill--neutral">{{ invoice.invoiceId }}</span>
+          </div>
+          <p class="assessment-rationale">{{ invoice.description }}</p>
+          <p class="microcopy">The model requested <code>schedule-payment</code>; TramAI suspended it before execution. Review the trusted invoice details before deciding.</p>
+        </div>
         <div v-else class="empty-state">
-          Nemotron’s typed assessment appears here after an allowed inference.
+          The selected provider’s typed assessment appears here after an allowed inference.
         </div>
       </div>
 
       <!-- 04 · CONSEQUENTIAL ACTION -->
       <div class="panel" :class="{ 'panel--accent': approval }">
         <span class="eyebrow">04 · Consequential action</span>
+        <div class="payment-status" :class="`payment-status--${paymentStatus.tone}`">
+          <div>
+            <span class="metric-label">PAYMENT STATUS</span>
+            <strong>{{ paymentStatus.label }}</strong>
+          </div>
+          <span class="payment-status__detail">{{ paymentStatus.detail }}</span>
+        </div>
         <template v-if="approval">
-          <div class="panel-title" style="margin-top:10px; font-size:1.05rem;">Human authority required</div>
+          <div class="panel-title" style="margin-top:10px; font-size:1.05rem;">{{ evidence ? 'Governed payment result' : 'Human authority required' }}</div>
           <p class="authority-copy" style="margin-top:8px;">
             The model proposed
             <span class="authority-tool">{{ approval.toolName }}</span>

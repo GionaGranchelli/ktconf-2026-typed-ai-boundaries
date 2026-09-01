@@ -138,7 +138,7 @@ Tune only after correctness is proven.
 ## Acceptance criteria
 
 ```text
-RESTRICTED / LOCAL_ONLY -> local NVIDIA Nemotron -> 200 typed
+RESTRICTED / LOCAL_ONLY -> local NVIDIA Qwen -> 200 typed
 ```
 
 No cloud secret is required for this proof.

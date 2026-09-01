@@ -10,6 +10,8 @@
   Step 4 — Model Inference  : assessment (from 200 response)
   Step 5 — Tool Intercept   : approval (from 202 response, when HIGH-risk)
   Step 6 — Human Decision   : evidence (after approve/deny)
+  Step 7 — Flow Complete    : typed result with no pending governed action,
+                             or verified evidence after human decision
 
   The component is purely presentational — parent keeps all mutable state.
 -->
@@ -35,7 +37,8 @@ const selectedBoundary = computed(() => routeToBoundary(props.selectedRoute))
 
 // Which step are we actively running? (for the spinner)
 const activeStep = computed(() => {
-  if (props.evidence)   return 6
+  if (props.evidence)   return 7
+  if (props.assessment && !props.approval && !props.busy) return 7
   if (props.approval)   return 5
   if (props.assessment) return 4
   if (props.metadata)   return 3
@@ -75,7 +78,7 @@ function stepStatus(n) {
   if (n < activeStep.value)   return 'done'
   if (n === activeStep.value) {
     if (n === 5 && props.approval) return 'suspended'
-    if (n === 6 && props.evidence) return 'done'
+    if (n === 7) return 'done'
     if (props.busy)                return 'running'
     return 'active'
   }
@@ -270,6 +273,9 @@ function stepStatus(n) {
             <template v-else-if="approval">
               <span class="wf-step__tag wf-step__tag--suspended">awaiting</span>
             </template>
+            <template v-else-if="assessment">
+              <span class="wf-step__tag wf-step__tag--neutral">NOT REQUIRED</span>
+            </template>
             <template v-else>
               <span class="wf-step__tag wf-step__tag--neutral">—</span>
             </template>
@@ -280,8 +286,34 @@ function stepStatus(n) {
           <div v-else-if="approval" class="wf-step__note">
             Approve or deny in the Consequential Action panel →
           </div>
+          <div v-else-if="assessment" class="wf-step__note">
+            No human decision required for this typed assessment.
+          </div>
           <div v-else class="wf-step__note" style="opacity:0.45">
             Pending tool suspension
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Step 7: Flow Complete ──────────────────────────── -->
+      <div class="wf-step" :class="`wf-step--${stepStatus(7)}`">
+        <div class="wf-step__spine">
+          <div class="wf-step__node">
+            <svg viewBox="0 0 10 10" fill="none"><path d="m2 5 2 2 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="wf-step__body">
+          <div class="wf-step__row">
+            <span class="wf-step__name">Flow complete</span>
+            <span v-if="assessment && !approval" class="wf-step__detail">typed result returned</span>
+            <span v-else-if="evidence" class="wf-step__detail">governed action verified</span>
+            <span class="wf-step__tag wf-step__tag--allowed">COMPLETE</span>
+          </div>
+          <div v-if="assessment && !approval" class="wf-step__note">
+            {{ selectedRoute }} completed with no pending tool or human decision.
+          </div>
+          <div v-else-if="evidence" class="wf-step__note">
+            TramAI continuation completed · audit chain {{ evidence.chainValid ? 'VALID' : 'INVALID' }}
           </div>
         </div>
       </div>

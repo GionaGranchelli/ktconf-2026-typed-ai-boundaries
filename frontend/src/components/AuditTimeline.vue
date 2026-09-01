@@ -5,14 +5,29 @@ const props = defineProps({
 })
 
 function shortName(ev) {
-  return ev?.eventType || ev?.type || ev?.name || '(event)'
+  const labels = {
+    APPROVAL_SUSPENDED: 'Approval suspended',
+    BEFORE_WORKFLOW_RESUME: 'Continuation prepared',
+    APPROVAL_RESUMED: 'Workflow resumed',
+    APPROVAL_COMPLETED: 'Payment completed',
+  }
+  return labels[ev?.enforcementPoint] || ev?.enforcementPoint || ev?.eventType || ev?.type || ev?.name || '(event)'
 }
 function eventHash(ev) {
-  return ev?.hash || ev?.eventHash || null
+  return ev?.eventHash || ev?.hash || null
 }
 function eventTs(ev) {
   if (!ev?.timestamp) return null
   try { return new Date(ev.timestamp).toLocaleTimeString() } catch { return null }
+}
+function eventDetail(ev) {
+  const details = []
+  const tool = ev?.metadata?.toolName
+  if (tool) details.push(`tool: ${tool}`)
+  if (ev?.decision) details.push(String(ev.decision).replaceAll('_', ' '))
+  if (ev?.actor) details.push(`by ${ev.actor}`)
+  if (ev?.reasonCode) details.push(String(ev.reasonCode).replaceAll('_', ' '))
+  return details.join(' · ')
 }
 </script>
 
@@ -36,6 +51,7 @@ function eventTs(ev) {
             <span class="audit-event__name">{{ shortName(ev) }}</span>
             <span v-if="eventTs(ev)" class="audit-event__ts font-mono">{{ eventTs(ev) }}</span>
           </div>
+          <div v-if="eventDetail(ev)" class="audit-event__detail">{{ eventDetail(ev) }}</div>
           <div v-if="eventHash(ev)" class="audit-event__hash font-mono">{{ String(eventHash(ev)).slice(0, 20) }}…</div>
         </div>
       </div>
@@ -58,5 +74,6 @@ function eventTs(ev) {
 .audit-event__row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .audit-event__name { font-size: 11.5px; font-weight: 600; color: var(--text-bright); }
 .audit-event__ts { font-size: 9.5px; color: var(--muted); }
+.audit-event__detail { font-size: 10px; color: var(--muted-light); margin-top: 3px; text-transform: capitalize; }
 .audit-event__hash { font-size: 9px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

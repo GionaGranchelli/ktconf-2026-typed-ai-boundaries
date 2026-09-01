@@ -3,18 +3,21 @@ package dev.giona.ktconf.api
 import dev.giona.ktconf.application.AnalyzeOutcome
 import dev.giona.ktconf.application.InvoiceRoute
 import dev.giona.ktconf.application.InvoiceService
+import dev.giona.ktconf.application.DocumentHistoryService
 import dev.giona.ktconf.domain.AnalyzeInvoiceRequest
 import dev.giona.ktconf.domain.InvoiceAssessment
 import dev.giona.ktconf.pdf.TrustedPdfIngestionService
 import dev.giona.ktconf.pdf.DataResidency
 import dev.giona.ktconf.pdf.TrustedPdfMetadata
 import dev.tramai.core.policy.ClassificationSource
+import dev.tramai.core.exception.PolicyViolationException
 import org.springframework.http.ResponseEntity
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestPart
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController
 class InvoiceController(
     private val app: InvoiceService,
     private val pdfIngestion: TrustedPdfIngestionService,
+    private val history: DocumentHistoryService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -100,7 +104,7 @@ class InvoiceController(
     suspend fun globalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
         ResponseEntity.ok(AnalyzeResponse(app.analyzeGlobalNvidia(request), InvoiceRoute.GLOBAL_CLOUD, ClassificationSource.DECLARED))
 
-    /** Opt-in task-003 proof route for local NVIDIA Nemotron. */
+    /** Opt-in task-003 typed-inference route for the configured local NVIDIA model. */
     @PostMapping("/local-nvidia")
     suspend fun localNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
         ResponseEntity.ok(AnalyzeResponse(app.analyzeLocalNvidia(request), InvoiceRoute.LOCAL_NVIDIA, ClassificationSource.DECLARED))
@@ -129,19 +133,30 @@ class InvoiceController(
 
     /** Contest PDF entrypoint: metadata phase precedes local content preparation. */
     @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])
-    suspend fun analyzePdf(@RequestPart("file") file: org.springframework.web.multipart.MultipartFile): ResponseEntity<Any> {
+    suspend fun analyzePdf(
+        @RequestPart("file") file: org.springframework.web.multipart.MultipartFile,
+        @RequestParam("forceRoute", required = false) forceRoute: InvoiceRoute?,
+    ): ResponseEntity<Any> {
         val trusted = pdfIngestion.readTrustedMetadata(file)
         // The trusted metadata phase precedes local content preparation. The
         // governed operation below is where TramAI authorizes placement.
-        val proposedRoute = trusted.metadata.proposedRoute()
+        val proposedRoute = forceRoute ?: trusted.metadata.proposedRoute()
         val parsed = pdfIngestion.extractInvoice(trusted)
-        return when (val outcome = app.analyze(parsed.request, proposedRoute, ClassificationSource.RULE_BASED)) {
+        val outcome = try {
+            app.analyze(parsed.request, proposedRoute, ClassificationSource.RULE_BASED)
+        } catch (error: PolicyViolationException) {
+            history.recordRejected(parsed.request.invoice, parsed.metadata, proposedRoute, error)
+            throw error
+        }
+        history.record(parsed.request.invoice, parsed.metadata, outcome)
+        return when (outcome) {
             is AnalyzeOutcome.Typed -> ResponseEntity.ok(
                 PdfAnalyzeResponse(parsed.metadata, outcome.assessment, outcome.selectedRoute, outcome.classificationSource),
             )
             is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
                 PdfAwaitingApprovalResponse(
                     metadata = parsed.metadata,
+                    invoice = parsed.request.invoice,
                     selectedRoute = outcome.selectedRoute,
                     approvalId = outcome.approvalId,
                     workflowRunId = outcome.workflowRunId,
@@ -186,6 +201,7 @@ data class PdfAnalyzeResponse(
 
 data class PdfAwaitingApprovalResponse(
     val metadata: TrustedPdfMetadata,
+    val invoice: dev.giona.ktconf.domain.InvoiceDocument,
     val selectedRoute: InvoiceRoute,
     val status: String = "AWAITING_APPROVAL",
     val approvalId: String,

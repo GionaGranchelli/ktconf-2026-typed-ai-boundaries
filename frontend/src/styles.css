@@ -191,6 +191,21 @@ ul, ol { list-style: none; }
 /* ── Page content ───────────────────────────────────────────── */
 .page-content { flex: 1; padding: 26px 28px; overflow-y: auto; }
 
+/* Full-screen feedback for slow provider calls and approval continuation. */
+.loading-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:24px; background:rgba(4,7,4,.78); backdrop-filter:blur(8px); }
+.loading-card { width:min(430px,100%); padding:30px; text-align:center; border:1px solid var(--line-mid); border-radius:var(--r-lg); background:linear-gradient(160deg,#172117,#0b110b); box-shadow:0 18px 70px rgba(0,0,0,.5); }
+.loading-orbit { display:flex; justify-content:center; gap:8px; margin-bottom:20px; }
+.loading-orbit span { width:10px; height:10px; border-radius:50%; background:var(--accent); animation:loading-bounce 1.1s ease-in-out infinite; }
+.loading-orbit span:nth-child(2) { animation-delay:.16s; opacity:.75; }
+.loading-orbit span:nth-child(3) { animation-delay:.32s; opacity:.5; }
+@keyframes loading-bounce { 0%,80%,100% { transform:scale(.65); } 40% { transform:scale(1.15); } }
+.loading-title { color:var(--text-bright); font-size:16px; font-weight:750; }
+.loading-message { min-height:20px; margin-top:8px; color:var(--accent-bright); font-size:12px; }
+.loading-track { height:3px; overflow:hidden; margin-top:22px; border-radius:3px; background:var(--line); }
+.loading-track span { display:block; width:35%; height:100%; border-radius:3px; background:var(--accent); animation:loading-progress 1.7s ease-in-out infinite; }
+@keyframes loading-progress { 0% { transform:translateX(-110%); } 100% { transform:translateX(320%); } }
+.loading-caption { margin-top:16px; color:var(--muted); font-size:10px; line-height:1.5; }
+
 /* ── Grid helpers ───────────────────────────────────────────── */
 .grid-4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .grid-3  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -322,6 +337,21 @@ ul, ol { list-style: none; }
 /* ── Authority ──────────────────────────────────────────────── */
 .authority-tool    { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent-bright); background: var(--accent-dim); border: 1px solid var(--line-mid); border-radius: var(--r-sm); padding: 4px 8px; display: inline-block; margin-bottom: 9px; }
 .authority-copy    { font-size: 12px; color: var(--muted-light); line-height: 1.65; margin-bottom: 15px; }
+
+.payment-status { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; padding:12px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); }
+.payment-status > div { display:flex; flex-direction:column; gap:5px; }
+.payment-status strong { font-family:var(--font-mono); font-size:1rem; letter-spacing:.03em; }
+.payment-status__detail { color:var(--muted-light); font-size:11px; line-height:1.4; text-align:right; }
+.payment-status--success { border-color:#3b765d; background:rgba(46,117,84,.14); }
+.payment-status--success strong { color:var(--accent-bright); }
+.payment-status--pending { border-color:#866b3c; background:rgba(134,107,60,.14); }
+.payment-status--pending strong { color:#f1c77b; }
+.payment-status--denied { border-color:#75414a; background:rgba(117,65,74,.14); }
+.payment-status--denied strong { color:#ff9c9c; }
+.payment-status--neutral strong { color:var(--muted-light); }
+.invoice-context { margin-top:14px; }
+.context-label { display:block; color:#f1c77b; font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; margin-bottom:12px; }
+@media (max-width: 720px) { .payment-status { align-items:flex-start; flex-direction:column; } .payment-status__detail { text-align:left; } }
 .authority-actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; }
 .approval-id       { margin-top: 11px; font-family: var(--font-mono); font-size: 9px; color: var(--muted); word-break: break-all; line-height: 1.55; }
 
@@ -359,6 +389,16 @@ ul, ol { list-style: none; }
 
 /* ── Misc ───────────────────────────────────────────────────── */
 .eyebrow-label { display: block; font-size: 9.5px; font-weight: 800; letter-spacing: 0.17em; color: var(--accent-bright); text-transform: uppercase; margin-bottom: 8px; }
+.overview-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.route-proof-switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; padding: 10px 11px; border: 1px solid var(--line); background: rgba(118,185,0,.05); }
+.route-proof-switch__copy { display: flex; flex-direction: column; gap: 4px; }
+.route-proof-switch__copy strong { color: var(--text-bright); font-size: 11px; }
+.route-proof-switch__copy small { color: var(--muted-light); font-size: 10px; }
+.route-proof-switch__toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.route-proof-switch__toggle span { display: block; width: 30px; height: 17px; border-radius: 10px; background: var(--muted); cursor: pointer; transition: background .15s; }
+.route-proof-switch__toggle span::after { content: ''; display: block; width: 13px; height: 13px; margin: 2px; border-radius: 50%; background: var(--text-bright); transition: transform .15s; }
+.route-proof-switch__toggle input:checked + span { background: var(--accent); }
+.route-proof-switch__toggle input:checked + span::after { transform: translateX(13px); }
 .microcopy     { font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 10px; }
 .action-log    { font-size: 11px; color: var(--muted-light); font-style: italic; max-width: 46%; text-align: right; }
 .legacy-note   { margin-top: 12px; padding: 10px 14px; border-left: 2px solid var(--warning); background: rgba(245,166,35,0.05); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 11.5px; color: #c9c4ad; line-height: 1.5; }
@@ -420,4 +460,3 @@ ul, ol { list-style: none; }
 .replay-result__label { font-size: 9.5px; font-weight: 800; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent-bright); }
 .replay-result--warn .replay-result__label { color: var(--danger); }
 .replay-result__msg { font-size: 11.5px; color: var(--muted-light); line-height: 1.5; }
-

@@ -19,7 +19,7 @@ const totalNvidia = computed(() => {
   return (
     (props.stats.globalNvidiaInvocationCount ?? 0) +
     (props.stats.localNvidiaInvocationCount  ?? 0) +
-    (props.stats.euNvidiaInvocationCount     ?? 0)
+    (props.stats.euScalewayInvocationCount   ?? 0)
   )
 })
 

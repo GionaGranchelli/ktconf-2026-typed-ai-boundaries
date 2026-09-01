@@ -70,9 +70,10 @@ ktconf:
       model: ${KTCONF_DEMO_LOCAL_MODEL:/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}
       api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
     local-nvidia:
-      # Official NVIDIA Nemotron 3 Nano 4B GGUF served by llama-server.
+      # Canonical live local action model: Qwen served by LM Studio/llama.cpp.
+      # Task-003's Nemotron typed-inference proof remains historical evidence.
       base-url: ${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:}
-      model: ${KTCONF_GTC_LOCAL_NVIDIA_MODEL:nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M}
+      model: ${KTCONF_GTC_LOCAL_NVIDIA_MODEL:qwen/qwen3.8-27b}
       api-key: ${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:}
     cloud:
       # DeepSeek's OpenAI-compatible API.
