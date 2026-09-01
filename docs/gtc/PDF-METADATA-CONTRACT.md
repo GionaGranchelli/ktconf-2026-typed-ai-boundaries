@@ -11,9 +11,10 @@ these exact custom properties:
 | `KTCONF-Classification` | `PUBLIC`, `INTERNAL`, `CONFIDENTIAL`, `RESTRICTED` | Required |
 | `KTCONF-Residency` | `ANY`, `EU_ONLY`, `LOCAL_ONLY` | Required |
 
-`RESTRICTED` requires `LOCAL_ONLY`. `CONFIDENTIAL` requires `EU_ONLY` or
-`LOCAL_ONLY`. Missing, unknown, malformed, or contradictory values fail closed
-with HTTP 400. The endpoint is `POST /invoices/analyze-pdf`.
+`PUBLIC` and `INTERNAL` require `ANY`; `CONFIDENTIAL` requires `EU_ONLY`; and
+`RESTRICTED` requires `LOCAL_ONLY`. Missing, unknown, malformed, or
+contradictory values fail closed with HTTP 400. The endpoint is
+`POST /invoices/analyze-pdf`.
 
 The parser reads and validates these properties locally before extracting the
 invoice text. Text is limited to `key=value` fields for the synthetic fixtures:

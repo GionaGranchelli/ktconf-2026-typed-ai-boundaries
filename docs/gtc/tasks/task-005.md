@@ -16,7 +16,8 @@ Replace the contest's JSON-only entry point with a real synthetic PDF document w
 - Prefer embedded PDF metadata (for example XMP/custom properties) if implementation remains simple and robust; a signed/trusted sidecar/envelope is acceptable if better justified.
 - Parse metadata before document content is handed to any model/provider.
 - Fail closed when required metadata is absent, malformed, unsupported, or contradictory.
-- Extract/prepare document content only after routing authorization.
+- Extract document content locally after the route proposal; expose it to a
+  provider only after TramAI authorizes the governed operation.
 - Produce at least three synthetic demo documents: PUBLIC, CONFIDENTIAL+EU, RESTRICTED.
 - Ensure documents contain no real personal/company-sensitive information.
 
@@ -26,6 +27,7 @@ Replace the contest's JSON-only entry point with a real synthetic PDF document w
 receive bytes
   -> parse trusted metadata locally
   -> validate classification/residency
+  -> propose a boundary and prepare content locally
   -> ask TramAI whether proposed boundary is allowed
   -> only then expose document content to that provider
 ```

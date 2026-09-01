@@ -28,8 +28,9 @@ data class TrustedPdf(
 
 /**
  * Parses the small contest PDF contract locally. Metadata validation is a
- * separate first phase; content extraction is explicit and must only happen
- * after the caller has selected and authorized the execution boundary.
+ * separate first phase. Content extraction remains local; the selected
+ * operation is then authorized by TramAI before any extracted content can be
+ * sent to a provider.
  */
 @Service
 class TrustedPdfIngestionService {
@@ -46,10 +47,10 @@ class TrustedPdfIngestionService {
 
     /** First phase: read and validate trusted metadata without extracting text. */
     fun readTrustedMetadata(file: MultipartFile): TrustedPdf {
-        require(file.contentType == "application/pdf") { "PDF content type is required" }
-        require(file.size in 1..MAX_PDF_BYTES) { "PDF size must be between 1 byte and 5 MiB" }
+        if (file.contentType != "application/pdf") invalid("PDF content type is required")
+        if (file.size !in 1..MAX_PDF_BYTES) invalid("PDF size must be between 1 byte and 5 MiB")
         val bytes = file.bytes
-        require(bytes.size <= MAX_PDF_BYTES) { "PDF exceeds the 5 MiB limit" }
+        if (bytes.size > MAX_PDF_BYTES) invalid("PDF exceeds the 5 MiB limit")
 
         try {
             Loader.loadPDF(bytes).use { document ->
@@ -57,11 +58,11 @@ class TrustedPdfIngestionService {
                 return TrustedPdf(bytes, metadata)
             }
         } catch (e: IOException) {
-            throw IllegalArgumentException("Malformed or unsupported PDF", e)
+            throw InvalidTrustedPdfException("Malformed or unsupported PDF", e)
         }
     }
 
-    /** Second phase: prepare invoice content after placement authorization. */
+    /** Second phase: prepare invoice content locally before governed invocation. */
     fun extractInvoice(trusted: TrustedPdf): PdfInvoice {
         try {
             Loader.loadPDF(trusted.bytes).use { document ->
@@ -69,7 +70,7 @@ class TrustedPdfIngestionService {
                 return PdfInvoice(parseInvoice(text, trusted.metadata), trusted.metadata)
             }
         } catch (e: IOException) {
-            throw IllegalArgumentException("Malformed or unsupported PDF", e)
+            throw InvalidTrustedPdfException("Malformed or unsupported PDF", e)
         }
     }
 
@@ -87,25 +88,25 @@ class TrustedPdfIngestionService {
             DataResidency.valueOf(value)
         }
         when (classification) {
-            DataClassification.RESTRICTED -> require(residency == DataResidency.LOCAL_ONLY) {
-                "RESTRICTED documents require LOCAL_ONLY residency"
+            DataClassification.RESTRICTED -> if (residency != DataResidency.LOCAL_ONLY) {
+                invalid("RESTRICTED documents require LOCAL_ONLY residency")
             }
-            DataClassification.CONFIDENTIAL -> require(residency == DataResidency.EU_ONLY) {
-                "CONFIDENTIAL documents require EU_ONLY residency"
+            DataClassification.CONFIDENTIAL -> if (residency != DataResidency.EU_ONLY) {
+                invalid("CONFIDENTIAL documents require EU_ONLY residency")
             }
-            DataClassification.PUBLIC, DataClassification.INTERNAL -> require(residency == DataResidency.ANY) {
-                "PUBLIC and INTERNAL documents require ANY residency"
+            DataClassification.PUBLIC, DataClassification.INTERNAL -> if (residency != DataResidency.ANY) {
+                invalid("PUBLIC and INTERNAL documents require ANY residency")
             }
         }
         return TrustedPdfMetadata(classification, residency)
     }
 
     private fun <T> parseEnum(key: String, raw: String?, parser: (String) -> T): T {
-        require(!raw.isNullOrBlank()) { "Missing trusted PDF metadata: $key" }
+        if (raw.isNullOrBlank()) invalid("Missing trusted PDF metadata: $key")
         return try {
             parser(raw.trim().uppercase())
         } catch (_: IllegalArgumentException) {
-            throw IllegalArgumentException("Unsupported trusted PDF metadata: $key")
+            throw InvalidTrustedPdfException("Unsupported trusted PDF metadata: $key")
         }
     }
 
@@ -114,10 +115,10 @@ class TrustedPdfIngestionService {
             .mapNotNull { line -> line.split('=', limit = 2).takeIf { it.size == 2 } }
             .associate { it[0].trim() to it[1].trim() }
         fun required(name: String) = fields[name]?.takeIf { it.isNotBlank() }
-            ?: throw IllegalArgumentException("PDF invoice field is missing: $name")
+            ?: throw InvalidTrustedPdfException("PDF invoice field is missing: $name")
         val amount = required("amountCents").toLongOrNull()
-            ?: throw IllegalArgumentException("PDF invoice amountCents is malformed")
-        require(amount >= 0) { "PDF invoice amountCents must not be negative" }
+            ?: throw InvalidTrustedPdfException("PDF invoice amountCents is malformed")
+        if (amount < 0) invalid("PDF invoice amountCents must not be negative")
         return AnalyzeInvoiceRequest(
             classification = metadata.classification,
             invoice = dev.giona.ktconf.domain.InvoiceDocument(
@@ -129,4 +130,6 @@ class TrustedPdfIngestionService {
             ),
         )
     }
+
+    private fun invalid(message: String): Nothing = throw InvalidTrustedPdfException(message)
 }

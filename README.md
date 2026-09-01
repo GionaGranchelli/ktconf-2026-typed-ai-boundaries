@@ -1,3 +1,57 @@
+# The Model Is Not the Authority
+
+**One Spring application. One TramAI policy plane. Three governed AI execution
+boundaries.**
+
+An invoice PDF carries trusted classification and residency metadata. The
+application proposes where it should run; TramAI authorizes or denies that
+placement before provider invocation. The model may reason about the invoice,
+but it cannot authorize its own data movement or consequential side effects.
+
+```text
+                         TRUSTED PDF
+                              │
+                    local metadata validation
+                              │
+                              ▼
+                       TramAI policy plane
+                    ┌─────────┼─────────┐
+                    ▼         ▼         ▼
+                 LOCAL      EU_CLOUD  GLOBAL_CLOUD
+               NVIDIA RTX  Scaleway   NVIDIA hosted
+                  Qwen      Mistral     Nemotron
+                    └─────────┼─────────┘
+                              ▼
+                       typed assessment
+                              │
+                    model proposes an action
+                              │
+                         TramAI tool policy
+                              │
+                       human approval + audit
+```
+
+## What the GTC demo proves
+
+1. An `EU_ONLY` document forced to `GLOBAL_CLOUD` is denied before the global
+   provider is invoked (`delta = 0`), then the same PDF succeeds in `EU_CLOUD`.
+2. A high-value local payment proposal is suspended by TramAI, requires human
+   approval, executes exactly once, and rejects replay.
+3. Every governed workflow leaves readable, hash-chained evidence and appears
+   in the dashboard's document history.
+
+The live topology is deliberately truthful: GLOBAL uses Build.NVIDIA.com and
+hosted Nemotron; LOCAL uses an NVIDIA RTX with Qwen for the stable action flow;
+EU uses Scaleway Generative APIs with Mistral Small 24B as a temporary European
+unblocker. Mistral is not NVIDIA, Nemotron, or NIM.
+
+Start here:
+
+- [GTC submission plan](GTC-2026-SUBMISSION.md)
+- [GTC architecture](docs/gtc/ARCHITECTURE.md)
+- [claims boundary](docs/CLAIMS-BOUNDARY.md)
+- [60-second demo plan](docs/gtc/tasks/task-009.md)
+
 > [!IMPORTANT]
 > **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL NVIDIA, temporary Scaleway/Mistral EU, and GLOBAL NVIDIA execution boundaries. Mistral is not NVIDIA/Nemotron/NIM. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md) and [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
 

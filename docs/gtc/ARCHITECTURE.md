@@ -209,7 +209,7 @@ Never log raw document content as part of governance decisions.
 
 For P0, keep extraction intentionally small.
 
-If PDFs contain machine-readable invoice text, parse locally with a deterministic PDF library and send the extracted minimum required text to the selected provider after route authorization.
+If PDFs contain machine-readable invoice text, parse locally with a deterministic PDF library. The selected governed operation authorizes provider egress before the extracted minimum required text is sent to the provider.
 
 Only add NVIDIA document OCR/Parse if a real contest scenario requires image/scanned PDFs and the additional component is stable enough before freeze. The contest does not need document AI merely to increase product count.
 

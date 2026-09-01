@@ -250,15 +250,15 @@ async function proveReplayRejection() {
 
 // ── P0-2: Denial proof ────────────────────────────────────────
 async function runForbiddenRouteProof() {
-  if (denialBusy.value) return
+  if (denialBusy.value || !useSelectedForDenial.value) return
   denialBusy.value = true
   denialResult.value = null
   try {
     const before = await getStats()
     try {
-      // Reuse a selected restricted/EU PDF when available. Otherwise use the
-      // dedicated synthetic restricted request.
-      await attemptForbiddenRoute(useSelectedForDenial.value ? file.value : null)
+      // The hero proof always reuses the selected restricted/EU PDF. This keeps
+      // the allowed and denied runs semantically tied to the same document.
+      await attemptForbiddenRoute(file.value)
       // Should never succeed for the selected restricted/EU document.
       const after = await getStats()
       denialResult.value = { error: null, before, after, unexpectedSuccess: true, isDenied: false }
@@ -362,9 +362,9 @@ function reset() {
           <div class="panel-title">{{ useSelectedForDenial ? `Attempt ${metadata.classification} → GLOBAL CLOUD` : 'Attempt RESTRICTED → GLOBAL CLOUD' }}</div>
           <div class="panel-subtitle">{{ useSelectedForDenial ? 'Reusing the selected PDF with an explicit forced route' : 'TramAI must deny before any provider is invoked · delta must be 0' }}</div>
         </div>
-        <button class="btn btn--ghost btn--sm" :disabled="denialBusy" @click="runForbiddenRouteProof">
+        <button v-if="useSelectedForDenial" class="btn btn--ghost btn--sm" :disabled="denialBusy" @click="runForbiddenRouteProof">
           <span v-if="denialBusy" class="spinner" />
-          {{ denialBusy ? 'Verifying…' : (useSelectedForDenial ? 'Force route & prove denial' : 'Prove denial') }}
+          {{ denialBusy ? 'Verifying…' : 'Force route & prove denial' }}
         </button>
       </div>
 
@@ -408,8 +408,8 @@ function reset() {
         </template>
       </div>
       <div v-else class="info-note">
-        Clicking "Prove denial" sends a RESTRICTED invoice to the GLOBAL_CLOUD operation.
-        TramAI must block it before the provider is called. The counter delta proves no invocation occurred.
+        Select a CONFIDENTIAL/EU_ONLY or RESTRICTED/LOCAL_ONLY PDF to run this proof.
+        The same selected document is forced to GLOBAL_CLOUD; TramAI must block it before the provider is called.
       </div>
     </div>
 

@@ -11,6 +11,7 @@ import dev.tramai.core.exception.IllegalApprovalTransitionException
 import dev.tramai.core.exception.PolicyViolationException
 import dev.tramai.core.exception.StructuredOutputException
 import dev.tramai.orchestration.WorkflowGateRejectedException
+import dev.giona.ktconf.pdf.InvalidTrustedPdfException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -70,8 +71,8 @@ class ApiExceptionAdvice {
             ErrorResponse(code = "demo-invariant-violated", message = e.message ?: "Demo invariant violated"),
         )
 
-    @ExceptionHandler(IllegalArgumentException::class)
-    fun invalidPdf(e: IllegalArgumentException): ResponseEntity<ErrorResponse> =
+    @ExceptionHandler(InvalidTrustedPdfException::class)
+    fun invalidPdf(e: InvalidTrustedPdfException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
             ErrorResponse(code = "invalid-pdf-metadata", message = e.message ?: "Invalid PDF input"),
         )

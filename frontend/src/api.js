@@ -71,22 +71,9 @@ export function getDocumentHistoryRecord(id) {
  * api.js will throw ApiError with status 403 — the caller must catch it.
  * The cloud invocation counter must not change (delta = 0).
  */
-export function attemptForbiddenRoute(file = null) {
-  if (file) {
-    return analyzePdf(file, 'GLOBAL_CLOUD')
+export function attemptForbiddenRoute(file) {
+  if (!file) {
+    throw new Error('Select a CONFIDENTIAL/EU_ONLY or RESTRICTED/LOCAL_ONLY PDF first.')
   }
-  return request('/invoices/boundary/restricted-cloud', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      classification: 'RESTRICTED',
-      invoice: {
-        invoiceId: 'PROOF-DENY-001',
-        supplierName: 'TramAI Policy Verifier',
-        amountCents: 42830,
-        currency: 'EUR',
-        description: 'Boundary proof: TramAI must deny this before cloud invocation',
-      },
-    }),
-  })
+  return analyzePdf(file, 'GLOBAL_CLOUD')
 }
