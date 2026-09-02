@@ -121,14 +121,15 @@ class InvoiceRoutingTest {
 
     @Test
     fun `forced RESTRICTED to EU is denied before Scaleway invocation`() {
-        val response = rest.exchange(
-            "/invoices/boundary/restricted-eu",
-            HttpMethod.POST,
-            HttpEntity(DemoRequests.restricted(), headers()),
-            ErrorResponse::class.java,
-        )
-        assertEquals(HttpStatus.FORBIDDEN, response.statusCode)
-        assertEquals("classification-routing-blocked", response.body!!.code)
+        val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/restricted-local-invoice.pdf")).readBytes()
+        val started = mockMvc.perform(
+            multipart("/invoices/analyze-pdf")
+                .file(MockMultipartFile("file", "restricted-local-invoice.pdf", "application/pdf", bytes))
+                .param("forceRoute", "EU_CLOUD"),
+        ).andReturn()
+        val response = mockMvc.perform(asyncDispatch(started)).andReturn().response
+        assertEquals(HttpStatus.FORBIDDEN.value(), response.status)
+        assertTrue(response.contentAsString.contains("classification-routing-blocked"))
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(0, stats.euScalewayInvocationCount)
     }
@@ -215,7 +216,7 @@ class InvoiceRoutingTest {
         ).andReturn()
 
         val before = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!.globalNvidiaInvocationCount
-        val denied = mockMvc.perform(asyncDispatch(upload("/invoices/boundary/confidential-eu-global")))
+        val denied = mockMvc.perform(asyncDispatch(upload("/invoices/analyze-pdf?forceRoute=GLOBAL_CLOUD")))
             .andReturn().response
         assertEquals(HttpStatus.FORBIDDEN.value(), denied.status)
         assertEquals(true, denied.contentAsString.contains("classification-routing-blocked"))

@@ -241,7 +241,7 @@ async function proveReplayRejection() {
     } catch (e) {
       const statsAfterReplay = await getStats().catch(() => statsAfter.value)
       const paymentDelta = (statsAfterReplay?.paymentExecutionCount ?? 0) - (statsBeforeReplay?.paymentExecutionCount ?? 0)
-      const isExpectedError = (e.status === 409 || e.status === 403 || e.status === 400 || e.status === 422)
+      const isExpectedError = e.status === 409
       const exactOnceVerified = isExpectedError && paymentDelta === 0
 
       replayResult.value = {
@@ -272,7 +272,7 @@ async function runForbiddenRouteProof() {
       await attemptForbiddenRoute(file.value)
       // Should never succeed for the selected restricted/EU document.
       const after = await getStats()
-      denialResult.value = { error: null, before, after, unexpectedSuccess: true, isDenied: false }
+      denialResult.value = { before, after, unexpectedSuccess: true, isDenied: false }
     } catch (e) {
       const after = await getStats()
       const isDenied = (e.status === 403)
@@ -280,7 +280,6 @@ async function runForbiddenRouteProof() {
         ? (e.body.reasonCode || e.body.message)
         : (e.message || 'classification-routing-blocked')
       denialResult.value = {
-        error: e,
         status: e.status,
         reasonCode,
         isDenied,

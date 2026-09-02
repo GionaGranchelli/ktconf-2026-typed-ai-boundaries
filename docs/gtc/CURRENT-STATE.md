@@ -12,6 +12,22 @@ The contest workstream is **M0 COMPLETE / M1 GLOBAL PROOF COMPLETE**.
 Tasks 001–005 are complete. The deterministic KTConf path remains green, and
 the real GLOBAL NVIDIA hosted proof is recorded below.
 
+### Latest cleanup checkpoint — 2026-09-02
+
+The final submission cleanup removes the abandoned nested frontend scaffold and
+unreachable Vue state, consolidates repeated controller outcome mapping, and
+routes PDF denial proofs through the single
+`/invoices/analyze-pdf?forceRoute=...` entrypoint. Trusted PDF ingestion now
+exposes only the explicit metadata and extraction phases; the old dedicated EU
+denial endpoints are removed. Replay evidence requires the documented HTTP 409
+conflict. No provider, routing, approval, payment, or audit semantics changed.
+
+Evidence for this checkpoint: `./gradlew :app:test --tests
+dev.giona.ktconf.InvoiceRoutingTest --tests
+dev.giona.ktconf.TrustedPdfIngestionServiceTest` passed with all contest real
+provider environment variables unset; both updated smoke scripts pass `bash
+-n`; frontend and full deterministic gates remain to be run after this patch.
+
 ## Completed checkpoints
 
 ### task-001 — native regional trust semantics
@@ -96,7 +112,7 @@ Deterministic verification for the pivot passed with `./gradlew :app:test`
 (`BUILD SUCCESSFUL`) and `./scripts/stress-rehearse` (`20 / 20 PASS`). The
 new `CONFIDENTIAL -> /invoices/eu-scaleway` fixture path returns
 `EU_CLOUD` with the EU counter incrementing once; forced
-`RESTRICTED -> /invoices/boundary/restricted-eu` returns
+`RESTRICTED -> /invoices/analyze-pdf?forceRoute=EU_CLOUD` returns
 `classification-routing-blocked` with EU counter delta `0`. The opt-in smoke
 script fails closed when `SCW_SECRET_KEY` or `SCW_MODEL` is absent; the real
 Scaleway run above used both without exposing either value.
@@ -544,16 +560,17 @@ audit chain -> VALID
 
 ## Current repository delta
 
-At this checkpoint, contest branch changes are planning/doc files plus a README banner. Implementation milestones remain unchecked until agents produce test evidence.
+At this checkpoint, the working tree contains the submission cleanup described
+above plus the pre-existing GTC implementation and evidence changes. The
+cleanup is intentionally code-only where it removes redundant paths; live
+provider smoke was not rerun by this cleanup checkpoint.
 
 ## Next recommended command/task for an agent
 
-Start M0, not provider coding:
+For the next verification pass:
 
-1. checkout `contest/gtc-nvidia-submission`;
-2. initialize pinned TramAI submodule;
-3. run baseline deterministic gates;
-4. inspect the pinned provider trust-zone enum/routing matrix;
-5. report whether `EU_CLOUD` exists and what exact upstream change is required if it does not.
+1. run `./scripts/gtc-evidence`;
+2. run the frontend build;
+3. review the resulting diff and live evidence separately.
 
-Then Tracks B-D/E can proceed in parallel.
+No new provider or governance work is required for this cleanup.

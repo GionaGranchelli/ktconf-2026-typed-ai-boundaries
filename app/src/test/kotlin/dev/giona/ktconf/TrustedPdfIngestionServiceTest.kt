@@ -18,7 +18,7 @@ class TrustedPdfIngestionServiceTest {
 
     @Test
     fun `reads trusted metadata locally and extracts synthetic invoice`() {
-        val result = parser.parse(pdf("CONFIDENTIAL", "EU_ONLY"))
+        val result = parse(pdf("CONFIDENTIAL", "EU_ONLY"))
         assertEquals("CONFIDENTIAL", result.metadata.classification.name)
         assertEquals(DataResidency.EU_ONLY, result.metadata.residency)
         assertEquals("KTCONF-PDF-EU", result.request.invoice.invoiceId)
@@ -34,27 +34,27 @@ class TrustedPdfIngestionServiceTest {
     @Test
     fun `missing classification fails closed before invoice extraction`() {
         assertFailsWith<IllegalArgumentException> {
-            parser.parse(pdf(null, "ANY"))
+            parse(pdf(null, "ANY"))
         }
     }
 
     @Test
     fun `contradictory restricted residency fails closed`() {
         assertFailsWith<IllegalArgumentException> {
-            parser.parse(pdf("RESTRICTED", "EU_ONLY"))
+            parse(pdf("RESTRICTED", "EU_ONLY"))
         }
     }
 
     @Test
     fun `classification and residency must agree with the governed matrix`() {
-        assertFailsWith<IllegalArgumentException> { parser.parse(pdf("CONFIDENTIAL", "LOCAL_ONLY")) }
-        assertFailsWith<IllegalArgumentException> { parser.parse(pdf("PUBLIC", "EU_ONLY")) }
+        assertFailsWith<IllegalArgumentException> { parse(pdf("CONFIDENTIAL", "LOCAL_ONLY")) }
+        assertFailsWith<IllegalArgumentException> { parse(pdf("PUBLIC", "EU_ONLY")) }
     }
 
     @Test
     fun `non PDF and oversized inputs fail closed`() {
         assertFailsWith<IllegalArgumentException> {
-            parser.parse(MockMultipartFile("file", "invoice.txt", "text/plain", "not a pdf".toByteArray()))
+            parse(MockMultipartFile("file", "invoice.txt", "text/plain", "not a pdf".toByteArray()))
         }
     }
 
@@ -80,12 +80,15 @@ class TrustedPdfIngestionServiceTest {
         )
         cases.forEach { (path, expected) ->
             val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream(path)).readBytes()
-            val parsed = parser.parse(MockMultipartFile("file", path.substringAfterLast('/'), "application/pdf", bytes))
+            val parsed = parse(MockMultipartFile("file", path.substringAfterLast('/'), "application/pdf", bytes))
             assertEquals(expected.first, parsed.metadata.classification.name)
             assertEquals(expected.second, parsed.metadata.residency)
             assertEquals(amounts.getValue(path), parsed.request.invoice.amountCents)
         }
     }
+
+    private fun parse(file: MockMultipartFile) =
+        parser.extractInvoice(parser.readTrustedMetadata(file))
 
     private fun pdf(classification: String?, residency: String): MockMultipartFile {
         PDDocument().use { document ->

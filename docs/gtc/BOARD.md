@@ -120,6 +120,15 @@ output now matches its €42 PDF, and local-NVIDIA payment defaults to Qwen.
 Typed model output is also reconciled against the trusted invoice amount and
 the €5,000 approval threshold before it is returned to the dashboard.
 
+Latest cleanup checkpoint: the abandoned nested frontend scaffold and
+unreachable frontend state were removed; controller outcome mapping is shared;
+PDF denial proofs now use the generic
+`/invoices/analyze-pdf?forceRoute=...` entrypoint; trusted PDF parsing exposes
+only its explicit metadata and extraction phases; and replay evidence accepts
+only the documented HTTP 409 conflict. Focused routing/PDF tests pass under
+the deterministic provider scrub, and no governance or provider policy was
+changed.
+
 Task-011 is now present on this branch as a Vue/Vite governance console. It
 uses the active Scaleway/Mistral EU identity and `euScalewayInvocationCount`,
 keeps LOCAL Qwen and GLOBAL Nemotron labels truthful, and proxies the real
@@ -160,7 +169,7 @@ Task-012 is a DONE TramAI-native enhancement task. It covers
 `RULE_BASED` PDF provenance and sovereign evidence-pack exposure, with local
 artifact verification and telemetry de-duplication bounded as optional work.
 It is planned separately from the current task-008 evidence review. Its
-implementation is complete and in `REVIEW`; deterministic verification passed.
+implementation is complete; deterministic verification passed.
 The native pack is exposed at `/governance/sovereign-evidence` and documented
 in [`evidence/tramai-sovereign-evidence.md`](evidence/tramai-sovereign-evidence.md).
 Local Nemotron artifact verification remains explicitly unclaimed because the

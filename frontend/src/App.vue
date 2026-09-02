@@ -41,7 +41,6 @@ const backendStatus = ref('checking')   // 'checking' | 'online' | 'offline'
 
 // ── Global stats (polled) ───────────────────────────────────────
 const globalStats   = ref(null)
-const sessionBefore = ref(null)   // snapshot at page-load for deltas
 
 let pollInterval = null
 
@@ -49,7 +48,6 @@ async function refreshStats() {
   try {
     const s = await getStats()
     globalStats.value = s
-    if (!sessionBefore.value) sessionBefore.value = s
     if (backendStatus.value !== 'online') backendStatus.value = 'online'
   } catch {
     backendStatus.value = 'offline'
@@ -186,11 +184,6 @@ function onStatsUpdated(stats) {
           :stats="globalStats"
           @navigate-history="activeView = 'history'"
           @navigate-live="openLiveDemo"
-        />
-
-        <DocumentFlowPage
-          v-else-if="activeView === 'document-flow'"
-          @stats-updated="onStatsUpdated"
         />
 
         <PolicyMatrixPage

@@ -51,7 +51,7 @@ if [[ "$code" != 200 ]] || ! grep -Fq '"selectedRoute":"EU_CLOUD"' .build/gtc-eu
 fi
 echo "application allowed: HTTP 200, typed InvoiceAssessment, selectedRoute=EU_CLOUD, invocation delta=1"
 
-denied_code="$(curl -sS -o .build/gtc-eu-scaleway-denied.json -w '%{http_code}' --max-time 30 -X POST http://localhost:8080/invoices/boundary/restricted-eu -H 'Content-Type: application/json' -d "${request/CONFIDENTIAL/RESTRICTED}")"
+denied_code="$(curl -sS -o .build/gtc-eu-scaleway-denied.json -w '%{http_code}' --max-time 30 -X POST 'http://localhost:8080/invoices/analyze-pdf?forceRoute=EU_CLOUD' -F 'file=@app/src/test/resources/fixtures/restricted-local-invoice.pdf;type=application/pdf')"
 after_denied="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["euScalewayInvocationCount"])')"
 denied_delta=$((after_denied - after))
 if [[ "$denied_code" != 403 ]] || ! grep -Fq 'classification-routing-blocked' .build/gtc-eu-scaleway-denied.json || [[ "$denied_delta" -ne 0 ]]; then

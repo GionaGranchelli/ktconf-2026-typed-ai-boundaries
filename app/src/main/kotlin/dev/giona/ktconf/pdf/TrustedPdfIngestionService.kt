@@ -40,11 +40,6 @@ class TrustedPdfIngestionService {
         const val RESIDENCY_KEY = "KTCONF-Residency"
     }
 
-    fun parse(file: MultipartFile): PdfInvoice {
-        val trusted = readTrustedMetadata(file)
-        return extractInvoice(trusted)
-    }
-
     /** First phase: read and validate trusted metadata without extracting text. */
     fun readTrustedMetadata(file: MultipartFile): TrustedPdf {
         if (file.contentType != "application/pdf") invalid("PDF content type is required")

@@ -42,30 +42,7 @@ class InvoiceController(
     @PostMapping("/analyze")
     suspend fun analyze(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> {
         log.info("Invoice analysis requested: invoiceId={}, classification={}", request.invoice.invoiceId, request.classification)
-        return when (val outcome = app.analyze(request)) {
-            is AnalyzeOutcome.Typed -> {
-                log.info("Invoice analysis completed: invoiceId={}, route={}, action={}, risk={}", request.invoice.invoiceId, outcome.selectedRoute, outcome.assessment.recommendedAction, outcome.assessment.risk)
-                ResponseEntity.ok(AnalyzeResponse(outcome.assessment, outcome.selectedRoute, outcome.classificationSource))
-            }
-
-            is AnalyzeOutcome.AwaitingApproval -> {
-                log.info("Invoice analysis suspended for approval: invoiceId={}, approvalId={}, tool={}", request.invoice.invoiceId, outcome.approvalId, outcome.toolName)
-                ResponseEntity.status(202).body(
-                    AwaitingApprovalResponse(
-                        status = "AWAITING_APPROVAL",
-                        approvalId = outcome.approvalId,
-                        workflowRunId = outcome.workflowRunId,
-                        toolName = outcome.toolName,
-                        rationale = outcome.rationale,
-                        classificationSource = outcome.classificationSource,
-                        approvalExpiresAt = outcome.approvalExpiresAt,
-                        notificationStatus = outcome.notificationStatus,
-                        notificationRecipient = outcome.notificationRecipient,
-                        notificationSubject = outcome.notificationSubject,
-                    ),
-                )
-            }
-        }
+        return app.analyze(request).toHttpResponse()
     }
 
     /**
@@ -81,51 +58,10 @@ class InvoiceController(
         return app.analyzeRestrictedViaCloud(request)
     }
 
-    /** DEMO-ONLY intentional policy-violation proof: force RESTRICTED to EU. */
-    @PostMapping("/boundary/restricted-eu")
-    suspend fun restrictedEu(@RequestBody request: AnalyzeInvoiceRequest): InvoiceAssessment {
-        log.warn("Boundary proof requested: invoiceId={} forced to EU with classification={}", request.invoice.invoiceId, request.classification)
-        return app.analyzeRestrictedViaEu(request)
-    }
-
-    /** DEMO-ONLY hero proof: force the EU-confidential PDF to GLOBAL_CLOUD. */
-    @PostMapping("/boundary/confidential-eu-global", consumes = ["multipart/form-data"])
-    suspend fun confidentialEuGlobal(@RequestPart("file") file: org.springframework.web.multipart.MultipartFile): InvoiceAssessment {
-        val trusted = pdfIngestion.readTrustedMetadata(file)
-        require(trusted.metadata.classification == dev.tramai.core.policy.DataClassification.CONFIDENTIAL)
-        require(trusted.metadata.residency == DataResidency.EU_ONLY)
-        val parsed = pdfIngestion.extractInvoice(trusted)
-        log.warn("Boundary proof requested: confidential EU invoice={} forced to GLOBAL_CLOUD", parsed.request.invoice.invoiceId)
-        return app.analyze(parsed.request, InvoiceRoute.GLOBAL_CLOUD, ClassificationSource.RULE_BASED).let { outcome ->
-            when (outcome) {
-                is AnalyzeOutcome.Typed -> outcome.assessment
-                is AnalyzeOutcome.AwaitingApproval -> error("unexpected approval for forced global proof")
-            }
-        }
-    }
-
     /** Opt-in hosted NVIDIA route; high-risk requests use the governed payment flow. */
     @PostMapping("/global-nvidia")
     suspend fun globalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        when (val outcome = app.analyze(request, InvoiceRoute.GLOBAL_CLOUD)) {
-            is AnalyzeOutcome.Typed -> ResponseEntity.ok(
-                AnalyzeResponse(outcome.assessment, outcome.selectedRoute, outcome.classificationSource),
-            )
-            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
-                AwaitingApprovalResponse(
-                    status = "AWAITING_APPROVAL",
-                    approvalId = outcome.approvalId,
-                    workflowRunId = outcome.workflowRunId,
-                    toolName = outcome.toolName,
-                    rationale = outcome.rationale,
-                    classificationSource = outcome.classificationSource,
-                    approvalExpiresAt = outcome.approvalExpiresAt,
-                    notificationStatus = outcome.notificationStatus,
-                    notificationRecipient = outcome.notificationRecipient,
-                    notificationSubject = outcome.notificationSubject,
-                ),
-            )
-        }
+        app.analyze(request, InvoiceRoute.GLOBAL_CLOUD).toHttpResponse()
 
     /** Opt-in task-003 typed-inference route for the configured local NVIDIA model. */
     @PostMapping("/local-nvidia")
@@ -135,46 +71,12 @@ class InvoiceController(
     /** Contest payment proof: local NVIDIA assessment plus TramAI approval gate. */
     @PostMapping("/analyze/local-nvidia")
     suspend fun analyzeLocalNvidiaPayment(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        when (val outcome = app.analyze(request, InvoiceRoute.LOCAL_NVIDIA)) {
-            is AnalyzeOutcome.Typed -> ResponseEntity.ok(AnalyzeResponse(outcome.assessment, outcome.selectedRoute, outcome.classificationSource))
-            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
-                AwaitingApprovalResponse(
-                    status = "AWAITING_APPROVAL",
-                    approvalId = outcome.approvalId,
-                    workflowRunId = outcome.workflowRunId,
-                    toolName = outcome.toolName,
-                    rationale = outcome.rationale,
-                    classificationSource = outcome.classificationSource,
-                    approvalExpiresAt = outcome.approvalExpiresAt,
-                    notificationStatus = outcome.notificationStatus,
-                    notificationRecipient = outcome.notificationRecipient,
-                    notificationSubject = outcome.notificationSubject,
-                ),
-            )
-        }
+        app.analyze(request, InvoiceRoute.LOCAL_NVIDIA).toHttpResponse()
 
     /** Opt-in EU route; high-risk requests use the governed payment flow too. */
     @PostMapping("/eu-scaleway")
     suspend fun euScaleway(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        when (val outcome = app.analyze(request, InvoiceRoute.EU_CLOUD)) {
-            is AnalyzeOutcome.Typed -> ResponseEntity.ok(
-                AnalyzeResponse(outcome.assessment, outcome.selectedRoute, outcome.classificationSource),
-            )
-            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
-                AwaitingApprovalResponse(
-                    status = "AWAITING_APPROVAL",
-                    approvalId = outcome.approvalId,
-                    workflowRunId = outcome.workflowRunId,
-                    toolName = outcome.toolName,
-                    rationale = outcome.rationale,
-                    classificationSource = outcome.classificationSource,
-                    approvalExpiresAt = outcome.approvalExpiresAt,
-                    notificationStatus = outcome.notificationStatus,
-                    notificationRecipient = outcome.notificationRecipient,
-                    notificationSubject = outcome.notificationSubject,
-                ),
-            )
-        }
+        app.analyze(request, InvoiceRoute.EU_CLOUD).toHttpResponse()
 
     /** Contest PDF entrypoint: metadata phase precedes local content preparation. */
     @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])
@@ -216,6 +118,26 @@ class InvoiceController(
             )
         }
     }
+}
+
+private fun AnalyzeOutcome.toHttpResponse(): ResponseEntity<Any> = when (this) {
+    is AnalyzeOutcome.Typed -> ResponseEntity.ok(
+        AnalyzeResponse(assessment, selectedRoute, classificationSource),
+    )
+    is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
+        AwaitingApprovalResponse(
+            status = "AWAITING_APPROVAL",
+            approvalId = approvalId,
+            workflowRunId = workflowRunId,
+            toolName = toolName,
+            rationale = rationale,
+            classificationSource = classificationSource,
+            approvalExpiresAt = approvalExpiresAt,
+            notificationStatus = notificationStatus,
+            notificationRecipient = notificationRecipient,
+            notificationSubject = notificationSubject,
+        ),
+    )
 }
 
 /** Metadata-driven proposal; TramAI still authorizes the selected operation. */

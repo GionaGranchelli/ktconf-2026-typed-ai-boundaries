@@ -54,37 +54,38 @@ class InvoiceService(
 
                 DataClassification.CONFIDENTIAL,
                 DataClassification.RESTRICTED, -> InvoiceRoute.LOCAL
-            }
+        }
         return telemetry.traceModelCall(document.classification, route) {
             try {
+                val requiresApproval = requiresPaymentApproval(document.payload)
                 val rawAssessment = when (route) {
-                    InvoiceRoute.CLOUD -> if (requiresPaymentApproval(document.payload)) {
+                    InvoiceRoute.CLOUD -> if (requiresApproval) {
                         ai.analyzeCloudPayment(document)
                     } else {
                         ai.analyzeCloudAutoPayment(document)
                     }
-                    InvoiceRoute.LOCAL -> if (requiresPaymentApproval(document.payload)) {
+                    InvoiceRoute.LOCAL -> if (requiresApproval) {
                         ai.analyzeLocal(document)
                     } else {
                         ai.analyzeLocalAutoPayment(document)
                     }
-                    InvoiceRoute.LOCAL_NVIDIA -> if (requiresPaymentApproval(document.payload)) {
+                    InvoiceRoute.LOCAL_NVIDIA -> if (requiresApproval) {
                         ai.analyzeLocalNvidiaPayment(document)
                     } else {
                         ai.analyzeLocalNvidiaAutoPayment(document)
                     }
-                    InvoiceRoute.EU_CLOUD -> if (requiresPaymentApproval(document.payload)) {
+                    InvoiceRoute.EU_CLOUD -> if (requiresApproval) {
                         ai.analyzeEuScalewayPayment(document)
                     } else {
                         ai.analyzeEuScalewayAutoPayment(document)
                     }
-                    InvoiceRoute.GLOBAL_CLOUD -> if (requiresPaymentApproval(document.payload)) {
+                    InvoiceRoute.GLOBAL_CLOUD -> if (requiresApproval) {
                         ai.analyzeGlobalNvidiaPayment(document)
                     } else {
                         ai.analyzeGlobalNvidiaAutoPayment(document)
                     }
                 }
-                val paymentScheduled = !requiresPaymentApproval(document.payload) &&
+                val paymentScheduled = !requiresApproval &&
                     ledger.hasExecutionForInvoice(document.payload.invoiceId)
                 AnalyzeOutcome.Typed(
                     assessment = reconcileAssessment(document.payload, rawAssessment, paymentScheduled),
@@ -135,16 +136,6 @@ class InvoiceService(
             ai.analyzeCloud(document)
         }.also {
             log.error("Boundary proof unexpectedly completed: invoiceId={} reached cloud operation", request.invoice.invoiceId)
-        }
-    }
-
-    /** DEMO-ONLY boundary proof: force a RESTRICTED document to EU_CLOUD. */
-    suspend fun analyzeRestrictedViaEu(request: AnalyzeInvoiceRequest): InvoiceAssessment {
-        val document = request.toClassifiedDocument()
-        return telemetry.traceModelCall(document.classification, InvoiceRoute.EU_CLOUD) {
-            ai.analyzeEuScaleway(document)
-        }.also {
-            log.error("Boundary proof unexpectedly completed: invoiceId={} reached EU provider", request.invoice.invoiceId)
         }
     }
 
