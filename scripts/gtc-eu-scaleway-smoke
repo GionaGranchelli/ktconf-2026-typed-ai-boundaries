@@ -4,10 +4,10 @@ set -euo pipefail
 # Opt-in smoke for Scaleway Generative APIs. Mistral is temporary EU_CLOUD
 # infrastructure here; it is not NVIDIA, Nemotron, or NIM.
 BASE_URL="${KTCONF_GTC_EU_SCALEWAY_BASE_URL:-${SCW_BASE_URL:-}}"
-API_KEY="${KTCONF_GTC_EU_SCALEWAY_API_KEY:-${SCW_API_KEY:-}}"
+API_KEY="${KTCONF_GTC_EU_SCALEWAY_API_KEY:-${SCW_SECRET_KEY:-${SCW_API_KEY:-}}}"
 MODEL="${KTCONF_GTC_EU_SCALEWAY_MODEL:-${SCW_MODEL:-}}"
 if [[ -z "$BASE_URL" || -z "$API_KEY" || -z "$MODEL" ]]; then
-  echo "FAIL: set SCW_BASE_URL, SCW_API_KEY, and SCW_MODEL (or KTCONF_GTC_EU_SCALEWAY_* equivalents)" >&2
+  echo "FAIL: set SCW_BASE_URL, SCW_MODEL, and SCW_SECRET_KEY (or KTCONF_GTC_EU_SCALEWAY_* equivalents)" >&2
   exit 1
 fi
 command -v curl >/dev/null || { echo "FAIL: curl is required" >&2; exit 1; }

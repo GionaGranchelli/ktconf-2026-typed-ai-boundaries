@@ -349,9 +349,28 @@ ul, ol { list-style: none; }
 .payment-status--denied { border-color:#75414a; background:rgba(117,65,74,.14); }
 .payment-status--denied strong { color:#ff9c9c; }
 .payment-status--neutral strong { color:var(--muted-light); }
+.notification-receipt { display:flex; align-items:flex-start; gap:9px; margin:12px 0; padding:10px 11px; border:1px solid var(--line-mid); border-radius:8px; background:rgba(118,185,0,.07); color:var(--muted-light); }
+.notification-receipt__icon { color:var(--accent-bright); font-size:15px; line-height:1; }
+.notification-receipt span:last-child { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.notification-receipt strong { color:var(--text-bright); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+.notification-receipt small { color:var(--muted-light); font-size:10px; overflow-wrap:anywhere; }
 .invoice-context { margin-top:14px; }
 .context-label { display:block; color:#f1c77b; font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; margin-bottom:12px; }
 @media (max-width: 720px) { .payment-status { align-items:flex-start; flex-direction:column; } .payment-status__detail { text-align:left; } }
+
+/* Recording view: keep the real dashboard, remove chrome that competes with the proof. */
+.app-shell--presentation .sidebar { display: none; }
+.app-shell--presentation .topbar__right > :not(.presentation-toggle) { display: none; }
+.app-shell--presentation .topbar { padding: 0 36px; }
+.app-shell--presentation .page-content { padding: 34px 42px; }
+.app-shell--presentation .presentation-toggle { border-color: var(--accent); color: var(--accent-bright); }
+
+.demo-intent { display:flex; align-items:center; gap:14px; margin-bottom:18px; padding:12px 15px; border:1px solid var(--line-mid); border-radius:var(--r-md); background:var(--accent-dim); }
+.demo-intent strong { color:var(--accent-bright); font:800 10px var(--font-mono); letter-spacing:.12em; white-space:nowrap; }
+.demo-intent span { color:var(--muted-light); font-size:12px; }
+.demo-intent--action { border-color:rgba(245,166,35,.32); background:var(--warning-dim); }
+.demo-intent--action strong { color:#f1c77b; }
+@media (max-width:720px) { .app-shell--presentation .page-content { padding:22px 16px; }.demo-intent { align-items:flex-start; flex-direction:column; gap:6px; } }
 .authority-actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; }
 .approval-id       { margin-top: 11px; font-family: var(--font-mono); font-size: 9px; color: var(--muted); word-break: break-all; line-height: 1.55; }
 

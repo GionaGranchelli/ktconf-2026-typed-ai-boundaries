@@ -62,15 +62,28 @@ class TrustedPdfIngestionServiceTest {
     fun `repository fixtures cover all contest residency cases`() {
         val cases = listOf(
             "fixtures/public-invoice.pdf" to ("PUBLIC" to DataResidency.ANY),
+            "fixtures/public-high-invoice.pdf" to ("PUBLIC" to DataResidency.ANY),
             "fixtures/confidential-eu-invoice.pdf" to ("CONFIDENTIAL" to DataResidency.EU_ONLY),
+            "fixtures/confidential-eu-low-invoice.pdf" to ("CONFIDENTIAL" to DataResidency.EU_ONLY),
             "fixtures/restricted-local-invoice.pdf" to ("RESTRICTED" to DataResidency.LOCAL_ONLY),
             "fixtures/payment-local-invoice.pdf" to ("RESTRICTED" to DataResidency.LOCAL_ONLY),
+            "fixtures/restricted-local-high-invoice.pdf" to ("RESTRICTED" to DataResidency.LOCAL_ONLY),
+        )
+        val amounts = mapOf(
+            "fixtures/public-invoice.pdf" to 120_000L,
+            "fixtures/public-high-invoice.pdf" to 1_840_000L,
+            "fixtures/confidential-eu-invoice.pdf" to 1_840_000L,
+            "fixtures/confidential-eu-low-invoice.pdf" to 120_000L,
+            "fixtures/restricted-local-invoice.pdf" to 4_200L,
+            "fixtures/payment-local-invoice.pdf" to 1_840_000L,
+            "fixtures/restricted-local-high-invoice.pdf" to 1_840_000L,
         )
         cases.forEach { (path, expected) ->
             val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream(path)).readBytes()
             val parsed = parser.parse(MockMultipartFile("file", path.substringAfterLast('/'), "application/pdf", bytes))
             assertEquals(expected.first, parsed.metadata.classification.name)
             assertEquals(expected.second, parsed.metadata.residency)
+            assertEquals(amounts.getValue(path), parsed.request.invoice.amountCents)
         }
     }
 

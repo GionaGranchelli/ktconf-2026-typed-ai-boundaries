@@ -46,6 +46,7 @@ tramai:
 
     allowed-tools:
       - schedule-payment
+      - auto-schedule-payment
       - send-approval-email
 
     allowed-permissions:
@@ -85,11 +86,11 @@ ktconf:
       model: ${KTCONF_GTC_GLOBAL_NVIDIA_MODEL:nvidia/nemotron-3.5-lightning-30b-a3b}
       api-key: ${KTCONF_GTC_GLOBAL_NVIDIA_API_KEY:}
     eu-scaleway:
-      # Scaleway Generative APIs European deployment. This is an opt-in
+      # Scaleway Generative APIs serverless European deployment. This is an opt-in
       # OpenAI-compatible EU_CLOUD provider; it is not NVIDIA/NIM.
       base-url: ${KTCONF_GTC_EU_SCALEWAY_BASE_URL:${SCW_BASE_URL:}}
-      model: ${KTCONF_GTC_EU_SCALEWAY_MODEL:}
-      api-key: ${KTCONF_GTC_EU_SCALEWAY_API_KEY:${SCW_API_KEY:}}
+      model: ${KTCONF_GTC_EU_SCALEWAY_MODEL:mistral-medium-3.5-128b}
+      api-key: ${KTCONF_GTC_EU_SCALEWAY_API_KEY:${SCW_SECRET_KEY:${SCW_API_KEY:}}}
 
 logging:
   level:

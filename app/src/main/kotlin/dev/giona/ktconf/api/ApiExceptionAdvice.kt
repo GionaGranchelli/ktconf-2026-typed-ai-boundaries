@@ -2,6 +2,8 @@ package dev.giona.ktconf.api
 
 import dev.giona.ktconf.application.ApprovalNotFoundException
 import dev.giona.ktconf.application.WorkflowApprovalStateException
+import dev.giona.ktconf.application.ApprovalReissueNotAllowedException
+import dev.giona.ktconf.application.ApprovalReissueNotFoundException
 import dev.tramai.core.exception.ApprovalAuthorizationException
 import dev.tramai.core.exception.ApprovalStoreConflictException
 import dev.tramai.core.exception.ApprovalStoreNotConsumableException
@@ -63,6 +65,18 @@ class ApiExceptionAdvice {
     fun approvalNotFound(e: ApprovalNotFoundException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(
             ErrorResponse(code = "approval-not-found", message = e.message ?: "Approval not found"),
+        )
+
+    @ExceptionHandler(ApprovalReissueNotFoundException::class)
+    fun approvalReissueNotFound(e: ApprovalReissueNotFoundException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ErrorResponse(code = "approval-reissue-not-found", message = e.message ?: "Approval reissue source not found"),
+        )
+
+    @ExceptionHandler(ApprovalReissueNotAllowedException::class)
+    fun approvalReissueNotAllowed(e: ApprovalReissueNotAllowedException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ErrorResponse(code = "approval-reissue-not-allowed", message = e.message ?: "Approval cannot be reissued"),
         )
 
     @ExceptionHandler(IllegalStateException::class)

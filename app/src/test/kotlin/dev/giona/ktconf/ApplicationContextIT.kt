@@ -3,6 +3,7 @@ package dev.giona.ktconf
 import dev.giona.ktconf.demo.DeterministicProvider
 import dev.giona.ktconf.governance.CountingModelProvider
 import dev.giona.ktconf.payments.SchedulePaymentTool
+import dev.giona.ktconf.payments.AutoSchedulePaymentTool
 import dev.giona.ktconf.notifications.SendApprovalEmailTool
 import dev.tramai.core.model.TramaiTool
 import dev.tramai.core.provider.ModelProvider
@@ -54,6 +55,13 @@ class ApplicationContextIT {
         assertTrue(tool is TramaiTool<*, *>)
         assertTrue(tool is SchedulePaymentTool)
         assertEquals("schedule-payment", (tool as TramaiTool<*, *>).name)
+    }
+
+    @Test
+    fun `AutoSchedulePaymentTool is discovered as a TramaiTool Spring bean`() {
+        val tool = context.getBean("autoSchedulePaymentTool")
+        assertTrue(tool is AutoSchedulePaymentTool)
+        assertEquals("auto-schedule-payment", tool.name)
     }
 
     @Test

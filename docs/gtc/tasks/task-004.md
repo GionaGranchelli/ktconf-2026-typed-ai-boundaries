@@ -10,8 +10,8 @@ Blocks: task-006
 
 Provide a truthful, provider-neutral EU execution boundary through a managed
 European OpenAI-compatible inference service. The active P0 implementation is
-Scaleway Generative APIs with Mistral Small 24B. Mistral is temporary
-infrastructure/model unblocker and is not NVIDIA, Nemotron, or NIM.
+Scaleway Generative APIs serverless with Mistral Medium 3.5 128B. Mistral is
+temporary infrastructure/model unblocker and is not NVIDIA, Nemotron, or NIM.
 
 The provider/model composition is replaceable; `EU_CLOUD` remains the TramAI
 trust-zone governance concept and must not become a synonym for Scaleway or
@@ -19,7 +19,8 @@ Mistral.
 
 ## Active path
 
-`Scaleway Generative APIs` -> European deployment -> Mistral Small 24B ->
+`Scaleway Generative APIs` serverless -> European deployment -> configured
+Mistral model ->
 OpenAI-compatible API -> `EU_CLOUD` TramAI provider.
 
 ## Nebius disposition

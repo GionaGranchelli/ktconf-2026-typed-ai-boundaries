@@ -4,6 +4,7 @@ import dev.giona.ktconf.application.ApprovalService
 import dev.giona.ktconf.application.DenyOutcome
 import dev.giona.ktconf.application.EvidenceResult
 import dev.giona.ktconf.application.EvidenceService
+import dev.giona.ktconf.application.ReissueOutcome
 import dev.giona.ktconf.domain.InvoiceAssessment
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -34,6 +35,12 @@ class ApprovalController(
     suspend fun deny(@PathVariable approvalId: String): DenyOutcome {
         log.info("Denial requested: approvalId={}", approvalId)
         return approvals.deny(approvalId)
+    }
+
+    @PostMapping("/{approvalId}/reissue")
+    suspend fun reissue(@PathVariable approvalId: String): ReissueOutcome {
+        log.info("Approval reissue requested: approvalId={}", approvalId)
+        return approvals.reissue(approvalId)
     }
 
     @GetMapping("/{approvalId}/evidence")

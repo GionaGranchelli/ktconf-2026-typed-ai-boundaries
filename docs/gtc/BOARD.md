@@ -39,6 +39,8 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-012](tasks/task-012.md) | DONE | K | 005 | Preserve TramAI classification provenance and emit native sovereign evidence |
 | [task-011](tasks/task-011.md) | REVIEW | UI | 005–008 | GTC governance console for the real backend evidence |
 | [task-013](tasks/task-013.md) | REVIEW | UI | 006–011 | Backend-owned uploaded-document workflow history |
+| [task-015](tasks/task-015.md) | DONE | Post-freeze | 007,013 | Safe reissue of expired approvals without reusing continuations |
+| [task-016](tasks/task-016.md) | DONE | Post-freeze | 004,006 | Use Scaleway serverless Generative APIs for the temporary EU provider |
 
 ## Evidence checkpoint
 
@@ -59,6 +61,17 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
   direct chat, typed application HTTP 200 with `selectedRoute=EU_CLOUD`,
   allowed invocation delta `1`, and forced restricted-EU HTTP 403 with
   invocation delta `0`.
+- task-016 is `DONE`: the active EU deployment now uses Scaleway serverless
+  Generative APIs with `mistral-medium-3.5-128b`. The live smoke validated
+  `/v1/models` HTTP 200 and model advertisement, direct chat HTTP 200, typed
+  application HTTP 200 with `selectedRoute=EU_CLOUD` and allowed invocation
+  delta `1`, plus forced restricted-EU HTTP 403 with
+  `classification-routing-blocked` and invocation delta `0`. The former
+  dedicated Scaleway evidence remains historical.
+- High-risk documents on every governed boundary now use the same TramAI
+  `schedule-payment` operation. `ApprovalFlowTest` proves the confidential EU
+  PDF and a public GLOBAL request suspend with HTTP 202, keep payment count at
+  `0`, then resume after approval and execute exactly once.
 - The deterministic stage scripts now clear every contest real-provider
   family (`LOCAL_NVIDIA`, `EU_SCALEWAY`, `GLOBAL_NVIDIA`) plus generic
   `SCW_*` fallbacks. `ScriptSanitizationTest` covers those variables, so an
@@ -113,6 +126,10 @@ keeps LOCAL Qwen and GLOBAL Nemotron labels truthful, and proxies the real
 Spring endpoints from port 3001 to port 8080. `npm run build` passes on Node
 22.23.1 / npm 10.9.8. Browser visual smoke against a running Spring app is
 still pending; no provider or governance semantics are implemented in the UI.
+The overview is now the landing screen and presents the problem, guarantees,
+architecture, NVIDIA relationship, and live-proof CTAs as one recording-ready
+story. Presentation mode hides sidebar/debug chrome, and the proof CTAs open
+the existing live workflow with a placement or action-governance hint.
 
 Task-013 adds backend-owned demo-session history for uploaded PDFs at
 `/governance/documents` and a Document History dashboard page. Details include
@@ -121,10 +138,16 @@ approval, payment status, and readable tool/notification/audit events. History
 is intentionally in-memory and resets when the application restarts. It is
 reachable from the persistent dashboard top bar as `Document history`, and
 the Overview page also exposes `View processed documents`. Each record now
-also shows upload and policy outcome events, including automatic approval when
-no human gate is required. Denied forced-route PDF attempts are also retained
+also shows upload and policy outcome events, including `auto-schedule-payment`
+when the trusted low-risk rule allows automatic payment. Denied forced-route PDF attempts are also retained
 with status `DENIED`, their TramAI reason code, and a provider-not-invoked
 timeline event.
+
+Latest payment consistency checkpoint: the trusted €5,000 rule now selects a
+separate `auto-schedule-payment` tool for LOW-risk invoices (`LOW`/`AUTO`, full
+audit, invoice-scoped idempotency) and keeps `schedule-payment` for HIGH-risk
+invoices (`HIGH`/`HUMAN_REQUIRED`). The full deterministic application suite
+passes after this change; the frontend build also passes.
 
 Containerized demo packaging is also available through `Dockerfile` and
 `docker-compose.yml`: the frontend is embedded into the Spring Boot image,
@@ -142,6 +165,15 @@ The native pack is exposed at `/governance/sovereign-evidence` and documented
 in [`evidence/tramai-sovereign-evidence.md`](evidence/tramai-sovereign-evidence.md).
 Local Nemotron artifact verification remains explicitly unclaimed because the
 pinned Spring composition does not configure an artifact manifest/verifier.
+
+Task-015 is `DONE`: expired PDF-backed approvals can be reissued through
+`POST /approvals/{approvalId}/reissue` only after TramAI accepts the old
+approval's `Timeout` transition. The old approval is recorded as `EXPIRED` and
+cannot resume; a fresh governed analysis creates a new continuation, approval,
+fake approval email, and linked history record with readable expiry/reissue
+events. Active, terminal, unknown, and legacy workflow approvals fail safely.
+The focused expiry test, full deterministic app suite, and frontend build pass.
+This recovery remains in-memory and operator-triggered for demo scope.
 
 ## Critical path
 

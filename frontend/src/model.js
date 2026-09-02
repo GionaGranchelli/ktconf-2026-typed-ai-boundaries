@@ -22,7 +22,7 @@ export const boundaries = [
     id: 'EU_CLOUD',
     title: 'EU CLOUD',
     subtitle: 'Regional cloud · EU data boundary',
-    stack: ['Scaleway Generative APIs', 'Europe region · France', 'Mistral Small 24B'],
+    stack: ['Scaleway Generative APIs', 'Serverless · configured deployment', 'Mistral Medium 3.5 128B'],
     statsKey: 'euScalewayInvocationCount',
     description:
       'Data stays within EU jurisdiction. Sourced via Scaleway Europe. Required for CONFIDENTIAL + EU_ONLY.',
@@ -128,9 +128,8 @@ export const policyMatrix = [
  */
 export const providerIdentity = {
   LOCAL_NVIDIA:  { logicalModel: 'local-nvidia-invoice-model',  provider: 'local-nvidia-provider',  trustZone: 'LOCAL',        infra: 'NVIDIA RTX GPU',             runtime: 'llama.cpp',          model: 'Qwen qwen/qwen3.8-27b' },
-  EU_CLOUD:      { logicalModel: 'eu-scaleway-invoice-model',   provider: 'eu-scaleway-provider',   trustZone: 'EU_CLOUD',     infra: 'Scaleway Europe',            runtime: 'Scaleway APIs',      model: 'Mistral Small 24B' },
+  EU_CLOUD:      { logicalModel: 'eu-scaleway-invoice-model',   provider: 'eu-scaleway-provider',   trustZone: 'EU_CLOUD',     infra: 'Scaleway serverless',       runtime: 'Scaleway APIs',      model: 'Mistral Medium 3.5 128B' },
   GLOBAL_CLOUD:  { logicalModel: 'global-nvidia-invoice-model', provider: 'global-nvidia-provider', trustZone: 'GLOBAL_CLOUD', infra: 'Build.NVIDIA.com API',        runtime: 'NVIDIA hosted inf',  model: 'Nemotron 3.5 Lightning 30B A3B' },
   CLOUD:         { logicalModel: 'cloud-invoice-model',         provider: 'cloud-provider',         trustZone: 'GLOBAL_CLOUD', infra: 'Deterministic (cloud)',       runtime: '—',                  model: '—' },
   LOCAL:         { logicalModel: 'local-invoice-model',         provider: 'local-provider',         trustZone: 'LOCAL',        infra: 'Deterministic (local)',       runtime: '—',                  model: '—' },
 }
-

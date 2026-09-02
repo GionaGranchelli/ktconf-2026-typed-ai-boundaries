@@ -34,11 +34,15 @@ const props = defineProps({
 // ── Derived ────────────────────────────────────────────────────
 const allowedSet       = computed(() => allowedBoundaries(props.metadata))
 const selectedBoundary = computed(() => routeToBoundary(props.selectedRoute))
+const pendingHighRiskReview = computed(() =>
+  Boolean(props.assessment?.risk === 'HIGH' && !props.approval && !props.evidence))
+const pendingAutomaticPayment = computed(() =>
+  Boolean(props.assessment?.risk === 'LOW' && props.assessment?.recommendedAction !== 'SCHEDULE_PAYMENT' && !props.approval && !props.evidence))
 
 // Which step are we actively running? (for the spinner)
 const activeStep = computed(() => {
   if (props.evidence)   return 7
-  if (props.assessment && !props.approval && !props.busy) return 7
+  if (props.assessment && !props.approval && !props.busy && !pendingHighRiskReview.value && !pendingAutomaticPayment.value) return 7
   if (props.approval)   return 5
   if (props.assessment) return 4
   if (props.metadata)   return 3
@@ -305,11 +309,19 @@ function stepStatus(n) {
         <div class="wf-step__body">
           <div class="wf-step__row">
             <span class="wf-step__name">Flow complete</span>
-            <span v-if="assessment && !approval" class="wf-step__detail">typed result returned</span>
+            <span v-if="assessment && !approval && !pendingHighRiskReview && !pendingAutomaticPayment" class="wf-step__detail">typed result returned</span>
             <span v-else-if="evidence" class="wf-step__detail">governed action verified</span>
-            <span class="wf-step__tag wf-step__tag--allowed">COMPLETE</span>
+            <span v-if="pendingHighRiskReview" class="wf-step__tag wf-step__tag--suspended">REVIEW REQUIRED</span>
+            <span v-else-if="pendingAutomaticPayment" class="wf-step__tag wf-step__tag--suspended">AUTO PAYMENT PENDING</span>
+            <span v-else class="wf-step__tag wf-step__tag--allowed">COMPLETE</span>
           </div>
-          <div v-if="assessment && !approval" class="wf-step__note">
+          <div v-if="pendingHighRiskReview" class="wf-step__note">
+            High-risk assessment returned without a governed payment suspension; no payment was executed.
+          </div>
+          <div v-else-if="pendingAutomaticPayment" class="wf-step__note">
+            LOW-risk assessment returned without the auto-schedule-payment tool; no payment was executed.
+          </div>
+          <div v-else-if="assessment && !approval" class="wf-step__note">
             {{ selectedRoute }} completed with no pending tool or human decision.
           </div>
           <div v-else-if="evidence" class="wf-step__note">

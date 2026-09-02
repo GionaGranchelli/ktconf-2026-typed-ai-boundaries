@@ -53,6 +53,10 @@ export function deny(approvalId) {
   return request(`/approvals/${encodeURIComponent(approvalId)}/deny`, { method: 'POST' })
 }
 
+export function reissueApproval(approvalId) {
+  return request(`/approvals/${encodeURIComponent(approvalId)}/reissue`, { method: 'POST' })
+}
+
 export function getEvidence(approvalId) {
   return request(`/approvals/${encodeURIComponent(approvalId)}/evidence`)
 }

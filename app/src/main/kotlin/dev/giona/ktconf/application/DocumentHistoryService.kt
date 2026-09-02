@@ -20,22 +20,54 @@ class DocumentHistoryService {
         invoice: InvoiceDocument,
         metadata: TrustedPdfMetadata,
         outcome: AnalyzeOutcome,
+        reissuedFromApprovalId: String? = null,
     ): DocumentHistoryRecord {
         val record = when (outcome) {
-            is AnalyzeOutcome.Typed -> DocumentHistoryRecord(
-                id = "document-${UUID.randomUUID()}",
-                recordedAt = Instant.now(),
-                invoice = invoice,
-                metadata = metadata,
-                selectedRoute = outcome.selectedRoute,
-                classificationSource = outcome.classificationSource,
-                status = "COMPLETED",
-                assessment = outcome.assessment,
-                workflowEvents = listOf(
-                    HistoryEvent("DOCUMENT_UPLOADED", "Document uploaded", "Trusted PDF metadata accepted", Instant.now()),
-                    HistoryEvent("AUTO_APPROVED", "Automatically approved", "${outcome.assessment.risk} risk; no human approval required", Instant.now()),
-                ),
-            )
+            is AnalyzeOutcome.Typed -> {
+                val reviewRequired = outcome.assessment.risk == dev.giona.ktconf.domain.InvoiceRisk.HIGH
+                val paymentScheduled = outcome.paymentScheduled
+                DocumentHistoryRecord(
+                    id = "document-${UUID.randomUUID()}",
+                    recordedAt = Instant.now(),
+                    invoice = invoice,
+                    metadata = metadata,
+                    selectedRoute = outcome.selectedRoute,
+                    classificationSource = outcome.classificationSource,
+                    status = when {
+                        paymentScheduled -> "SCHEDULED"
+                        reviewRequired -> "REVIEW_REQUIRED"
+                        else -> "AUTO_PAYMENT_PENDING"
+                    },
+                    assessment = outcome.assessment,
+                    reissuedFromApprovalId = reissuedFromApprovalId,
+                    workflowEvents = listOf(
+                        HistoryEvent("DOCUMENT_UPLOADED", "Document uploaded", "Trusted PDF metadata accepted", Instant.now()),
+                        *reissueEvents(reissuedFromApprovalId),
+                        if (paymentScheduled) {
+                            HistoryEvent(
+                                "PAYMENT_AUTO_SCHEDULED",
+                                "Payment scheduled automatically",
+                                "LOW-risk auto-schedule-payment executed exactly once under the trusted amount rule",
+                                Instant.now(),
+                            )
+                        } else if (reviewRequired) {
+                            HistoryEvent(
+                                "HUMAN_REVIEW_REQUIRED",
+                                "Human review required",
+                                "HIGH-risk assessment; no payment was executed on this analysis route",
+                                Instant.now(),
+                            )
+                        } else {
+                            HistoryEvent(
+                                "AUTO_PAYMENT_PENDING",
+                                "Automatic payment pending",
+                                "LOW risk was established, but the auto-schedule-payment tool did not execute",
+                                Instant.now(),
+                            )
+                        },
+                    ),
+                )
+            }
             is AnalyzeOutcome.AwaitingApproval -> DocumentHistoryRecord(
                 id = "document-${UUID.randomUUID()}",
                 recordedAt = Instant.now(),
@@ -48,9 +80,16 @@ class DocumentHistoryService {
                 workflowRunId = outcome.workflowRunId,
                 toolName = outcome.toolName,
                 rationale = outcome.rationale,
+                notificationStatus = outcome.notificationStatus,
+                notificationRecipient = outcome.notificationRecipient,
+                notificationSubject = outcome.notificationSubject,
+                approvalExpiresAt = outcome.approvalExpiresAt,
+                reissuedFromApprovalId = reissuedFromApprovalId,
                 workflowEvents = listOf(
                     HistoryEvent("DOCUMENT_UPLOADED", "Document uploaded", "Trusted PDF metadata accepted", Instant.now()),
+                    *reissueEvents(reissuedFromApprovalId),
                     HistoryEvent("APPROVAL_REQUIRED", "Human approval required", "${outcome.toolName} requested by the model", Instant.now()),
+                    HistoryEvent("APPROVAL_EMAIL_RECORDED", "Approval email recorded", "${outcome.notificationSubject} → ${outcome.notificationRecipient}; fake email sink, no SMTP/network egress", Instant.now()),
                 ),
             )
         }
@@ -59,10 +98,54 @@ class DocumentHistoryService {
         return record
     }
 
+    private fun reissueEvents(previousApprovalId: String?): Array<HistoryEvent> =
+        if (previousApprovalId == null) emptyArray() else arrayOf(
+            HistoryEvent(
+                "REISSUE_CREATED",
+                "Fresh approval created",
+                "Reissued from expired approval $previousApprovalId",
+                Instant.now(),
+            ),
+        )
+
     fun list(): List<DocumentHistoryRecord> = records.values.sortedByDescending { it.recordedAt }
 
     fun get(id: String): DocumentHistoryRecord = records[id]
         ?: throw NoSuchElementException("document history record not found: $id")
+
+    fun findByApprovalId(approvalId: String): DocumentHistoryRecord? =
+        approvalIndex[approvalId]?.let(records::get)
+
+    fun markExpired(approvalId: String) {
+        val id = approvalIndex[approvalId] ?: return
+        records.computeIfPresent(id) { _, record ->
+            record.copy(
+                status = "EXPIRED",
+                workflowEvents = record.workflowEvents + HistoryEvent(
+                    "APPROVAL_EXPIRED",
+                    "Approval expired",
+                    "TramAI timed out the approval; the old continuation cannot be resumed",
+                    Instant.now(),
+                ),
+            )
+        }
+    }
+
+    fun linkReissue(oldApprovalId: String, newRecordId: String, newApprovalId: String?) {
+        val oldId = approvalIndex[oldApprovalId] ?: return
+        records.computeIfPresent(oldId) { _, record ->
+            record.copy(
+                reissuedToDocumentId = newRecordId,
+                reissuedToApprovalId = newApprovalId,
+                workflowEvents = record.workflowEvents + HistoryEvent(
+                    "APPROVAL_REISSUED",
+                    "Approval reissued",
+                    "Fresh workflow created as document $newRecordId",
+                    Instant.now(),
+                ),
+            )
+        }
+    }
 
     fun updateApproval(approvalId: String, status: String, assessment: InvoiceAssessment? = null) {
         val id = approvalIndex[approvalId] ?: return
@@ -128,6 +211,13 @@ data class DocumentHistoryRecord(
     val workflowRunId: String? = null,
     val toolName: String? = null,
     val rationale: String? = null,
+    val notificationStatus: String? = null,
+    val notificationRecipient: String? = null,
+    val notificationSubject: String? = null,
+    val approvalExpiresAt: Instant? = null,
+    val reissuedFromApprovalId: String? = null,
+    val reissuedToDocumentId: String? = null,
+    val reissuedToApprovalId: String? = null,
     val denialReasonCode: String? = null,
     val workflowEvents: List<HistoryEvent> = emptyList(),
     val auditEvents: List<AuditEvent> = emptyList(),

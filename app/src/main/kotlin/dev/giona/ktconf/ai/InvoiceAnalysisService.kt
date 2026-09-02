@@ -9,7 +9,7 @@ import dev.tramai.core.model.ClassifiedDocument
 /**
  * The typed AI boundary — the ONE contract the audience should remember.
  *
- * Three governed operations on one service:
+ * Governed operations on one service:
  * - [analyzeLocal] runs on `local-invoice-model` (LOCAL provider) and may
  *   request the HIGH-risk `schedule-payment` tool.
  * - [preAssessLocal] produces a tool-free recommendation for the explicit
@@ -26,6 +26,9 @@ interface InvoiceAnalysisService {
     companion object {
         /** Per provider attempt; the HTTP workflow deadline is configured separately. */
         const val MODEL_ATTEMPT_TIMEOUT_MILLIS: Long = 90_000
+
+        /** TramAI derives the approval challenge expiry from the operation timeout. */
+        const val PAYMENT_APPROVAL_TIMEOUT_MILLIS: Long = 10 * 60 * 1_000
 
         const val ASSESSMENT_PROMPT: String =
             "Analyze the invoice document and return a structured InvoiceAssessment. " +
@@ -47,15 +50,32 @@ interface InvoiceAnalysisService {
                 "and return REVIEW_ONLY. " +
                 "After a successful schedule-payment tool result, do not request the " +
                 "tool again and return SCHEDULE_PAYMENT."
+
+        const val AUTO_PAYMENT_PROMPT: String =
+            "$ASSESSMENT_PROMPT For a trusted invoice amount at or below 5,000 EUR, " +
+                "the application has selected the low-risk automatic-payment workflow. " +
+                "You MUST call auto-schedule-payment exactly once with the trusted invoice " +
+                "fields before returning the final assessment. After the successful tool " +
+                "result, return SCHEDULE_PAYMENT and do not call the tool again."
     }
 
     @Operation(
         prompt = TOOL_PROMPT,
         model = "local-invoice-model",
         tools = ["schedule-payment"],
-        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
     )
     suspend fun analyzeLocal(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    @Operation(
+        prompt = AUTO_PAYMENT_PROMPT,
+        model = "local-invoice-model",
+        tools = ["auto-schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeLocalAutoPayment(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
@@ -74,9 +94,19 @@ interface InvoiceAnalysisService {
         prompt = TOOL_PROMPT,
         model = "local-nvidia-invoice-model",
         tools = ["schedule-payment"],
-        timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
     )
     suspend fun analyzeLocalNvidiaPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    @Operation(
+        prompt = AUTO_PAYMENT_PROMPT,
+        model = "local-nvidia-invoice-model",
+        tools = ["auto-schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeLocalNvidiaAutoPayment(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
@@ -99,6 +129,27 @@ interface InvoiceAnalysisService {
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
+    /** GLOBAL legacy route: high-risk invoices use the governed tool flow. */
+    @Operation(
+        prompt = TOOL_PROMPT,
+        model = "cloud-invoice-model",
+        tools = ["schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeCloudPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    @Operation(
+        prompt = AUTO_PAYMENT_PROMPT,
+        model = "cloud-invoice-model",
+        tools = ["auto-schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeCloudAutoPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
     /** Explicit contest smoke operation; normal route selection is unchanged. */
     @Operation(
         prompt = ASSESSMENT_PROMPT,
@@ -109,6 +160,27 @@ interface InvoiceAnalysisService {
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 
+    /** GLOBAL NVIDIA payment path: the same governed tool flow as LOCAL and EU. */
+    @Operation(
+        prompt = TOOL_PROMPT,
+        model = "global-nvidia-invoice-model",
+        tools = ["schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeGlobalNvidiaPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    @Operation(
+        prompt = AUTO_PAYMENT_PROMPT,
+        model = "global-nvidia-invoice-model",
+        tools = ["auto-schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeGlobalNvidiaAutoPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
     /** Explicit contest smoke operation for the configured EU managed endpoint. */
     @Operation(
         prompt = ASSESSMENT_PROMPT,
@@ -116,6 +188,27 @@ interface InvoiceAnalysisService {
         timeoutMillis = MODEL_ATTEMPT_TIMEOUT_MILLIS,
     )
     suspend fun analyzeEuScaleway(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    /** EU payment path: high-risk invoices use the same governed tool flow as LOCAL. */
+    @Operation(
+        prompt = TOOL_PROMPT,
+        model = "eu-scaleway-invoice-model",
+        tools = ["schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeEuScalewayPayment(
+        document: ClassifiedDocument<InvoiceDocument>,
+    ): InvoiceAssessment
+
+    @Operation(
+        prompt = AUTO_PAYMENT_PROMPT,
+        model = "eu-scaleway-invoice-model",
+        tools = ["auto-schedule-payment"],
+        timeoutMillis = PAYMENT_APPROVAL_TIMEOUT_MILLIS,
+    )
+    suspend fun analyzeEuScalewayAutoPayment(
         document: ClassifiedDocument<InvoiceDocument>,
     ): InvoiceAssessment
 }

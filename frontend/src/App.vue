@@ -19,15 +19,22 @@ import HistoryPage       from './views/HistoryPage.vue'
 
 // ── Navigation ─────────────────────────────────────────────────
 const views = [
-  { id: 'live-governance', label: 'Live Governance', icon: 'play' },
-  { id: 'policy-matrix',   label: 'Policy Matrix',   icon: 'shield' },
+  { id: 'overview',        label: 'Overview',        icon: 'grid' },
+  { id: 'policy-matrix',   label: 'Governance',      icon: 'shield' },
+  { id: 'live-governance', label: 'Live Demo',       icon: 'play' },
   { id: 'evidence',        label: 'Evidence',         icon: 'chain' },
   { id: 'history',         label: 'Document History', icon: 'file' },
-  { id: 'overview',        label: 'Overview',          icon: 'grid' },
 ]
 
-const activeView = ref('live-governance')
+const activeView = ref('overview')
+const demoFocus = ref(null)
+const presentationMode = ref(false)
 const pageTitle  = computed(() => views.find(v => v.id === activeView.value)?.label ?? '')
+
+function openLiveDemo(focus = null) {
+  demoFocus.value = focus
+  activeView.value = 'live-governance'
+}
 
 // ── Backend health ──────────────────────────────────────────────
 const backendStatus = ref('checking')   // 'checking' | 'online' | 'offline'
@@ -70,7 +77,7 @@ function onStatsUpdated(stats) {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'app-shell--presentation': presentationMode }">
     <!-- ─── Sidebar ──────────────────────────────────────────── -->
     <aside class="sidebar">
       <div class="sidebar__logo">
@@ -140,6 +147,9 @@ function onStatsUpdated(stats) {
           TramAI · <strong>{{ pageTitle }}</strong>
         </div>
         <div class="topbar__right">
+          <button class="btn btn--ghost btn--sm presentation-toggle" @click="presentationMode = !presentationMode">
+            {{ presentationMode ? 'Exit presentation' : 'Presentation mode' }}
+          </button>
           <button class="btn btn--ghost btn--sm" @click="activeView = 'history'">
             Document history
           </button>
@@ -167,14 +177,15 @@ function onStatsUpdated(stats) {
       <main class="page-content">
         <DocumentFlowPage
           v-if="activeView === 'live-governance'"
+          :demo-focus="demoFocus"
           @stats-updated="onStatsUpdated"
         />
 
         <OverviewPage
           v-else-if="activeView === 'overview'"
           :stats="globalStats"
-          :session-before="sessionBefore"
           @navigate-history="activeView = 'history'"
+          @navigate-live="openLiveDemo"
         />
 
         <DocumentFlowPage

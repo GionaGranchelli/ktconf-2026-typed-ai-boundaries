@@ -51,6 +51,7 @@ echo "submodule clean      : yes"
     unset KTCONF_GTC_EU_SCALEWAY_API_KEY
     unset SCW_BASE_URL
     unset SCW_MODEL
+    unset SCW_SECRET_KEY
     unset SCW_API_KEY
     ./gradlew :app:test --rerun
 )

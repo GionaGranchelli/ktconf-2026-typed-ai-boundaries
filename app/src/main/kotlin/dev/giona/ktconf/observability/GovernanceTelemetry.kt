@@ -69,6 +69,39 @@ class GovernanceTelemetry(openTelemetry: OpenTelemetry) {
         }
     }
 
+    /** Records the local approval notification without recording email content. */
+    fun <T> traceApprovalNotification(
+        route: InvoiceRoute,
+        toolName: String,
+        recipient: String,
+        action: () -> T,
+    ): T {
+        val attributes = Attributes.builder()
+            .put("notification.channel", "fake-email")
+            .put("notification.kind", "approval-request")
+            .put("notification.recipient", recipient)
+            .put("tramai.route", route.name)
+            .put("tramai.trust_zone", route.target().trustZone)
+            .put("tramai.tool", toolName)
+            .build()
+        val span = tracer.spanBuilder("approval.email.recorded").startSpan()
+        span.setAllAttributes(attributes)
+        val scope = span.makeCurrent()
+        return try {
+            action().also {
+                span.setAttribute("notification.status", "RECORDED")
+                span.setStatus(StatusCode.OK)
+            }
+        } catch (error: Throwable) {
+            span.recordException(error)
+            span.setStatus(StatusCode.ERROR, error.message ?: "Approval notification failed")
+            throw error
+        } finally {
+            scope.close()
+            span.end()
+        }
+    }
+
     private fun recordPolicyDenial(
         span: io.opentelemetry.api.trace.Span,
         attributes: Attributes,

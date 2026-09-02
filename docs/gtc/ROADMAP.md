@@ -149,7 +149,7 @@ No cloud secret is required for this proof.
 
 **Priority:** P0  
 **Goal:** Create a real managed EU execution boundary. The active temporary
-provider is Scaleway Generative APIs with Mistral Small 24B; it is not an
+provider is Scaleway Generative APIs serverless with Mistral Medium 3.5 128B; it is not an
 NVIDIA/Nemotron/NIM proof. A suitable managed EU Nemotron deployment remains
 the preferred later upgrade.
 

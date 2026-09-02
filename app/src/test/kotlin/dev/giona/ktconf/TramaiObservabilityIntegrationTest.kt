@@ -1,6 +1,7 @@
 package dev.giona.ktconf
 
 import dev.giona.ktconf.api.AnalyzeResponse
+import dev.giona.ktconf.api.AwaitingApprovalResponse
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.sdk.OpenTelemetrySdk
@@ -47,10 +48,29 @@ class TramaiObservabilityIntegrationTest {
         )
 
         assertEquals(HttpStatus.OK, response.statusCode)
-        val span = spans.finishedSpanItems.single { it.name == "ai.analyzeCloud" }
+        val span = spans.finishedSpanItems.last { it.name == "ai.analyzeCloudAutoPayment" }
         assertEquals("cloud-provider", span.attributes.get(AttributeKey.stringKey("gen_ai.system")))
         assertEquals("cloud-invoice-model", span.attributes.get(AttributeKey.stringKey("gen_ai.request.model")))
         assertTrue(span.attributes.get(AttributeKey.booleanKey("tramai.structured.parse_success")) == true)
+    }
+
+    @Test
+    fun `approval notification emits a safe email span`() {
+        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
+        val response = rest.exchange(
+            "/invoices/analyze/local-nvidia",
+            HttpMethod.POST,
+            HttpEntity(DemoRequests.payment(), headers),
+            AwaitingApprovalResponse::class.java,
+        )
+
+        assertEquals(HttpStatus.ACCEPTED, response.statusCode)
+        val span = spans.finishedSpanItems.single { it.name == "approval.email.recorded" }
+        assertEquals("fake-email", span.attributes.get(AttributeKey.stringKey("notification.channel")))
+        assertEquals("approval-request", span.attributes.get(AttributeKey.stringKey("notification.kind")))
+        assertEquals("RECORDED", span.attributes.get(AttributeKey.stringKey("notification.status")))
+        assertEquals("approver@ktconf.example", span.attributes.get(AttributeKey.stringKey("notification.recipient")))
+        assertTrue(span.attributes.get(AttributeKey.stringKey("email.body")) == null)
     }
 
     @TestConfiguration(proxyBeanMethods = false)

@@ -5,7 +5,7 @@
 The contest branch demonstrates one Spring Boot application with one TramAI
 governance plane and three execution boundaries. LOCAL and GLOBAL_CLOUD are
 NVIDIA-backed; the active EU_CLOUD implementation is temporarily Scaleway
-Generative APIs with Mistral Small 24B and is not an NVIDIA/Nemotron/NIM path.
+Generative APIs serverless with Mistral Medium 3.5 128B and is not an NVIDIA/Nemotron/NIM path.
 
 The application may choose a route. TramAI independently decides whether that route is allowed for the trusted handling metadata attached to the document.
 
@@ -133,7 +133,7 @@ local-nvidia-provider
 eu-scaleway-provider
   trust zone: EU_CLOUD
   actual endpoint: Scaleway Generative APIs (European deployment)
-  actual model: configured Mistral Small 24B deployment (temporary)
+  actual model: configured Mistral Medium 3.5 128B deployment (temporary)
 
 global-nvidia-provider
   trust zone: GLOBAL_CLOUD
@@ -273,7 +273,7 @@ Before freeze, record:
 ## EU deployment: Scaleway Generative APIs
 
 The active EU deployment is documented in [`SCALEWAY.md`](SCALEWAY.md). It is
-an OpenAI-compatible European Mistral Small 24B service used temporarily to
+an OpenAI-compatible European Mistral Medium 3.5 128B service used temporarily to
 unblock the EU execution-boundary integration. The provider is declared
 `EU_CLOUD` by TramAI; the model/provider choice is not the trust zone itself.
 

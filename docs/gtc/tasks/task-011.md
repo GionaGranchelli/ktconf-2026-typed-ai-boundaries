@@ -34,7 +34,7 @@ real PDF
 4. Read governance counters from `GET /governance/stats` before/after execution.
 5. Visualize all three target NVIDIA boundaries:
    - LOCAL — NVIDIA RTX / local Qwen action model;
-   - EU_CLOUD — Scaleway Europe / Generative APIs / Mistral Small 24B;
+   - EU_CLOUD — Scaleway Generative APIs serverless / Mistral Medium 3.5 128B;
    - GLOBAL_CLOUD — Build.NVIDIA.com / hosted Nemotron.
 6. Clearly distinguish `ALLOWED`, `DENIED`, and `SELECTED` states.
 7. Never relabel legacy `LOCAL` / `CLOUD` responses as NVIDIA routes while task-006 is incomplete.
@@ -151,6 +151,14 @@ Slow provider and approval operations now show a full-screen progress overlay
 with the current governed phase and an explicit no-side-effect-until-authorized
 message. Audit evidence is rendered with human-readable lifecycle labels,
 decision/actor/tool details, timestamps, and a shortened event-hash fingerprint.
+
+The Overview page is now the default landing screen for recording: it explains
+the problem, three guarantees, governed architecture, NVIDIA relationship and
+the typical-application comparison before linking into the real live proof.
+Presentation mode hides the sidebar and nonessential telemetry. The placement
+and action CTAs open the existing live workflow with a scenario hint; they do
+not execute or decide anything in the browser. `npm run build` passes on Node
+22.23.1 / npm 10.9.8, and a Vite-only visual smoke passed at 1440x1000.
 
 ## Handoff requirement
 

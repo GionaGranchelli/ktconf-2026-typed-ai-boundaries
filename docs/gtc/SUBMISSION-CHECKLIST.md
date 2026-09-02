@@ -134,7 +134,7 @@ Target:
 ```text
 00-08  Real PDF arrives; privacy label shown.
 08-18  Wrong GLOBAL route proposed for EU-only document -> DENIED -> delta 0.
-18-30  Same document -> Scaleway Europe -> Mistral Small 24B -> success.
+18-30  Same document -> Scaleway Generative APIs serverless -> Mistral Medium 3.5 128B -> success.
 30-39  Restricted document -> LOCAL NVIDIA only -> success.
 39-51  Local NVIDIA Qwen action model proposes EUR 18,400 payment -> HUMAN APPROVAL REQUIRED.
 51-56  Approve -> payment 0 -> 1; duplicate remains 1.

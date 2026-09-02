@@ -42,7 +42,7 @@ but it cannot authorize its own data movement or consequential side effects.
 
 The live topology is deliberately truthful: GLOBAL uses Build.NVIDIA.com and
 hosted Nemotron; LOCAL uses an NVIDIA RTX with Qwen for the stable action flow;
-EU uses Scaleway Generative APIs with Mistral Small 24B as a temporary European
+EU uses Scaleway Generative APIs serverless with Mistral Medium 3.5 128B as a temporary European
 unblocker. Mistral is not NVIDIA, Nemotron, or NIM.
 
 Start here:
@@ -196,8 +196,11 @@ Open <http://localhost:16686>, select service `ktconf-demo`, and inspect the
 `invoice.model.call` span and its nested `ai.analyzeCloud` attempt. The parent
 records classification, selected route, logical model, provider, and trust zone;
 a denied route adds a `governance.policy.denied` event without exposing invoice
-content. The stack is loopback-only: the app exports OTLP/HTTP to Jaeger at
-`localhost:4318`. Stop both with `./scripts/stage-observe-down`.
+content. Approval workflows additionally emit an `approval.email.recorded` child
+span with the fake-email channel, recipient, tool, and `RECORDED` status; email
+body content and approval tokens are never traced. The stack is loopback-only:
+the app exports OTLP/HTTP to Jaeger at `localhost:4318`. Stop both with
+`./scripts/stage-observe-down`.
 
 The observability rehearsal runs both the app and Jaeger in Docker. Watch the
 application's structured logs with:

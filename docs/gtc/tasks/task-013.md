@@ -31,8 +31,9 @@ audit-chain evidence.
 - [x] PDF uploads appear in history.
 - [x] Detail view shows metadata, route, provider, assessment, tool, approval,
       payment, notification, and audit information when available.
-- [x] Timeline explains upload and automatic approval for workflows without a
-      human approval gate.
+- [x] Timeline explains upload and automatic payment for low-risk workflows;
+      high-risk typed analyses are marked `REVIEW_REQUIRED` until the governed
+      `schedule-payment` tool is approved and executed.
 - [x] Denied forced-route PDF attempts remain visible with their selected route,
       TramAI denial reason, and provider-not-invoked outcome.
 - [x] History survives navigation but is documented as reset on backend restart.

@@ -6,6 +6,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 command -v java >/dev/null || { echo "FAIL: java is required" >&2; exit 1; }
 
+(
+unset KTCONF_DEMO_LOCAL_BASE_URL KTCONF_DEMO_LOCAL_MODEL KTCONF_DEMO_LOCAL_API_KEY
+unset KTCONF_DEMO_CLOUD_BASE_URL KTCONF_DEMO_CLOUD_MODEL KTCONF_DEMO_CLOUD_API_KEY
+unset KTCONF_GTC_LOCAL_NVIDIA_BASE_URL KTCONF_GTC_LOCAL_NVIDIA_MODEL KTCONF_GTC_LOCAL_NVIDIA_API_KEY
+unset KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL KTCONF_GTC_GLOBAL_NVIDIA_MODEL KTCONF_GTC_GLOBAL_NVIDIA_API_KEY
+unset KTCONF_GTC_EU_SCALEWAY_BASE_URL KTCONF_GTC_EU_SCALEWAY_MODEL KTCONF_GTC_EU_SCALEWAY_API_KEY
+unset SCW_BASE_URL SCW_MODEL SCW_SECRET_KEY SCW_API_KEY
+
 ./gradlew :app:test --no-daemon --console=plain --rerun
 ./gradlew :app:test --no-daemon --console=plain --rerun \
   --tests 'dev.giona.ktconf.InvoiceRoutingTest.PUBLIC ANY PDF routes to GLOBAL NVIDIA exactly once' \
@@ -18,6 +26,7 @@ command -v java >/dev/null || { echo "FAIL: java is required" >&2; exit 1; }
   --tests 'dev.giona.ktconf.ApprovalFlowTest.duplicate approve is rejected and payment stays at one' \
   --tests 'dev.giona.ktconf.EvidenceTest'
 ./scripts/stress-rehearse
+)
 
 cat <<'EOF'
 
@@ -27,7 +36,8 @@ PUBLIC -> GLOBAL typed route              InvoiceRoutingTest               PASS
 CONFIDENTIAL EU -> EU typed route         InvoiceRoutingTest               PASS
 EU PDF forced GLOBAL denied, delta 0      InvoiceRoutingTest               PASS
 RESTRICTED EU/GLOBAL denied, delta 0      InvoiceRoutingTest               PASS
-malformed PDF -> zero provider calls      InvoiceRoutingTest               PASS
+  LOW invoice -> auto payment / PAID        InvoiceRoutingTest               PASS
+  malformed/missing PDF -> zero calls       InvoiceRoutingTest               PASS
 payment PDF -> LOCAL_NVIDIA suspension    ApprovalFlowTest                  PASS
 deny -> zero payment -> resume 409        ApprovalFlowTest                  PASS
 approve once / duplicate 409              ApprovalFlowTest                  PASS

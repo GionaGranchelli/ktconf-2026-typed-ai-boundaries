@@ -81,11 +81,17 @@ class WorkflowDemoService(
         localStep("notify-approver") { state, _ ->
             val suspension = state.approval
                 ?: return@localStep state
-            email.sendApprovalRequest(
-                to = "approver@ktconf.example",
-                invoiceId = state.request.invoice.invoiceId,
-                approvalId = suspension.approvalId.value,
-            )
+            telemetry.traceApprovalNotification(
+                route = state.route ?: InvoiceRoute.LOCAL,
+                toolName = "schedule-payment",
+                recipient = FakeEmailService.APPROVER_ADDRESS,
+            ) {
+                email.sendApprovalRequest(
+                    to = FakeEmailService.APPROVER_ADDRESS,
+                    invoiceId = state.request.invoice.invoiceId,
+                    approvalId = suspension.approvalId.value,
+                )
+            }
             state.copy(notificationStatus = "RECORDED")
         }
 

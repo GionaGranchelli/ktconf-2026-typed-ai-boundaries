@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 
 /**
  * The typed boundary, exposed as an ordinary HTTP API.
@@ -57,6 +58,10 @@ class InvoiceController(
                         toolName = outcome.toolName,
                         rationale = outcome.rationale,
                         classificationSource = outcome.classificationSource,
+                        approvalExpiresAt = outcome.approvalExpiresAt,
+                        notificationStatus = outcome.notificationStatus,
+                        notificationRecipient = outcome.notificationRecipient,
+                        notificationSubject = outcome.notificationSubject,
                     ),
                 )
             }
@@ -99,10 +104,28 @@ class InvoiceController(
         }
     }
 
-    /** Opt-in task-002 proof route for hosted NVIDIA Nemotron. */
+    /** Opt-in hosted NVIDIA route; high-risk requests use the governed payment flow. */
     @PostMapping("/global-nvidia")
     suspend fun globalNvidia(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        ResponseEntity.ok(AnalyzeResponse(app.analyzeGlobalNvidia(request), InvoiceRoute.GLOBAL_CLOUD, ClassificationSource.DECLARED))
+        when (val outcome = app.analyze(request, InvoiceRoute.GLOBAL_CLOUD)) {
+            is AnalyzeOutcome.Typed -> ResponseEntity.ok(
+                AnalyzeResponse(outcome.assessment, outcome.selectedRoute, outcome.classificationSource),
+            )
+            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
+                AwaitingApprovalResponse(
+                    status = "AWAITING_APPROVAL",
+                    approvalId = outcome.approvalId,
+                    workflowRunId = outcome.workflowRunId,
+                    toolName = outcome.toolName,
+                    rationale = outcome.rationale,
+                    classificationSource = outcome.classificationSource,
+                    approvalExpiresAt = outcome.approvalExpiresAt,
+                    notificationStatus = outcome.notificationStatus,
+                    notificationRecipient = outcome.notificationRecipient,
+                    notificationSubject = outcome.notificationSubject,
+                ),
+            )
+        }
 
     /** Opt-in task-003 typed-inference route for the configured local NVIDIA model. */
     @PostMapping("/local-nvidia")
@@ -122,14 +145,36 @@ class InvoiceController(
                     toolName = outcome.toolName,
                     rationale = outcome.rationale,
                     classificationSource = outcome.classificationSource,
+                    approvalExpiresAt = outcome.approvalExpiresAt,
+                    notificationStatus = outcome.notificationStatus,
+                    notificationRecipient = outcome.notificationRecipient,
+                    notificationSubject = outcome.notificationSubject,
                 ),
             )
         }
 
-    /** Opt-in task-004 proof route for the configured EU managed endpoint. */
+    /** Opt-in EU route; high-risk requests use the governed payment flow too. */
     @PostMapping("/eu-scaleway")
     suspend fun euScaleway(@RequestBody request: AnalyzeInvoiceRequest): ResponseEntity<Any> =
-        ResponseEntity.ok(AnalyzeResponse(app.analyzeEuScaleway(request), InvoiceRoute.EU_CLOUD, ClassificationSource.DECLARED))
+        when (val outcome = app.analyze(request, InvoiceRoute.EU_CLOUD)) {
+            is AnalyzeOutcome.Typed -> ResponseEntity.ok(
+                AnalyzeResponse(outcome.assessment, outcome.selectedRoute, outcome.classificationSource),
+            )
+            is AnalyzeOutcome.AwaitingApproval -> ResponseEntity.status(202).body(
+                AwaitingApprovalResponse(
+                    status = "AWAITING_APPROVAL",
+                    approvalId = outcome.approvalId,
+                    workflowRunId = outcome.workflowRunId,
+                    toolName = outcome.toolName,
+                    rationale = outcome.rationale,
+                    classificationSource = outcome.classificationSource,
+                    approvalExpiresAt = outcome.approvalExpiresAt,
+                    notificationStatus = outcome.notificationStatus,
+                    notificationRecipient = outcome.notificationRecipient,
+                    notificationSubject = outcome.notificationSubject,
+                ),
+            )
+        }
 
     /** Contest PDF entrypoint: metadata phase precedes local content preparation. */
     @PostMapping("/analyze-pdf", consumes = ["multipart/form-data"])
@@ -163,6 +208,10 @@ class InvoiceController(
                     toolName = outcome.toolName,
                     rationale = outcome.rationale,
                     classificationSource = outcome.classificationSource,
+                    approvalExpiresAt = outcome.approvalExpiresAt,
+                    notificationStatus = outcome.notificationStatus,
+                    notificationRecipient = outcome.notificationRecipient,
+                    notificationSubject = outcome.notificationSubject,
                 ),
             )
         }
@@ -190,6 +239,10 @@ data class AwaitingApprovalResponse(
     val toolName: String,
     val rationale: String,
     val classificationSource: ClassificationSource,
+    val approvalExpiresAt: Instant? = null,
+    val notificationStatus: String? = null,
+    val notificationRecipient: String? = null,
+    val notificationSubject: String? = null,
 )
 
 data class PdfAnalyzeResponse(
@@ -209,4 +262,8 @@ data class PdfAwaitingApprovalResponse(
     val toolName: String,
     val rationale: String,
     val classificationSource: ClassificationSource,
+    val approvalExpiresAt: Instant,
+    val notificationStatus: String,
+    val notificationRecipient: String,
+    val notificationSubject: String,
 )

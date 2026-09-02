@@ -69,6 +69,20 @@ object DemoResponses {
         finishReason = FinishReason.OTHER,
     )
 
+    /** Low-risk turn 1: request the AUTO payment tool selected by the app. */
+    fun autoPaymentToolCall(invoiceId: String, amountCents: Long): ModelResponse = ModelResponse(
+        content = "The invoice is within the automatic-payment threshold.",
+        toolCalls = listOf(
+            ToolCall(
+                id = "call-auto-schedule-payment-ktconf",
+                name = "auto-schedule-payment",
+                argumentsJson =
+                    """{"invoiceId":"$invoiceId","amountCents":$amountCents,"currency":"EUR"}""",
+            ),
+        ),
+        finishReason = FinishReason.OTHER,
+    )
+
     /** KTCONF-PAY-00x, turn 2 (after the tool result): the typed assessment. */
     fun payAssessment(invoiceId: String, amountCents: Long): ModelResponse = json(
         """
@@ -81,6 +95,22 @@ object DemoResponses {
           "recommendedAction": "SCHEDULE_PAYMENT",
           "confidence": 0.98,
           "rationale": "Stage and AV production invoice exceeds threshold; payment required"
+        }
+        """,
+    )
+
+    /** Low-risk turn 2: the automatic payment completed successfully. */
+    fun autoPayAssessment(invoiceId: String, amountCents: Long): ModelResponse = json(
+        """
+        {
+          "invoiceId": "$invoiceId",
+          "supplierName": "Synthetic Supplier",
+          "amountCents": $amountCents,
+          "currency": "EUR",
+          "risk": "LOW",
+          "recommendedAction": "SCHEDULE_PAYMENT",
+          "confidence": 0.98,
+          "rationale": "Invoice is within the automatic-payment threshold; payment was scheduled exactly once"
         }
         """,
     )

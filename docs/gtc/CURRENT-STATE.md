@@ -1,6 +1,6 @@
 # GTC current state
 
-Last updated: **2026-08-31**
+Last updated: **2026-09-02**
 
 Branch: `contest/gtc-nvidia-submission`  
 Base commit: `287d52cc44ed28e7e5c2d9ddb21ac8b99504a64e` (`main` at branch creation)
@@ -80,14 +80,14 @@ reuses the OpenAI-compatible adapter, model alias, and counting seam, and is
 deterministic unless both `KTCONF_GTC_EU_SCALEWAY_BASE_URL` and
 `KTCONF_GTC_EU_SCALEWAY_API_KEY` are supplied. The opt-in typed route is
 `POST /invoices/eu-scaleway`, exercised by `./scripts/gtc-eu-scaleway-smoke`.
-The active temporary model is the configured Mistral Small 24B deployment;
+The active temporary model is the configured Mistral Medium 3.5 128B serverless deployment;
 Mistral is not NVIDIA, Nemotron, or NIM.
 
 Scaleway setup and the replacement path are documented in
 [`SCALEWAY.md`](SCALEWAY.md). The operator ran the real smoke against the
-configured European deployment using model
-`mistral/mistral-small-24b-instruct-2501:bf16`; the initial stale base URL
-returned HTTP 404, and the corrected `/v1` base URL passed catalog validation,
+configured serverless deployment using model `mistral-medium-3.5-128b`; the
+previous dedicated deployment is historical. The serverless `/v1` endpoint
+passed catalog validation,
 direct chat, typed application HTTP 200 with `selectedRoute=EU_CLOUD`, allowed
 invocation delta `1`, and forced restricted-EU HTTP 403 with invocation delta
 `0`. No credential value is recorded.
@@ -98,15 +98,16 @@ new `CONFIDENTIAL -> /invoices/eu-scaleway` fixture path returns
 `EU_CLOUD` with the EU counter incrementing once; forced
 `RESTRICTED -> /invoices/boundary/restricted-eu` returns
 `classification-routing-blocked` with EU counter delta `0`. The opt-in smoke
-script fails closed when `SCW_API_KEY` or `SCW_MODEL` is absent; the real
+script fails closed when `SCW_SECRET_KEY` or `SCW_MODEL` is absent; the real
 Scaleway run above used both without exposing either value.
 
 The deterministic stage scripts and `ScriptSanitizationTest` now clear all
 contest real-provider variables, including generic `SCW_*` fallbacks, local
 and global NVIDIA configuration, and namespaced EU configuration. This
 prevents ambient shell exports from changing the offline conference path.
-Sanitized real-run evidence is stored in
-`docs/gtc/evidence/scaleway-smoke.md`.
+The previous dedicated run remains sanitized historical evidence in
+`docs/gtc/evidence/scaleway-smoke.md`; the current serverless run is recorded
+in [`evidence/scaleway-serverless-smoke.md`](evidence/scaleway-serverless-smoke.md).
 
 Task-011 is now present on this branch as the Vue/Vite governance console.
 The Vite entrypoint is `frontend/index.html`, development runs on
@@ -115,7 +116,12 @@ LOCAL NVIDIA RTX/Qwen, EU Scaleway/Mistral, and GLOBAL hosted Nemotron
 truthfully, and reads route/counter/approval/evidence state from backend
 responses. `npm run build` passes on Node 22.23.1 / npm 10.9.8. Browser visual
 smoke against the running Spring app remains pending; the UI does not make
-provider or governance decisions.
+provider or governance decisions. Overview is the default landing screen and
+now carries the recording narrative from problem through architecture to live
+proof. Presentation mode hides the sidebar and nonessential telemetry; its two
+proof CTAs open the existing live workflow with a data-placement or
+action-governance hint. A Vite-only visual smoke passed at 1440x1000; backend
+workflow smoke remains pending.
 
 Task-013 adds a backend-owned Document History page. PDF uploads are listed at
 `/governance/documents`; selecting one shows trusted metadata, route, invoice
@@ -123,10 +129,22 @@ context, assessment or approval, payment state, and readable tool/notification
 and audit events. This is demo-scoped in-memory history and resets on backend
 restart. It is reachable directly from the dashboard top bar (`Document
 history`) and from Overview (`View processed documents`). The timeline always
-shows document upload and policy outcome events; low-risk documents explicitly
-show automatic approval when no human gate is required. Forced-route PDF
-denials are also retained with status `DENIED`, the TramAI reason code, selected
-route, and a timeline event proving the provider was not invoked.
+shows document upload and policy outcome events; low-risk documents show the
+separate `auto-schedule-payment` execution when the trusted amount rule allows
+it. High-risk typed analyses remain `REVIEW_REQUIRED` until the governed
+`schedule-payment` tool is approved and executed. The normal high-risk
+EU PDF route now uses the same governed `schedule-payment` operation as LOCAL,
+so it suspends for approval when the provider requests the tool. Forced-route
+PDF denials are also retained with status `DENIED`, the TramAI reason code,
+selected route, and a timeline event proving the provider was not invoked.
+
+Consistency checkpoint: every governed boundary now applies the same trusted
+€5,000 rule: low-risk analysis selects `auto-schedule-payment` with
+`LOW`/`AUTO` security metadata, full audit, and invoice-scoped idempotency;
+successful execution is presented as `PAID`. High-risk analysis keeps the
+existing `schedule-payment` operation with `HIGH`/`HUMAN_REQUIRED`, so it
+suspends before side effects and requires approval. A low-risk typed result
+without a tool execution is shown as `AUTO PAYMENT PENDING`, never paid.
 
 The governance console now shows an explicit terminal `Flow complete` state.
 LOW-risk typed results finish there with tool/human steps marked `NOT REQUIRED`;
@@ -315,6 +333,24 @@ through the existing single `SovereignTramai` bean. `SovereignEvidencePackIT`
 and the full application test suite passed. It does not alter the current
 006–008 review statuses.
 
+### task-015 — safe reissue of expired approvals (DONE)
+
+The project now exposes `POST /approvals/{approvalId}/reissue` for expired
+PDF-backed approvals retained in the in-memory document history. Reissue first
+asks TramAI to transition the old `PENDING` approval to terminal `TIMED_OUT`,
+records the document as `EXPIRED`, and never reuses its continuation or token.
+It then reconstructs the same trusted synthetic invoice context, starts a
+fresh governed analysis, records a new fake approval email when required, and
+links the old and replacement history records with readable expiry/reissue
+events. Active, terminal, unknown, and legacy workflow approvals are rejected
+with safe 409/404 responses.
+
+Deterministic verification passed: focused `ApprovalReissueTest`, full
+`./gradlew :app:test`, and frontend `npm run build`. The test uses a mutable
+clock to prove expiry without waiting ten minutes. This remains an
+operator-triggered, in-memory demo recovery path; durable retention,
+authorization roles, and automatic retry are outside scope.
+
 ## Locked contest direction
 
 Working title:
@@ -335,16 +371,21 @@ LOCAL
      (Nemotron typed-inference proof retained separately)
 
 The restricted-local deterministic PDF and assessment are aligned at
-`amountCents=4200` (€42), LOW risk, with automatic approval when no human gate
-is required.
+`amountCents=4200` (€42), LOW risk, with `auto-schedule-payment` selected by
+the trusted application rule and recorded as paid after exactly-once execution.
+
+Latest payment consistency checkpoint: the full deterministic `:app:test`
+suite passes with LOW-risk auto-payment and HIGH-risk human approval using
+separate governed tools. `npm run build` passes for the dashboard. No live
+provider claim is made by these deterministic checks.
 
 Typed assessments are reconciled in trusted application code against the
 trusted invoice fields and €5,000 threshold, so a model cannot return a
 contradictory amount/risk/action combination to the operator.
 
 EU_CLOUD
-  -> Scaleway Generative APIs Europe
-  -> Mistral Small 24B (temporary)
+  -> Scaleway Generative APIs serverless
+  -> Mistral Medium 3.5 128B (temporary)
 
 GLOBAL_CLOUD
   -> Build.NVIDIA.com hosted API

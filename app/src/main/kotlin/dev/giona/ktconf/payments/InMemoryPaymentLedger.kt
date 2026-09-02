@@ -33,4 +33,7 @@ class InMemoryPaymentLedger {
     }
 
     fun executionCount(): Int = executions.size
+
+    fun hasExecutionForInvoice(invoiceId: String): Boolean =
+        executions.values.any { it.paymentReference == "payment-$invoiceId" }
 }

@@ -15,7 +15,7 @@
   All proof values come from backend responses only.
 -->
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import BoundaryCard   from '../components/BoundaryCard.vue'
 import WorkflowTrace  from '../components/WorkflowTrace.vue'
 import AuditTimeline  from '../components/AuditTimeline.vue'
@@ -29,6 +29,11 @@ import {
 } from '../model.js'
 
 const emit = defineEmits(['stats-updated'])
+const props = defineProps({ demoFocus: { type: String, default: null } })
+
+onMounted(() => {
+  if (props.demoFocus) nextTick(() => document.querySelector(`[data-demo-panel="${props.demoFocus}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+})
 
 // ── Core workflow state ────────────────────────────────────────
 const file          = ref(null)
@@ -66,11 +71,17 @@ const amount           = computed(() => assessment.value
   : '—')
 const hasRun = computed(() =>
   Boolean(metadata.value || assessment.value || approval.value))
+const pendingHighRiskReview = computed(() =>
+  Boolean(assessment.value?.risk === 'HIGH' && !approval.value && !evidence.value))
+const pendingAutomaticPayment = computed(() =>
+  Boolean(assessment.value?.risk === 'LOW' && assessment.value?.recommendedAction !== 'SCHEDULE_PAYMENT' && !approval.value && !evidence.value))
 const flowComplete = computed(() =>
-  Boolean(assessment.value && !busy.value && (!approval.value || evidence.value)))
+  Boolean(assessment.value && !busy.value && !pendingHighRiskReview.value && !pendingAutomaticPayment.value && (!approval.value || evidence.value)))
 const paymentStatus = computed(() => {
   if (!assessment.value) return { label: 'NOT EVALUATED', detail: 'No invoice assessment yet.', tone: 'neutral' }
-  if (!approval.value) return { label: 'NOT REQUESTED', detail: 'No schedule-payment tool call was requested.', tone: 'neutral' }
+  if (!approval.value && assessment.value.recommendedAction === 'SCHEDULE_PAYMENT') return { label: 'PAID', detail: `Low-risk auto-payment executed · ledger count: ${statsAfter.value?.paymentExecutionCount ?? '—'}`, tone: 'success' }
+  if (!approval.value && assessment.value.risk === 'HIGH') return { label: 'REVIEW REQUIRED', detail: 'High-risk assessment. No payment tool was requested on this route.', tone: 'pending' }
+  if (!approval.value) return { label: 'AUTO PAYMENT PENDING', detail: 'LOW risk was established, but the auto-schedule-payment tool did not execute.', tone: 'pending' }
   if (!evidence.value) return { label: 'AWAITING APPROVAL', detail: 'Payment execution count: 0 before human approval.', tone: 'pending' }
   if (approvalDecision.value === 'approve') {
     return { label: 'SCHEDULED', detail: `Ledger execution count: ${statsAfter.value?.paymentExecutionCount ?? '—'} · exactly once`, tone: 'success' }
@@ -314,6 +325,10 @@ function reset() {
       </div>
     </div>
     <!-- Step indicator -->
+    <div v-if="props.demoFocus" class="demo-intent" :class="`demo-intent--${props.demoFocus}`">
+      <strong>{{ props.demoFocus === 'action' ? 'ACTION GOVERNANCE PROOF' : 'DATA PLACEMENT PROOF' }}</strong>
+      <span>{{ props.demoFocus === 'action' ? 'Upload the RESTRICTED / LOCAL_ONLY payment PDF to reach the human approval gate.' : 'Upload the CONFIDENTIAL / EU_ONLY PDF, then force GLOBAL_CLOUD to prove the provider delta stays at 0.' }}</span>
+    </div>
     <div class="step-indicator">
       <div class="step" :class="{ 'step--done': step > 1, 'step--active': step === 1 }">
         <span class="step__num">1</span><span class="step__label">Input</span>
@@ -416,7 +431,7 @@ function reset() {
     <!-- Row 1: Input + Governance -->
     <div class="grid-doc gap-top">
       <!-- 01 · INPUT -->
-      <div class="panel">
+      <div class="panel" data-demo-panel="input">
         <div class="panel-heading">
           <div>
             <span class="eyebrow">01 · Input</span>
@@ -480,7 +495,7 @@ function reset() {
       </div>
 
       <!-- 02 · GOVERNANCE DECISION -->
-      <div class="panel">
+      <div class="panel" data-demo-panel="authority">
         <div class="panel-heading">
           <div>
             <span class="eyebrow">02 · Authority</span>
@@ -558,6 +573,10 @@ function reset() {
             Payment count right now:
             <strong>{{ statsAfter?.paymentExecutionCount ?? '—' }}</strong>
           </p>
+          <div v-if="approval.notificationStatus" class="notification-receipt">
+            <span class="notification-receipt__icon">✉</span>
+            <span><strong>Approval email {{ approval.notificationStatus.toLowerCase() }}</strong><small>{{ approval.notificationSubject }} · {{ approval.notificationRecipient }}</small></span>
+          </div>
           <div class="authority-actions">
             <button class="btn btn--primary" :disabled="busy || !!evidence" @click="approvePayment">
               <span v-if="busy" class="spinner" />

@@ -23,7 +23,7 @@ Integrate the proven LOCAL NVIDIA, temporary EU_CLOUD Scaleway/Mistral, and GLOB
 ## Required primary scenarios
 
 1. PUBLIC -> GLOBAL_CLOUD -> real Build.NVIDIA.com Nemotron -> typed result.
-2. CONFIDENTIAL + EU -> GLOBAL proposed -> denied, GLOBAL delta 0 -> EU_CLOUD -> Scaleway/Mistral -> typed result.
+2. CONFIDENTIAL + EU -> GLOBAL proposed -> denied, GLOBAL delta 0 -> EU_CLOUD -> Scaleway/Mistral -> typed result for low-risk invoices, or the governed `schedule-payment` operation for trusted amounts above €5,000.
 3. RESTRICTED -> EU/GLOBAL denied -> LOCAL NVIDIA RTX with Qwen
    `qwen/qwen3.8-27b` -> typed result.
 

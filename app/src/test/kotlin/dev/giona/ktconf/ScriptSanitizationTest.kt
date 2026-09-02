@@ -32,6 +32,7 @@ class ScriptSanitizationTest {
         "KTCONF_GTC_EU_SCALEWAY_API_KEY",
         "SCW_BASE_URL",
         "SCW_MODEL",
+        "SCW_SECRET_KEY",
         "SCW_API_KEY",
     )
 

@@ -63,7 +63,8 @@ class InvoiceRoutingTest {
         assertEquals("DECLARED", body.classificationSource.name)
         // The cloud provider WAS invoked for PUBLIC data.
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
-        assertEquals(1, stats.cloudInvocationCount)
+        assertEquals(2, stats.cloudInvocationCount, "auto payment requires the tool call and final typed response")
+        assertEquals(1, stats.paymentExecutionCount)
     }
 
     @Test
@@ -73,7 +74,8 @@ class InvoiceRoutingTest {
         val body = response.body!!
         assertEquals("LOCAL", body.selectedRoute.name)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
-        assertEquals(1, stats.localInvocationCount)
+        assertEquals(2, stats.localInvocationCount, "auto payment requires the tool call and final typed response")
+        assertEquals(1, stats.paymentExecutionCount)
         assertEquals(0, stats.cloudInvocationCount, "RESTRICTED data must never reach the cloud provider")
     }
 
@@ -113,7 +115,8 @@ class InvoiceRoutingTest {
         assertEquals(HttpStatus.OK, response.statusCode)
         assertEquals("EU_CLOUD", response.body!!.selectedRoute.name)
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
-        assertEquals(1, stats.euScalewayInvocationCount)
+        assertEquals(2, stats.euScalewayInvocationCount, "auto payment requires the tool call and final typed response")
+        assertEquals(1, stats.paymentExecutionCount)
     }
 
     @Test
@@ -172,7 +175,8 @@ class InvoiceRoutingTest {
         assertEquals(HttpStatus.OK.value(), response.status)
         assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"GLOBAL_CLOUD\""))
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
-        assertEquals(1, stats.globalNvidiaInvocationCount)
+        assertEquals(2, stats.globalNvidiaInvocationCount, "auto payment requires the tool call and final typed response")
+        assertEquals(1, stats.paymentExecutionCount)
     }
 
     @Test
@@ -189,15 +193,17 @@ class InvoiceRoutingTest {
                     .file(MockMultipartFile("file", resource.substringAfterLast('/'), "application/pdf", bytes)),
             ).andReturn()
             val response = mockMvc.perform(asyncDispatch(initial)).andReturn().response
-            assertEquals(HttpStatus.OK.value(), response.status, "resource=$resource body=${response.contentAsString}")
+            val expectedStatus = if (route == "EU_CLOUD") HttpStatus.ACCEPTED.value() else HttpStatus.OK.value()
+            assertEquals(expectedStatus, response.status, "resource=$resource body=${response.contentAsString}")
             assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"$route\""))
             assertEquals(true, response.contentAsString.contains("\"classificationSource\":\"RULE_BASED\""))
         }
 
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
-        assertEquals(1, stats.globalNvidiaInvocationCount)
+        assertEquals(2, stats.globalNvidiaInvocationCount)
         assertEquals(1, stats.euScalewayInvocationCount)
-        assertEquals(1, stats.localNvidiaInvocationCount)
+        assertEquals(2, stats.localNvidiaInvocationCount)
+        assertEquals(2, stats.paymentExecutionCount)
     }
 
     @Test
@@ -217,7 +223,7 @@ class InvoiceRoutingTest {
         assertEquals(0, afterDenied - before)
 
         val allowed = mockMvc.perform(asyncDispatch(upload("/invoices/analyze-pdf"))).andReturn().response
-        assertEquals(HttpStatus.OK.value(), allowed.status)
+        assertEquals(HttpStatus.ACCEPTED.value(), allowed.status)
         assertEquals(true, allowed.contentAsString.contains("\"selectedRoute\":\"EU_CLOUD\""))
         val stats = rest.getForEntity("/governance/stats", StatsResponse::class.java).body!!
         assertEquals(1, stats.euScalewayInvocationCount)

@@ -8,11 +8,14 @@ import dev.giona.ktconf.domain.InvoiceDocument
 import dev.giona.ktconf.domain.InvoiceRisk
 import dev.giona.ktconf.domain.toClassifiedDocument
 import dev.giona.ktconf.observability.GovernanceTelemetry
+import dev.giona.ktconf.notifications.FakeEmailService
+import dev.giona.ktconf.payments.InMemoryPaymentLedger
 import dev.tramai.core.exception.ApprovalSuspendedException
 import dev.tramai.core.policy.DataClassification
 import dev.tramai.core.policy.ClassificationSource
 import org.springframework.stereotype.Service
 import org.slf4j.LoggerFactory
+import java.time.Instant
 
 /**
  * Ordinary application service. Three separate concerns stay visible:
@@ -38,6 +41,8 @@ class InvoiceService(
     private val ai: InvoiceAnalysisService,
     private val registry: PendingApprovalRegistry,
     private val telemetry: GovernanceTelemetry,
+    private val email: FakeEmailService,
+    private val ledger: InMemoryPaymentLedger,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -53,20 +58,54 @@ class InvoiceService(
         return telemetry.traceModelCall(document.classification, route) {
             try {
                 val rawAssessment = when (route) {
-                    InvoiceRoute.CLOUD -> ai.analyzeCloud(document)
-                    InvoiceRoute.LOCAL -> ai.analyzeLocal(document)
-                    InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidiaPayment(document)
-                    InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(document)
-                    InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(document)
+                    InvoiceRoute.CLOUD -> if (requiresPaymentApproval(document.payload)) {
+                        ai.analyzeCloudPayment(document)
+                    } else {
+                        ai.analyzeCloudAutoPayment(document)
+                    }
+                    InvoiceRoute.LOCAL -> if (requiresPaymentApproval(document.payload)) {
+                        ai.analyzeLocal(document)
+                    } else {
+                        ai.analyzeLocalAutoPayment(document)
+                    }
+                    InvoiceRoute.LOCAL_NVIDIA -> if (requiresPaymentApproval(document.payload)) {
+                        ai.analyzeLocalNvidiaPayment(document)
+                    } else {
+                        ai.analyzeLocalNvidiaAutoPayment(document)
+                    }
+                    InvoiceRoute.EU_CLOUD -> if (requiresPaymentApproval(document.payload)) {
+                        ai.analyzeEuScalewayPayment(document)
+                    } else {
+                        ai.analyzeEuScalewayAutoPayment(document)
+                    }
+                    InvoiceRoute.GLOBAL_CLOUD -> if (requiresPaymentApproval(document.payload)) {
+                        ai.analyzeGlobalNvidiaPayment(document)
+                    } else {
+                        ai.analyzeGlobalNvidiaAutoPayment(document)
+                    }
                 }
+                val paymentScheduled = !requiresPaymentApproval(document.payload) &&
+                    ledger.hasExecutionForInvoice(document.payload.invoiceId)
                 AnalyzeOutcome.Typed(
-                    assessment = reconcileAssessment(document.payload, rawAssessment),
+                    assessment = reconcileAssessment(document.payload, rawAssessment, paymentScheduled),
                     selectedRoute = route,
                     classificationSource = classificationSource,
+                    paymentScheduled = paymentScheduled,
                 )
             } catch (e: ApprovalSuspendedException) {
                 log.info("Workflow suspended by approval gate: approvalId={}, workflowRunId={}, tool={}", e.approvalId, e.workflowRunId, e.toolName)
                 val pending = registry.register(e)
+                val notification = telemetry.traceApprovalNotification(
+                    route = route,
+                    toolName = pending.toolName,
+                    recipient = FakeEmailService.APPROVER_ADDRESS,
+                ) {
+                    email.sendApprovalRequest(
+                        to = FakeEmailService.APPROVER_ADDRESS,
+                        invoiceId = document.payload.invoiceId,
+                        approvalId = pending.approvalId,
+                    )
+                }
                 AnalyzeOutcome.AwaitingApproval(
                     selectedRoute = route,
                     approvalId = pending.approvalId,
@@ -74,6 +113,10 @@ class InvoiceService(
                     toolName = pending.toolName,
                     rationale = "Payment scheduling requires human approval because invoice ${document.payload.invoiceId} is a high-risk write action.",
                     classificationSource = classificationSource,
+                    approvalExpiresAt = pending.expiresAt,
+                    notificationStatus = "RECORDED",
+                    notificationRecipient = notification.to,
+                    notificationSubject = notification.subject,
                 )
             }
         }
@@ -135,12 +178,16 @@ class InvoiceService(
      * authoritative; this prevents a model from labeling €1,200 as HIGH or
      * changing the amount shown to the operator.
      */
-    private fun reconcileAssessment(invoice: InvoiceDocument, model: InvoiceAssessment): InvoiceAssessment {
+    private fun reconcileAssessment(
+        invoice: InvoiceDocument,
+        model: InvoiceAssessment,
+        paymentScheduled: Boolean,
+    ): InvoiceAssessment {
         val highRisk = invoice.amountCents > APPROVAL_THRESHOLD_CENTS
         val expectedRisk = if (highRisk) InvoiceRisk.HIGH else InvoiceRisk.LOW
         val expectedAction = when {
+            !highRisk && paymentScheduled -> InvoiceAction.SCHEDULE_PAYMENT
             !highRisk -> InvoiceAction.REVIEW_ONLY
-            model.recommendedAction == InvoiceAction.SCHEDULE_PAYMENT -> InvoiceAction.SCHEDULE_PAYMENT
             else -> InvoiceAction.REQUEST_HUMAN_APPROVAL
         }
         val inconsistent = model.invoiceId != invoice.invoiceId ||
@@ -156,18 +203,23 @@ class InvoiceService(
             currency = invoice.currency,
             risk = expectedRisk,
             recommendedAction = expectedAction,
-            rationale = if (inconsistent) trustedRationale(invoice, highRisk) else model.rationale,
+            rationale = if (inconsistent) trustedRationale(invoice, highRisk, paymentScheduled) else model.rationale,
         )
     }
 
-    private fun trustedRationale(invoice: InvoiceDocument, highRisk: Boolean): String {
+    private fun trustedRationale(invoice: InvoiceDocument, highRisk: Boolean, paymentScheduled: Boolean = false): String {
         val euros = "%.2f".format(java.util.Locale.ROOT, invoice.amountCents / 100.0)
         return if (highRisk) {
             "Trusted invoice amount is €$euros and exceeds the €5,000 approval threshold; human approval is required."
+        } else if (paymentScheduled) {
+            "Trusted invoice amount is €$euros and is within the €5,000 automatic-payment threshold; payment was executed exactly once."
         } else {
-            "Trusted invoice amount is €$euros and is below the €5,000 approval threshold; no human approval is required."
+            "Trusted invoice amount is €$euros and is within the €5,000 automatic-payment threshold; automatic payment was not executed."
         }
     }
+
+    private fun requiresPaymentApproval(invoice: InvoiceDocument): Boolean =
+        invoice.amountCents > APPROVAL_THRESHOLD_CENTS
 
     private companion object {
         const val APPROVAL_THRESHOLD_CENTS = 500_000L
@@ -185,6 +237,7 @@ sealed interface AnalyzeOutcome {
         val assessment: InvoiceAssessment,
         val selectedRoute: InvoiceRoute,
         val classificationSource: ClassificationSource,
+        val paymentScheduled: Boolean = false,
     ) : AnalyzeOutcome
 
     data class AwaitingApproval(
@@ -194,5 +247,9 @@ sealed interface AnalyzeOutcome {
         val toolName: String,
         val rationale: String,
         val classificationSource: ClassificationSource,
+        val notificationStatus: String,
+        val notificationRecipient: String,
+        val notificationSubject: String,
+        val approvalExpiresAt: Instant,
     ) : AnalyzeOutcome
 }

@@ -17,7 +17,7 @@ The contest demo should make this understandable in under 60 seconds:
 3. TramAI evaluates which execution boundary is allowed.
 4. Inference runs only in an allowed boundary:
    - `LOCAL`: NVIDIA RTX + local Qwen action model (Nemotron typed proof retained separately).
-   - `EU_CLOUD`: temporary Scaleway Generative APIs Europe + Mistral Small 24B.
+   - `EU_CLOUD`: temporary Scaleway Generative APIs serverless + Mistral Medium 3.5 128B.
    - `GLOBAL_CLOUD`: NVIDIA-hosted OpenAI-compatible API from Build.NVIDIA.com.
 5. A deliberately wrong route is denied **before provider invocation** and the provider counter proves delta `0`.
 6. The local NVIDIA action model proposes a consequential payment action.
@@ -106,14 +106,14 @@ The central proof is not automatic model selection. It is that a selected route 
 Preferred topology:
 
 - **GLOBAL**: Build.NVIDIA.com hosted API (`https://integrate.api.nvidia.com/v1`) using `nvidia/nemotron-3.5-lightning-30b-a3b` as the first candidate.
-- **EU**: Scaleway Generative APIs European deployment using Mistral Small 24B as a temporary unblocker; this is not NVIDIA/Nemotron/NIM.
+- **EU**: Scaleway Generative APIs serverless using Mistral Medium 3.5 128B as a temporary unblocker; this is not NVIDIA/Nemotron/NIM.
 - **LOCAL**: local NVIDIA RTX using `qwen/qwen3.8-27b` as the stable live action model; the separate Nemotron typed-inference proof is retained.
 
 Model choice can change only when a milestone proves incompatibility. Prefer the Nemotron family across all boundaries so the story is about **placement policy**, not model-vendor switching.
 
 ### 6. Scaleway is the temporary EU managed-inference path
 
-The active EU implementation is **Scaleway Generative APIs in Europe with Mistral Small 24B**. It unblocks governance integration while the preferred final EU Nemotron deployment is unavailable.
+The active EU implementation is **Scaleway Generative APIs serverless with Mistral Medium 3.5 128B**. It unblocks governance integration while the preferred final EU Nemotron deployment is unavailable.
 
 Mistral must not be presented as NVIDIA, Nemotron, or NIM. The original Nebius investigation remains in `docs/gtc/NVIDIA-NEBIUS.md`.
 
@@ -154,7 +154,7 @@ Use environment variables locally and the provider's secret mechanism for cloud 
            LOCAL         EU_CLOUD       GLOBAL_CLOUD
              |              |               |
         NVIDIA RTX      Scaleway Europe   NVIDIA API
-             |          Mistral Small 24B   Catalog
+             |          Mistral Medium 3.5 128B Catalog
         llama.cpp       Generative APIs       |
              |                |               |
       Nemotron 3 Nano      Mistral       Nemotron 3.5 Lightning

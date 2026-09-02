@@ -21,6 +21,7 @@ import org.springframework.mock.web.MockMultipartFile
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * The full approval lifecycle over HTTP: suspend → approve → execute once →
@@ -130,6 +131,51 @@ class ApprovalFlowTest {
     }
 
     @Test
+    fun `high-risk EU PDF uses the same governed approval lifecycle`() {
+        val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/confidential-eu-invoice.pdf")).readBytes()
+        val started = mockMvc.perform(
+            multipart("/invoices/analyze-pdf")
+                .file(MockMultipartFile("file", "confidential-eu-invoice.pdf", "application/pdf", bytes)),
+        ).andReturn()
+        val response = mockMvc.perform(asyncDispatch(started)).andReturn().response
+        assertEquals(HttpStatus.ACCEPTED.value(), response.status)
+        assertTrue(response.contentAsString.contains("\"selectedRoute\":\"EU_CLOUD\""))
+        assertTrue(response.contentAsString.contains("\"toolName\":\"schedule-payment\""))
+        val approvalId = Regex("\\\"approvalId\\\":\\\"([^\\\"]+)").find(response.contentAsString)!!.groupValues[1]
+        assertEquals(1, stats().euScalewayInvocationCount)
+        assertEquals(0, stats().paymentExecutionCount)
+
+        val approved = post("/approvals/$approvalId/approve", null, InvoiceAssessment::class.java)
+        assertEquals(HttpStatus.OK, approved.statusCode)
+        assertEquals("SCHEDULE_PAYMENT", (approved.body as InvoiceAssessment).recommendedAction.name)
+        assertEquals(2, stats().euScalewayInvocationCount)
+        assertEquals(1, stats().paymentExecutionCount)
+    }
+
+    @Test
+    fun `high-risk GLOBAL request uses the same governed approval lifecycle`() {
+        val request = DemoRequests.request(
+            dev.tramai.core.policy.DataClassification.PUBLIC,
+            "KTCONF-PAY-001",
+            "KTConf AV & Stage Services BV",
+            1_840_000,
+            "Stage",
+        )
+        val pending = post("/invoices/global-nvidia", request, AwaitingApprovalResponse::class.java)
+        assertEquals(HttpStatus.ACCEPTED, pending.statusCode)
+        val approval = pending.body as AwaitingApprovalResponse
+        assertEquals("schedule-payment", approval.toolName)
+        assertEquals(1, stats().globalNvidiaInvocationCount)
+        assertEquals(0, stats().paymentExecutionCount)
+
+        val approved = post("/approvals/${approval.approvalId}/approve", null, InvoiceAssessment::class.java)
+        assertEquals(HttpStatus.OK, approved.statusCode)
+        assertEquals("SCHEDULE_PAYMENT", (approved.body as InvoiceAssessment).recommendedAction.name)
+        assertEquals(2, stats().globalNvidiaInvocationCount)
+        assertEquals(1, stats().paymentExecutionCount)
+    }
+
+    @Test
     fun `canonical payment PDF denial preserves zero payment and refuses continuation`() {
         val bytes = requireNotNull(javaClass.classLoader.getResourceAsStream("fixtures/payment-local-invoice.pdf")).readBytes()
         val started = mockMvc.perform(
@@ -140,8 +186,13 @@ class ApprovalFlowTest {
         assertEquals(HttpStatus.ACCEPTED.value(), response.status)
         assertEquals(true, response.contentAsString.contains("\"selectedRoute\":\"LOCAL_NVIDIA\""))
         assertEquals(true, response.contentAsString.contains("\"toolName\":\"schedule-payment\""))
+        assertEquals(true, response.contentAsString.contains("\"notificationStatus\":\"RECORDED\""))
         val approvalId = Regex("\\\"approvalId\\\":\\\"([^\\\"]+)").find(response.contentAsString)!!.groupValues[1]
         assertEquals(0, stats().paymentExecutionCount)
+        assertEquals(1, stats().emailNotificationCount)
+        val history = rest.getForEntity("/governance/documents", String::class.java)
+        assertTrue(history.body!!.contains("APPROVAL_EMAIL_RECORDED"))
+        assertTrue(history.body!!.contains("fake email sink"))
 
         val denied = post("/approvals/$approvalId/deny", null, DenyView::class.java)
         assertEquals(HttpStatus.OK, denied.statusCode)

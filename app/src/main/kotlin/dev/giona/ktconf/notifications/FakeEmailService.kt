@@ -28,4 +28,8 @@ class FakeEmailService {
     fun messages(): List<SentEmail> = sent.toList()
 
     fun count(): Int = sent.size
+
+    companion object {
+        const val APPROVER_ADDRESS = "approver@ktconf.example"
+    }
 }
