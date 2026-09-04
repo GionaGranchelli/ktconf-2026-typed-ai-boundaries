@@ -17,10 +17,10 @@ tramai:
     allowed-models:
       - local-invoice-model
       - local-assessment-model
-      - cloud-invoice-model
       - local-nvidia-invoice-model
-      - global-nvidia-invoice-model
       - eu-scaleway-invoice-model
+      - cloud-invoice-model
+      - global-nvidia-invoice-model
 
     allowed-providers:
       - local-provider

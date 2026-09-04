@@ -41,6 +41,7 @@ This board is the operational source of truth for agent execution. `ROADMAP.md` 
 | [task-013](tasks/task-013.md) | REVIEW | UI | 006–011 | Backend-owned uploaded-document workflow history |
 | [task-015](tasks/task-015.md) | DONE | Post-freeze | 007,013 | Safe reissue of expired approvals without reusing continuations |
 | [task-016](tasks/task-016.md) | DONE | Post-freeze | 004,006 | Use Scaleway serverless Generative APIs for the temporary EU provider |
+| [task-017](tasks/task-017.md) | BLOCKED | Post-freeze | 010 | Retire redundant invoice endpoints and AI operations |
 
 ## Evidence checkpoint
 
