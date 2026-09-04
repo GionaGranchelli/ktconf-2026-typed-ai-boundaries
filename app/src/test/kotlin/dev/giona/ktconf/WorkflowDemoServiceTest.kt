@@ -34,7 +34,31 @@ class WorkflowDemoServiceTest {
     private val ai = object : InvoiceAnalysisService {
         override suspend fun analyzeLocal(document: ClassifiedDocument<InvoiceDocument>) = assessment
 
+        override suspend fun analyzeLocalAutoPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeLocalNvidia(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeLocalNvidiaPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeLocalNvidiaAutoPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeEuScaleway(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeEuScalewayPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeEuScalewayAutoPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
         override suspend fun analyzeCloud(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeCloudPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeCloudAutoPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeGlobalNvidia(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeGlobalNvidiaPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
+
+        override suspend fun analyzeGlobalNvidiaAutoPayment(document: ClassifiedDocument<InvoiceDocument>) = assessment
 
         override suspend fun preAssessLocal(document: ClassifiedDocument<InvoiceDocument>) = assessment
     }
@@ -86,4 +110,5 @@ class WorkflowDemoServiceTest {
         assertEquals("amount-above-5000-eur", pending.approvalGate)
         assertEquals(InvoiceAction.REVIEW_ONLY, pending.assessment.recommendedAction)
     }
+
 }

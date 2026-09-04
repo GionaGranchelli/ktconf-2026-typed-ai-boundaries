@@ -21,4 +21,5 @@ class WorkflowDemoController(
             is WorkflowOutcome.Completed -> ResponseEntity.ok(outcome.result)
             is WorkflowOutcome.AwaitingApproval -> ResponseEntity.status(202).body(outcome)
         }
+
 }

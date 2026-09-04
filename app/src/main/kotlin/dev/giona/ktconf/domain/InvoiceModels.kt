@@ -72,10 +72,12 @@ data class AnalyzeInvoiceRequest(
     val invoice: InvoiceDocument,
 )
 
-/** Wraps the request into TramAI's classification envelope (DECLARED). */
-fun AnalyzeInvoiceRequest.toClassifiedDocument(): ClassifiedDocument<InvoiceDocument> =
+/** Wraps a request into TramAI's classification envelope. */
+fun AnalyzeInvoiceRequest.toClassifiedDocument(
+    source: ClassificationSource = ClassificationSource.DECLARED,
+): ClassifiedDocument<InvoiceDocument> =
     ClassifiedDocument(
         payload = invoice,
         classification = classification,
-        source = ClassificationSource.DECLARED,
+        source = source,
     )

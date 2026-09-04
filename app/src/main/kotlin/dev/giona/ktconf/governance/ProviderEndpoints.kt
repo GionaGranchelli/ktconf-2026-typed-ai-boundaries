@@ -3,7 +3,7 @@ package dev.giona.ktconf.governance
 import org.springframework.boot.context.properties.ConfigurationProperties
 
 /**
- * Deployment configuration for the two provider identities
+ * Deployment configuration for the provider identities
  * (`ktconf.providers.*` in application.yml).
  *
  * This is deployment ONLY — the governance truth lives in
@@ -14,7 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties(prefix = "ktconf.providers")
 data class ProviderEndpoints(
     val local: Endpoint = Endpoint(),
+    val localNvidia: Endpoint = Endpoint(),
     val cloud: Endpoint = Endpoint(),
+    val euScaleway: Endpoint = Endpoint(),
+    val globalNvidia: Endpoint = Endpoint(),
 )
 
 data class Endpoint(

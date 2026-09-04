@@ -1,3 +1,60 @@
+# The Model Is Not the Authority
+
+**One Spring application. One TramAI policy plane. Three governed AI execution
+boundaries.**
+
+An invoice PDF carries trusted classification and residency metadata. The
+application proposes where it should run; TramAI authorizes or denies that
+placement before provider invocation. The model may reason about the invoice,
+but it cannot authorize its own data movement or consequential side effects.
+
+```text
+                         TRUSTED PDF
+                              │
+                    local metadata validation
+                              │
+                              ▼
+                       TramAI policy plane
+                    ┌─────────┼─────────┐
+                    ▼         ▼         ▼
+                 LOCAL      EU_CLOUD  GLOBAL_CLOUD
+               NVIDIA RTX  Scaleway   NVIDIA hosted
+                  Qwen      Mistral     Nemotron
+                    └─────────┼─────────┘
+                              ▼
+                       typed assessment
+                              │
+                    model proposes an action
+                              │
+                         TramAI tool policy
+                              │
+                       human approval + audit
+```
+
+## What the GTC demo proves
+
+1. An `EU_ONLY` document forced to `GLOBAL_CLOUD` is denied before the global
+   provider is invoked (`delta = 0`), then the same PDF succeeds in `EU_CLOUD`.
+2. A high-value local payment proposal is suspended by TramAI, requires human
+   approval, executes exactly once, and rejects replay.
+3. Every governed workflow leaves readable, hash-chained evidence and appears
+   in the dashboard's document history.
+
+The live topology is deliberately truthful: GLOBAL uses Build.NVIDIA.com and
+hosted Nemotron; LOCAL uses an NVIDIA RTX with Qwen for the stable action flow;
+EU uses Scaleway Generative APIs serverless with Mistral Medium 3.5 128B as a temporary European
+unblocker. Mistral is not NVIDIA, Nemotron, or NIM.
+
+Start here:
+
+- [GTC submission plan](GTC-2026-SUBMISSION.md)
+- [GTC architecture](docs/gtc/ARCHITECTURE.md)
+- [claims boundary](docs/CLAIMS-BOUNDARY.md)
+- [60-second demo plan](docs/gtc/tasks/task-009.md)
+
+> [!IMPORTANT]
+> **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL NVIDIA, temporary Scaleway/Mistral EU, and GLOBAL NVIDIA execution boundaries. Mistral is not NVIDIA/Nemotron/NIM. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md) and [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
+
 # KTConf 2026 — Typed AI Boundaries
 
 *"The model may be nondeterministic. The boundaries around it should not be."*
@@ -139,8 +196,11 @@ Open <http://localhost:16686>, select service `ktconf-demo`, and inspect the
 `invoice.model.call` span and its nested `ai.analyzeCloud` attempt. The parent
 records classification, selected route, logical model, provider, and trust zone;
 a denied route adds a `governance.policy.denied` event without exposing invoice
-content. The stack is loopback-only: the app exports OTLP/HTTP to Jaeger at
-`localhost:4318`. Stop both with `./scripts/stage-observe-down`.
+content. Approval workflows additionally emit an `approval.email.recorded` child
+span with the fake-email channel, recipient, tool, and `RECORDED` status; email
+body content and approval tokens are never traced. The stack is loopback-only:
+the app exports OTLP/HTTP to Jaeger at `localhost:4318`. Stop both with
+`./scripts/stage-observe-down`.
 
 The observability rehearsal runs both the app and Jaeger in Docker. Watch the
 application's structured logs with:
@@ -167,6 +227,29 @@ outer asynchronous workflow request allows 180 seconds. Override the latter with
 `KTCONF_HTTP_ASYNC_TIMEOUT` (for example, `240s`) if needed.
 
 The normal `stage-up` path remains offline and does not export telemetry.
+
+### Run the API and governance console with Docker
+
+The repository also includes a single-container Compose deployment. It builds
+the Vue console into the Spring Boot jar, serves the API on port `8080`, and
+serves the console at <http://localhost:8080/gtc/>.
+
+```bash
+docker compose up --build
+```
+
+Provider credentials are opt-in environment variables and are never stored in
+the image. Without them, the application uses its deterministic providers. To
+connect a host llama.cpp server from the container, set for example:
+
+```bash
+export KTCONF_GTC_LOCAL_NVIDIA_BASE_URL=http://host.docker.internal:1234/v1
+export KTCONF_GTC_LOCAL_NVIDIA_MODEL=qwen/qwen3.8-27b
+```
+
+Set the existing global NVIDIA and Scaleway variables in the shell when live
+cloud inference is intended. `host.docker.internal` is configured in Compose
+for Linux as well as Docker Desktop.
 
 Key line for the room: *"The HTTP request is finished. The workflow isn't."*
 Then: *"And suddenly this doesn't look like an AI problem anymore. It looks

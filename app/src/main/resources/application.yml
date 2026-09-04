@@ -17,23 +17,36 @@ tramai:
     allowed-models:
       - local-invoice-model
       - local-assessment-model
+      - local-nvidia-invoice-model
+      - eu-scaleway-invoice-model
       - cloud-invoice-model
+      - global-nvidia-invoice-model
 
     allowed-providers:
       - local-provider
+      - local-nvidia-provider
       - cloud-provider
+      - global-nvidia-provider
+      - eu-scaleway-provider
 
     provider-zones:
       local-provider: LOCAL
+      local-nvidia-provider: LOCAL
       cloud-provider: GLOBAL_CLOUD
+      global-nvidia-provider: GLOBAL_CLOUD
+      eu-scaleway-provider: EU_CLOUD
 
     models:
       local-invoice-model: local-provider
       local-assessment-model: local-provider
+      local-nvidia-invoice-model: local-nvidia-provider
       cloud-invoice-model: cloud-provider
+      global-nvidia-invoice-model: global-nvidia-provider
+      eu-scaleway-invoice-model: eu-scaleway-provider
 
     allowed-tools:
       - schedule-payment
+      - auto-schedule-payment
       - send-approval-email
 
     allowed-permissions:
@@ -57,11 +70,27 @@ ktconf:
       base-url: ${KTCONF_DEMO_LOCAL_BASE_URL:}
       model: ${KTCONF_DEMO_LOCAL_MODEL:/home/fedora-workstation/models/Qwen3.8-27B-UD-Q6_K.gguf}
       api-key: ${KTCONF_DEMO_LOCAL_API_KEY:}
+    local-nvidia:
+      # Canonical live local action model: Qwen served by LM Studio/llama.cpp.
+      # Task-003's Nemotron typed-inference proof remains historical evidence.
+      base-url: ${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:}
+      model: ${KTCONF_GTC_LOCAL_NVIDIA_MODEL:qwen/qwen3.8-27b}
+      api-key: ${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:}
     cloud:
       # DeepSeek's OpenAI-compatible API.
       base-url: ${KTCONF_DEMO_CLOUD_BASE_URL:https://api.deepseek.com/v1}
       model: ${KTCONF_DEMO_CLOUD_MODEL:deepseek-v4-flash}
       api-key: ${KTCONF_DEMO_CLOUD_API_KEY:}
+    global-nvidia:
+      base-url: ${KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL:https://integrate.api.nvidia.com/v1}
+      model: ${KTCONF_GTC_GLOBAL_NVIDIA_MODEL:nvidia/nemotron-3.5-lightning-30b-a3b}
+      api-key: ${KTCONF_GTC_GLOBAL_NVIDIA_API_KEY:}
+    eu-scaleway:
+      # Scaleway Generative APIs serverless European deployment. This is an opt-in
+      # OpenAI-compatible EU_CLOUD provider; it is not NVIDIA/NIM.
+      base-url: ${KTCONF_GTC_EU_SCALEWAY_BASE_URL:${SCW_BASE_URL:}}
+      model: ${KTCONF_GTC_EU_SCALEWAY_MODEL:mistral-medium-3.5-128b}
+      api-key: ${KTCONF_GTC_EU_SCALEWAY_API_KEY:${SCW_SECRET_KEY:${SCW_API_KEY:}}}
 
 logging:
   level:

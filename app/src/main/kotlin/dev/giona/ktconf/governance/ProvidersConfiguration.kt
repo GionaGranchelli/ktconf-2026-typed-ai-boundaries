@@ -19,7 +19,10 @@ import org.slf4j.LoggerFactory
  * Two ModelProvider beans coexist in the same Spring context and the same
  * [dev.tramai.sovereign.SovereignTramaiRuntime]:
  * - `local-provider` (trust zone LOCAL, declared in application.yml)
+ * - `local-nvidia-provider` (trust zone LOCAL, contest-only opt-in)
  * - `cloud-provider` (trust zone GLOBAL_CLOUD, declared in application.yml)
+ * - `global-nvidia-provider` (trust zone GLOBAL_CLOUD, contest-only opt-in)
+ * - `eu-scaleway-provider` (trust zone EU_CLOUD, contest-only opt-in)
  *
  * Each identity is REAL when its `ktconf.providers.*` endpoint is
  * configured, otherwise deterministic:
@@ -57,6 +60,20 @@ class ProvidersConfiguration(
         return CountingModelProvider(delegate)
     }
 
+    /** Contest-only local NVIDIA identity; deterministic until an endpoint is configured. */
+    @Bean
+    fun localNvidiaProvider(): CountingModelProvider {
+        val delegate: ModelProvider =
+            if (endpoints.localNvidia.baseUrl.isNotBlank()) {
+                log.info("Configuring local NVIDIA provider with an OpenAI-compatible endpoint")
+                realProvider(endpoints.localNvidia, "local-nvidia-provider")
+            } else {
+                log.info("Configuring deterministic local NVIDIA provider")
+                DeterministicProvider(providerId = "local-nvidia-provider", script = ::localScript)
+            }
+        return CountingModelProvider(delegate)
+    }
+
     // Deliberately concrete counter beans: GovernanceStatsController injects
     // both to expose /governance/stats. They work with deterministic and real
     // delegates alike — policy denies BEFORE complete(), so the counter proves
@@ -70,6 +87,34 @@ class ProvidersConfiguration(
             } else {
                 log.info("Configuring deterministic cloud provider")
                 DeterministicProvider(providerId = "cloud-provider", script = ::cloudScript)
+            }
+        return CountingModelProvider(delegate)
+    }
+
+    /** Contest-only hosted NVIDIA identity; deterministic until explicitly keyed. */
+    @Bean
+    fun globalNvidiaProvider(): CountingModelProvider {
+        val delegate: ModelProvider =
+            if (endpoints.globalNvidia.apiKey.isNotBlank()) {
+                log.info("Configuring global NVIDIA provider with an OpenAI-compatible endpoint")
+                realProvider(endpoints.globalNvidia, "global-nvidia-provider")
+            } else {
+                log.info("Configuring deterministic global NVIDIA provider")
+                DeterministicProvider(providerId = "global-nvidia-provider", script = ::cloudScript)
+            }
+        return CountingModelProvider(delegate)
+    }
+
+    /** EU managed inference identity; deterministic until Scaleway is configured. */
+    @Bean
+    fun euScalewayProvider(): CountingModelProvider {
+        val delegate: ModelProvider =
+            if (endpoints.euScaleway.baseUrl.isNotBlank() && endpoints.euScaleway.apiKey.isNotBlank()) {
+                log.info("Configuring EU Scaleway provider with an OpenAI-compatible endpoint")
+                realProvider(endpoints.euScaleway, "eu-scaleway-provider")
+            } else {
+                log.info("Configuring deterministic EU Scaleway provider")
+                DeterministicProvider(providerId = "eu-scaleway-provider", script = ::cloudScript)
             }
         return CountingModelProvider(delegate)
     }

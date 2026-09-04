@@ -23,18 +23,18 @@ object DemoResponses {
         """,
     )
 
-    /** KTCONF-RESTRICTED-001: valid assessment for the advisory invoice. */
-    val restrictedAdvisoryAssessment: ModelResponse = json(
+    /** Restricted local fixture: a low-risk €42 invoice requiring no human gate. */
+    fun restrictedLocalAssessment(invoiceId: String): ModelResponse = json(
         """
         {
-          "invoiceId": "KTCONF-RESTRICTED-001",
-          "supplierName": "ACME Acquisition Advisory",
-          "amountCents": 8250000,
+          "invoiceId": "$invoiceId",
+          "supplierName": "Synthetic Local Supplier",
+          "amountCents": 4200,
           "currency": "EUR",
-          "risk": "HIGH",
+          "risk": "LOW",
           "recommendedAction": "REVIEW_ONLY",
           "confidence": 0.91,
-          "rationale": "MERGER-2026 advisory services require internal review; no payment scheduled"
+          "rationale": "Restricted local invoice is below the approval threshold; no human approval required"
         }
         """,
     )
@@ -69,6 +69,20 @@ object DemoResponses {
         finishReason = FinishReason.OTHER,
     )
 
+    /** Low-risk turn 1: request the AUTO payment tool selected by the app. */
+    fun autoPaymentToolCall(invoiceId: String, amountCents: Long): ModelResponse = ModelResponse(
+        content = "The invoice is within the automatic-payment threshold.",
+        toolCalls = listOf(
+            ToolCall(
+                id = "call-auto-schedule-payment-ktconf",
+                name = "auto-schedule-payment",
+                argumentsJson =
+                    """{"invoiceId":"$invoiceId","amountCents":$amountCents,"currency":"EUR"}""",
+            ),
+        ),
+        finishReason = FinishReason.OTHER,
+    )
+
     /** KTCONF-PAY-00x, turn 2 (after the tool result): the typed assessment. */
     fun payAssessment(invoiceId: String, amountCents: Long): ModelResponse = json(
         """
@@ -81,6 +95,22 @@ object DemoResponses {
           "recommendedAction": "SCHEDULE_PAYMENT",
           "confidence": 0.98,
           "rationale": "Stage and AV production invoice exceeds threshold; payment required"
+        }
+        """,
+    )
+
+    /** Low-risk turn 2: the automatic payment completed successfully. */
+    fun autoPayAssessment(invoiceId: String, amountCents: Long): ModelResponse = json(
+        """
+        {
+          "invoiceId": "$invoiceId",
+          "supplierName": "Synthetic Supplier",
+          "amountCents": $amountCents,
+          "currency": "EUR",
+          "risk": "LOW",
+          "recommendedAction": "SCHEDULE_PAYMENT",
+          "confidence": 0.98,
+          "rationale": "Invoice is within the automatic-payment threshold; payment was scheduled exactly once"
         }
         """,
     )

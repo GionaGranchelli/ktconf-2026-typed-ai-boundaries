@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT/frontend"
+
+if [[ -f package-lock.json ]]; then
+  npm ci
+else
+  echo "package-lock.json not present yet; using npm install for the first networked verification." >&2
+  npm install
+fi
+
+npm run build
+
+echo "GTC UI built into app/src/main/resources/static/gtc/"

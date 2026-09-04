@@ -56,6 +56,9 @@ class WorkflowDemoService(
                     when (input.route) {
                         InvoiceRoute.CLOUD -> ai.analyzeCloud(input.document)
                         InvoiceRoute.LOCAL -> ai.preAssessLocal(input.document)
+                        InvoiceRoute.LOCAL_NVIDIA -> ai.analyzeLocalNvidia(input.document)
+                        InvoiceRoute.EU_CLOUD -> ai.analyzeEuScaleway(input.document)
+                        InvoiceRoute.GLOBAL_CLOUD -> ai.analyzeGlobalNvidia(input.document)
                     }
                 }
             },
@@ -78,11 +81,17 @@ class WorkflowDemoService(
         localStep("notify-approver") { state, _ ->
             val suspension = state.approval
                 ?: return@localStep state
-            email.sendApprovalRequest(
-                to = "approver@ktconf.example",
-                invoiceId = state.request.invoice.invoiceId,
-                approvalId = suspension.approvalId.value,
-            )
+            telemetry.traceApprovalNotification(
+                route = state.route ?: InvoiceRoute.LOCAL,
+                toolName = "schedule-payment",
+                recipient = FakeEmailService.APPROVER_ADDRESS,
+            ) {
+                email.sendApprovalRequest(
+                    to = FakeEmailService.APPROVER_ADDRESS,
+                    invoiceId = state.request.invoice.invoiceId,
+                    approvalId = suspension.approvalId.value,
+                )
+            }
             state.copy(notificationStatus = "RECORDED")
         }
 

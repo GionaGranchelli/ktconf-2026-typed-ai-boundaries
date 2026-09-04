@@ -1,6 +1,7 @@
 package dev.giona.ktconf
 
 import dev.giona.ktconf.payments.InMemoryPaymentLedger
+import dev.giona.ktconf.payments.AutoSchedulePaymentTool
 import dev.giona.ktconf.payments.SchedulePaymentTool
 import dev.tramai.core.model.SideEffectLevel
 import dev.tramai.core.policy.ApprovalMode
@@ -31,6 +32,21 @@ class SchedulePaymentToolSecurityTest {
         assertEquals("payment.schedule", security.permission)
         assertEquals(RiskLevel.HIGH, security.risk)
         assertEquals(ApprovalMode.HUMAN_REQUIRED, security.approval)
+        assertEquals(ManagedNetworkEgress.DENY, security.managedNetworkEgress)
+        assertEquals(AuditDetail.FULL, security.audit)
+    }
+
+    @Test
+    fun `low-value auto payment has explicit low auto policy`() {
+        val tool = AutoSchedulePaymentTool(InMemoryPaymentLedger())
+        assertEquals("auto-schedule-payment", tool.name)
+        assertTrue(tool.idempotent)
+        assertEquals(SideEffectLevel.WRITE, tool.sideEffectLevel)
+
+        val security = assertNotNull(tool.security)
+        assertEquals("payment.schedule", security.permission)
+        assertEquals(RiskLevel.LOW, security.risk)
+        assertEquals(ApprovalMode.AUTO, security.approval)
         assertEquals(ManagedNetworkEgress.DENY, security.managedNetworkEgress)
         assertEquals(AuditDetail.FULL, security.audit)
     }

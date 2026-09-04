@@ -4,6 +4,13 @@ What this demo proves — and what it deliberately does **not** claim.
 
 ## Proved (deterministic, reproducible, tested)
 
+- The pinned TramAI revision exposes `ProviderTrustZone.LOCAL`, `EU_CLOUD`,
+  and `GLOBAL_CLOUD` as first-class governance values. Its enabled sovereign
+  routing matrix allows PUBLIC/INTERNAL in all zones, CONFIDENTIAL in LOCAL or
+  EU_CLOUD, and RESTRICTED in LOCAL only; `DefaultPolicyEngine` checks this
+  before provider invocation. This is a policy capability, not proof that an
+  operator's EU deployment is legally sovereign or compliant.
+
 - TramAI structured output turns a valid model response into a typed
   `InvoiceAssessment` — no manual JSON mapping in application code.
 - TramAI's classification-aware provider policy enforcement **denies** a `RESTRICTED`
@@ -13,6 +20,10 @@ What this demo proves — and what it deliberately does **not** claim.
   same document on a LOCAL provider. The demo proves this with a
   deliberately misrouted request through the SAME runtime
   (`/invoices/boundary/restricted-cloud`, printed before/after counts).
+- The contest `GLOBAL_NVIDIA` operation also proves RESTRICTED denial before
+  provider invocation with global invocation delta `0`. Missing or malformed
+  trusted PDF metadata fails at the multipart boundary with all provider
+  counters unchanged.
 - TramAI's structured-output engine rejects invalid model output through the
   SAME application and SAME runtime (HTTP 422, `structured-output-rejected`),
   and no side effect executes. Nothing about the application changed — only
@@ -58,12 +69,24 @@ What this demo proves — and what it deliberately does **not** claim.
   caller from saying PUBLIC; the demo shows what TramAI does with a wrong
   route once the classification is set, not how to trust a self-classifying
   external user.
+- **Synthetic PDF metadata is not a signature.** The contest PDF path reads
+  the required classification/residency properties locally and rejects
+  contradictory combinations before analysis. The embedded properties are a
+  demo trust contract, not a cryptographic signature, Microsoft Purview label,
+  or legal/compliance assertion.
 - **No production audit infrastructure.** Stores are in-memory for the
   demo; they are real TramAI stores, not fakes, but they are not durable.
 - **No claim that these TramAI APIs are stable.** The exact API surface is
   pinned to a specific revision (`docs/TRAMAI-INTEGRATION.md`).
 
 ## Real-model path (optional, opt-in, off-stage)
+
+- The contest-only `global-nvidia-provider` uses `KTCONF_GTC_GLOBAL_NVIDIA_*`
+  configuration and maps the logical `global-nvidia-invoice-model` to the
+  deployment model `nvidia/nemotron-3.5-lightning-30b-a3b`. It is counted and
+  deterministic when no NVIDIA key is supplied. A real HTTP 200 typed result
+  is recorded in `docs/gtc/evidence/global-nvidia-smoke.md`; final-head
+  refreshes remain required for the evidence freeze.
 
 - Proves: the actual two-provider architecture behind the SAME typed
   contract (`ClassifiedDocument<InvoiceDocument>` → `InvoiceAssessment`),
@@ -85,15 +108,21 @@ What this demo proves — and what it deliberately does **not** claim.
   the expected selectedRoute, and — when cloud is real — that a RESTRICTED
   request forced to cloud is denied BEFORE DeepSeek is called (cloud
   invocation delta 0).
-- The real path proves only the typed contract and the boundary against real
-  models. It is NOT needed to demonstrate payment, approval, denial,
-  evidence or exactly-once behavior — those remain deterministic.
+- The real path proves the typed contract and boundary behavior against real
+  models. The task-007 contest action proof uses Qwen
+  `qwen/qwen3.8-27b` on the local NVIDIA boundary; it proves a real payment
+  proposal, TramAI approval suspension/resume, exactly-once execution and
+  workflow audit evidence. Nemotron typed inference remains separately proven;
+  no Nemotron payment proposal is claimed.
 
-## Rule
+## Evidence rule
 
-Every row in the evidence output derives from a real audit record.
-Nothing is invented for the show. If a scenario cannot be demonstrated with
-real TramAI behavior, it is not demonstrated.
+Every evidence row identifies its source: deterministic test assertions,
+provider counters, or a sanitized live-provider artifact. Audit-chain rows
+derive from real TramAI audit records; routing and fail-closed rows derive from
+their executable HTTP tests and counter assertions. Nothing is invented for
+the show. If a scenario cannot be demonstrated with real TramAI behavior, it
+is not demonstrated.
 
 ## Governance / EU AI Act note
 

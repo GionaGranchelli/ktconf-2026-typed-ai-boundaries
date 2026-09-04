@@ -9,3 +9,17 @@ build/
 .env
 .env.local
 .env.*.local
+
+# GTC Vue/Vite console
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+app/src/main/resources/static/gtc/
+
+# GTC board and task tracking
+docs/gtc/BOARD.md
+docs/gtc/CURRENT-STATE.md
+docs/gtc/ROADMAP.md
+docs/gtc/tasks/
+docs/gtc/evidence/
+

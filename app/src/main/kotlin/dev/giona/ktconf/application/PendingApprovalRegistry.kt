@@ -2,6 +2,7 @@ package dev.giona.ktconf.application
 
 import dev.tramai.core.approval.ApprovalToken
 import dev.tramai.core.exception.ApprovalSuspendedException
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.stereotype.Component
 import org.slf4j.LoggerFactory
@@ -23,7 +24,7 @@ import org.slf4j.LoggerFactory
 class PendingApprovalRegistry {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    enum class State { PENDING, COMPLETED, DENIED, REJECTED }
+    enum class State { PENDING, COMPLETED, DENIED, EXPIRED, REJECTED }
 
     data class PendingApproval(
         val approvalId: String,
@@ -31,6 +32,7 @@ class PendingApprovalRegistry {
         val continuationVersion: Long,
         val presentedToken: ApprovalToken,
         val toolName: String,
+        val expiresAt: Instant,
         val state: State = State.PENDING,
     )
 
@@ -43,6 +45,7 @@ class PendingApprovalRegistry {
             continuationVersion = suspension.continuationVersion,
             presentedToken = suspension.challenge.token,
             toolName = suspension.toolName,
+            expiresAt = suspension.challenge.expiresAt,
         ).also {
             approvals[it.approvalId] = it
             log.info("Registered pending approval: approvalId={}, workflowRunId={}, tool={}", it.approvalId, it.workflowRunId, it.toolName)

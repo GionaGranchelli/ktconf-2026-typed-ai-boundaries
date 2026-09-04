@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
  * The conference gate: the FULL deterministic oracle, 20/20, fresh context
  * per repetition — one application, one runtime, every proof in sequence:
  *
- *   typed (PUBLIC → cloud 200) → restricted (RESTRICTED → local 200) →
+ *   typed (PUBLIC → cloud 200 + automatic payment) → restricted (RESTRICTED → local 200 + automatic payment) →
  *   restricted-cloud (forced → 403, cloud invocation delta 0) → invalid
  *   (422, payment 0) → payment (202, payment 0) → deny oracle (deny 200 →
  *   resume 409, payment 0) → approve (200, payment 1) → duplicate (409,
@@ -59,7 +59,8 @@ class RehearsalIT {
         val restricted = analyze(DemoRequests.restricted())
         assertEquals(HttpStatus.OK, restricted.statusCode)
         assertEquals("LOCAL", restricted.body!!.selectedRoute.name)
-        assertEquals(1, stats().cloudInvocationCount, "cloud invoked exactly once (the PUBLIC call)")
+        assertEquals(2, stats().cloudInvocationCount, "cloud tool turn and final assessment")
+        assertEquals(1, stats().paymentExecutionCount, "PUBLIC low-risk payment auto-executed once")
 
         // 3. Forced RESTRICTED → cloud: policy denies BEFORE provider invocation.
         val forced = rest.exchange(
@@ -70,8 +71,8 @@ class RehearsalIT {
         )
         assertEquals(HttpStatus.FORBIDDEN, forced.statusCode)
         assertEquals("classification-routing-blocked", forced.body!!.code)
-        assertEquals(1, stats().cloudInvocationCount, "denied route must not invoke the cloud provider")
-        assertEquals(0, stats().paymentExecutionCount)
+        assertEquals(2, stats().cloudInvocationCount, "denied route must not invoke the cloud provider")
+        assertEquals(1, stats().paymentExecutionCount, "same invoice id is deduplicated by auto-payment idempotency")
 
         // 4. Invalid output through the same app/runtime → 422, no side effects.
         val invalid = rest.exchange(
@@ -82,9 +83,9 @@ class RehearsalIT {
         )
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, invalid.statusCode)
         assertEquals("structured-output-rejected", invalid.body!!.code)
-        assertEquals(0, stats().paymentExecutionCount)
+        assertEquals(1, stats().paymentExecutionCount)
 
-        // 5. Deny oracle FIRST: 202 → deny → runtime refuses resume → payment 0.
+        // 5. Deny oracle FIRST: 202 → deny → runtime refuses resume; existing auto payment remains unchanged.
         val deniedPending = post("/invoices/analyze", DemoRequests.payment(), AwaitingApprovalResponse::class.java)
         assertEquals(HttpStatus.ACCEPTED, deniedPending.statusCode)
         val deniedId = assertNotNull(deniedPending.body as AwaitingApprovalResponse).approvalId
@@ -93,7 +94,7 @@ class RehearsalIT {
         assertEquals("DENIED", (denied.body as DenyView).status)
         val resumeAfterDeny = post("/approvals/$deniedId/approve", null, ErrorResponse::class.java)
         assertEquals(HttpStatus.CONFLICT, resumeAfterDeny.statusCode)
-        assertEquals(0, stats().paymentExecutionCount)
+        assertEquals(1, stats().paymentExecutionCount)
 
         // 6. Approve flow: 202 → approve → exactly one payment.
         val pending = post("/invoices/analyze", DemoRequests.payment(), AwaitingApprovalResponse::class.java)
@@ -102,12 +103,12 @@ class RehearsalIT {
         val approved = post("/approvals/$approvalId/approve", null, InvoiceAssessment::class.java)
         assertEquals(HttpStatus.OK, approved.statusCode)
         assertEquals("SCHEDULE_PAYMENT", (approved.body as InvoiceAssessment).recommendedAction.name)
-        assertEquals(1, stats().paymentExecutionCount)
+        assertEquals(2, stats().paymentExecutionCount)
 
-        // 7. Duplicate approve → rejected, payment still 1.
+        // 7. Duplicate approve → rejected, payment count still 2.
         val duplicate = post("/approvals/$approvalId/approve", null, ErrorResponse::class.java)
         assertEquals(HttpStatus.CONFLICT, duplicate.statusCode)
-        assertEquals(1, stats().paymentExecutionCount)
+        assertEquals(2, stats().paymentExecutionCount)
 
         // 8. Evidence: exact ordered timeline, chain valid, scoped to the workflow.
         val evidence = rest.getForEntity(

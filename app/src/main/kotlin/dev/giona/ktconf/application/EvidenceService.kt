@@ -23,6 +23,7 @@ class EvidenceService(
     private val registry: PendingApprovalRegistry,
     private val auditStore: AuditStore,
     private val tramai: SovereignTramai,
+    private val history: DocumentHistoryService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -32,6 +33,7 @@ class EvidenceService(
         check(events.isNotEmpty()) { "no audit events recorded for approval $approvalId" }
         val chain = AuditChainVerifier.verify(events)
         check(chain.isValid) { "audit chain must verify for approval $approvalId" }
+        history.attachEvidence(approvalId, events, chain.isValid)
 
         val outputDir = Path.of(".build", "demo", "evidence")
         Files.createDirectories(outputDir)

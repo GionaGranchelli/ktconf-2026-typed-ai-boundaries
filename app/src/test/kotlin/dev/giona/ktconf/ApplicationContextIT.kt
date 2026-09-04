@@ -3,6 +3,7 @@ package dev.giona.ktconf
 import dev.giona.ktconf.demo.DeterministicProvider
 import dev.giona.ktconf.governance.CountingModelProvider
 import dev.giona.ktconf.payments.SchedulePaymentTool
+import dev.giona.ktconf.payments.AutoSchedulePaymentTool
 import dev.giona.ktconf.notifications.SendApprovalEmailTool
 import dev.tramai.core.model.TramaiTool
 import dev.tramai.core.provider.ModelProvider
@@ -17,7 +18,7 @@ import kotlin.test.assertTrue
 
 /**
  * The one-app architecture invariants: exactly one governed runtime,
- * both provider routes alive simultaneously, the tool discovered as a
+ * provider routes alive simultaneously, the tool discovered as a
  * Spring bean, and no profile topology.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -36,9 +37,9 @@ class ApplicationContextIT {
     @Test
     fun `both local and cloud providers coexist in one context`() {
         val providers = context.getBeansOfType(ModelProvider::class.java).values.toList()
-        assertEquals(2, providers.size, "expected exactly the local + cloud provider beans")
+        assertEquals(5, providers.size, "expected local + local NVIDIA + EU Scaleway + cloud + global NVIDIA provider beans")
         val ids = providers.map { it.providerId() }.toSet()
-        assertEquals(setOf("local-provider", "cloud-provider"), ids)
+        assertEquals(setOf("local-provider", "local-nvidia-provider", "eu-scaleway-provider", "cloud-provider", "global-nvidia-provider"), ids)
     }
 
     @Test
@@ -54,6 +55,13 @@ class ApplicationContextIT {
         assertTrue(tool is TramaiTool<*, *>)
         assertTrue(tool is SchedulePaymentTool)
         assertEquals("schedule-payment", (tool as TramaiTool<*, *>).name)
+    }
+
+    @Test
+    fun `AutoSchedulePaymentTool is discovered as a TramaiTool Spring bean`() {
+        val tool = context.getBean("autoSchedulePaymentTool")
+        assertTrue(tool is AutoSchedulePaymentTool)
+        assertEquals("auto-schedule-payment", tool.name)
     }
 
     @Test
@@ -73,5 +81,14 @@ class ApplicationContextIT {
         assertTrue((local as CountingModelProvider).delegate is DeterministicProvider, "local provider must be deterministic when no real-model env is set")
         assertTrue(cloud is CountingModelProvider)
         assertTrue((cloud as CountingModelProvider).delegate is DeterministicProvider)
+        val global = context.getBean("globalNvidiaProvider") as ModelProvider
+        assertTrue(global is CountingModelProvider)
+        assertTrue((global as CountingModelProvider).delegate is DeterministicProvider)
+        val localNvidia = context.getBean("localNvidiaProvider") as ModelProvider
+        assertTrue(localNvidia is CountingModelProvider)
+        assertTrue((localNvidia as CountingModelProvider).delegate is DeterministicProvider)
+        val euScaleway = context.getBean("euScalewayProvider") as ModelProvider
+        assertTrue(euScaleway is CountingModelProvider)
+        assertTrue((euScaleway as CountingModelProvider).delegate is DeterministicProvider)
     }
 }

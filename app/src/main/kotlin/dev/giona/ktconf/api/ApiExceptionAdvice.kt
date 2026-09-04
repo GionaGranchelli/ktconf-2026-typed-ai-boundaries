@@ -2,6 +2,8 @@ package dev.giona.ktconf.api
 
 import dev.giona.ktconf.application.ApprovalNotFoundException
 import dev.giona.ktconf.application.WorkflowApprovalStateException
+import dev.giona.ktconf.application.ApprovalReissueNotAllowedException
+import dev.giona.ktconf.application.ApprovalReissueNotFoundException
 import dev.tramai.core.exception.ApprovalAuthorizationException
 import dev.tramai.core.exception.ApprovalStoreConflictException
 import dev.tramai.core.exception.ApprovalStoreNotConsumableException
@@ -11,6 +13,7 @@ import dev.tramai.core.exception.IllegalApprovalTransitionException
 import dev.tramai.core.exception.PolicyViolationException
 import dev.tramai.core.exception.StructuredOutputException
 import dev.tramai.orchestration.WorkflowGateRejectedException
+import dev.giona.ktconf.pdf.InvalidTrustedPdfException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -64,10 +67,28 @@ class ApiExceptionAdvice {
             ErrorResponse(code = "approval-not-found", message = e.message ?: "Approval not found"),
         )
 
+    @ExceptionHandler(ApprovalReissueNotFoundException::class)
+    fun approvalReissueNotFound(e: ApprovalReissueNotFoundException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ErrorResponse(code = "approval-reissue-not-found", message = e.message ?: "Approval reissue source not found"),
+        )
+
+    @ExceptionHandler(ApprovalReissueNotAllowedException::class)
+    fun approvalReissueNotAllowed(e: ApprovalReissueNotAllowedException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ErrorResponse(code = "approval-reissue-not-allowed", message = e.message ?: "Approval cannot be reissued"),
+        )
+
     @ExceptionHandler(IllegalStateException::class)
     fun illegalState(e: IllegalStateException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
             ErrorResponse(code = "demo-invariant-violated", message = e.message ?: "Demo invariant violated"),
+        )
+
+    @ExceptionHandler(InvalidTrustedPdfException::class)
+    fun invalidPdf(e: InvalidTrustedPdfException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(code = "invalid-pdf-metadata", message = e.message ?: "Invalid PDF input"),
         )
 }
 

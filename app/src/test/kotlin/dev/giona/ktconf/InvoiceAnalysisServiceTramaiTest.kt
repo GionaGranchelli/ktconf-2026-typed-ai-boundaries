@@ -5,6 +5,7 @@ import dev.giona.ktconf.domain.InvoiceAction
 import dev.giona.ktconf.domain.InvoiceRisk
 import dev.giona.ktconf.domain.toClassifiedDocument
 import dev.giona.ktconf.payments.InMemoryPaymentLedger
+import dev.giona.ktconf.payments.AutoSchedulePaymentTool
 import dev.giona.ktconf.payments.SchedulePaymentTool
 import dev.tramai.core.model.RegisteredModel
 import dev.tramai.security.ProviderTrustZone
@@ -129,7 +130,10 @@ class InvoiceAnalysisServiceTramaiTest {
         // The service declares this tool on analyzeLocal. Registering it keeps
         // the test runtime faithful to the production service contract even
         // though these cloud-route tests do not execute a tool call.
-        .tools(listOf(SchedulePaymentTool(InMemoryPaymentLedger())))
+        .tools(listOf(
+            SchedulePaymentTool(InMemoryPaymentLedger()),
+            AutoSchedulePaymentTool(InMemoryPaymentLedger()),
+        ))
         .observer(observer)
         .build()
 

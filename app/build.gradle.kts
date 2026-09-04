@@ -39,6 +39,7 @@ dependencies {
     implementation("dev.tramai:tramai-deepseek:${tramaiVersion}")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.apache.pdfbox:pdfbox:3.0.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // suspend controller support in Spring MVC requires the reactive adapter.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.10.2")

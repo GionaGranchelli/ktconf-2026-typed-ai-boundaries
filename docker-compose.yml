@@ -1,0 +1,30 @@
+services:
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.20.0
+    ports:
+      - "127.0.0.1:16686:16686" # Jaeger UI
+      - "127.0.0.1:4318:4318" # OTLP HTTP collector
+
+  ktconf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - jaeger
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SERVER_PORT: "8080"
+      KTCONF_OBSERVABILITY_OTLP_ENDPOINT: "http://jaeger:4318"
+      KTCONF_GTC_LOCAL_NVIDIA_BASE_URL: "${KTCONF_GTC_LOCAL_NVIDIA_BASE_URL:-}"
+      KTCONF_GTC_LOCAL_NVIDIA_MODEL: "${KTCONF_GTC_LOCAL_NVIDIA_MODEL:-qwen/qwen3.8-27b}"
+      KTCONF_GTC_LOCAL_NVIDIA_API_KEY: "${KTCONF_GTC_LOCAL_NVIDIA_API_KEY:-}"
+      KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL: "${KTCONF_GTC_GLOBAL_NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}"
+      KTCONF_GTC_GLOBAL_NVIDIA_MODEL: "${KTCONF_GTC_GLOBAL_NVIDIA_MODEL:-nvidia/nemotron-3-ultra-550b-a55b}"
+      KTCONF_GTC_GLOBAL_NVIDIA_API_KEY: "${KTCONF_GTC_GLOBAL_NVIDIA_API_KEY:-${NVIDIA_API_KEY:-}}"
+      KTCONF_GTC_EU_SCALEWAY_BASE_URL: "${KTCONF_GTC_EU_SCALEWAY_BASE_URL:-${SCW_BASE_URL:-}}"
+      KTCONF_GTC_EU_SCALEWAY_MODEL: "${KTCONF_GTC_EU_SCALEWAY_MODEL:-mistral-medium-3.5-128b}"
+      KTCONF_GTC_EU_SCALEWAY_API_KEY: "${KTCONF_GTC_EU_SCALEWAY_API_KEY:-${SCW_SECRET_KEY:-${SCW_API_KEY:-}}}"
+    restart: unless-stopped

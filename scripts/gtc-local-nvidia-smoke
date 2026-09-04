@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opt-in task-003 proof. The llama-server process must already be running on
+# an NVIDIA RTX host. No provider secret is required for the local endpoint.
+BASE_URL="${NVIDIA_LOCAL_BASE_URL:-http://127.0.0.1:1234/v1}"
+MODEL="${NVIDIA_LOCAL_MODEL:-nvidia/nemotron-3-nano-4b}"
+SERVER_URL="${BASE_URL%/v1}"
+
+cd "$(dirname "$0")/.."
+if ! command -v nvidia-smi >/dev/null; then
+  echo "FAIL: nvidia-smi is required on the RTX host" >&2
+  exit 1
+fi
+if ! command -v curl >/dev/null || ! command -v python3 >/dev/null; then
+  echo "FAIL: curl and python3 are required" >&2
+  exit 1
+fi
+
+echo "GPU evidence:"
+nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
+echo "llama.cpp evidence:"
+if command -v llama-server >/dev/null; then llama-server --version | head -1; else echo "llama-server must be installed on PATH"; exit 1; fi
+
+curl -fsS --max-time 10 "${SERVER_URL}/health" >/dev/null
+models="$(curl -fsS --max-time 10 "${BASE_URL}/models")"
+python3 -c 'import json,sys
+data=json.load(sys.stdin)
+ids={item.get("id") for item in data.get("data", [])}
+model=sys.argv[1]
+if model not in ids:
+    raise SystemExit(f"FAIL: local server does not advertise configured model: {model}")
+print(f"catalog: model available ({model})")' "$MODEL" <<<"$models"
+
+payload="$(python3 -c 'import json,sys
+print(json.dumps({"model":sys.argv[1],"messages":[{"role":"user","content":"Return exactly the word READY."}],"max_tokens":256,"temperature":0}))' "$MODEL")"
+curl -fsS --max-time 120 -X POST "${BASE_URL}/chat/completions" \
+  -H 'Content-Type: application/json' -d "$payload" >/tmp/ktconf-gtc-local-nvidia-direct.json
+echo "direct: HTTP 200 OpenAI-compatible response"
+
+./gradlew :app:bootJar -q
+./scripts/stage-down >/dev/null 2>&1 || true
+mkdir -p .build
+KTCONF_GTC_LOCAL_NVIDIA_BASE_URL="$BASE_URL" \
+KTCONF_GTC_LOCAL_NVIDIA_MODEL="$MODEL" \
+SERVER_PORT=8080 nohup java -jar app/build/libs/ktconf-demo.jar >.build/stage-gtc-local-nvidia.log 2>&1 &
+echo "$!" > .build/stage.pid
+trap './scripts/stage-down >/dev/null 2>&1 || true' EXIT
+
+for i in $(seq 1 60); do
+  if curl -sf --max-time 2 http://localhost:8080/governance/healthz >/dev/null; then break; fi
+  sleep 1
+done
+
+request='{"classification":"RESTRICTED","invoice":{"invoiceId":"KTCONF-001","supplierName":"KTConf Catering BV","amountCents":42830,"currency":"EUR","description":"Synthetic contest fixture"}}'
+http_code="$(curl -sS -o .build/gtc-local-nvidia-response.json -w '%{http_code}' --max-time 120 \
+  -X POST http://localhost:8080/invoices/local-nvidia \
+  -H 'Content-Type: application/json' -d "$request")"
+if [ "$http_code" != 200 ] || ! grep -Fq '"selectedRoute":"LOCAL_NVIDIA"' .build/gtc-local-nvidia-response.json; then
+  echo "FAIL: application smoke returned HTTP $http_code or wrong route" >&2
+  exit 1
+fi
+count="$(curl -fsS http://localhost:8080/governance/stats | python3 -c 'import json,sys; print(json.load(sys.stdin)["localNvidiaInvocationCount"])')"
+echo "application: HTTP 200, typed InvoiceAssessment, selectedRoute=LOCAL_NVIDIA, invocationCount=$count"
