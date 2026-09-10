@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { boundaries } from '../model.js'
 
 const props = defineProps({ stats: { type: Object, default: null } })
-const emit = defineEmits(['navigate-live', 'navigate-history'])
+const emit = defineEmits(['navigate-live', 'navigate-history', 'navigate-dlp'])
 const totalCalls = computed(() => props.stats
   ? (props.stats.globalNvidiaInvocationCount ?? 0) + (props.stats.localNvidiaInvocationCount ?? 0) + (props.stats.euScalewayInvocationCount ?? 0)
   : '—')
@@ -88,7 +88,7 @@ function openLive(focus) { emit('navigate-live', focus) }
       <div class="overview-comparison"><div class="overview-comparison__head"><span>TYPICAL AI APPLICATION</span><span>TRAMAI</span></div><div v-for="row in comparison" :key="row[0]" class="overview-comparison__row"><span>{{ row[0] }}</span><b>→</b><strong>{{ row[1] }}</strong></div></div>
     </section>
 
-    <section class="overview-cta"><span class="overview-index">LIVE PROOF</span><h2>Don't trust the diagram.<br /><span>Test the boundary.</span></h2><p>Use the real PDF flow to watch TramAI deny a forbidden route, govern a high-risk action, and verify the audit chain.</p><div class="overview-cta__actions"><button class="btn btn--primary" @click="openLive('placement')">Prove data placement <span>↗</span></button><button class="btn btn--ghost" @click="openLive('action')">Prove action governance <span>↗</span></button><button class="text-btn" @click="emit('navigate-history')">View processed documents</button></div><div class="overview-cta__signature">THE MODEL REASONS. <span>TRAMAI GOVERNS.</span></div></section>
+    <section class="overview-cta"><span class="overview-index">LIVE PROOF</span><h2>Don't trust the diagram.<br /><span>Test the boundary.</span></h2><p>Use the real PDF flow to watch TramAI deny a forbidden route, govern a high-risk action, verify the audit chain, and prove model-output DLP before the frontend sees the result.</p><div class="overview-cta__actions"><button class="btn btn--primary" @click="openLive('placement')">Prove data placement <span>↗</span></button><button class="btn btn--ghost" @click="openLive('action')">Prove action governance <span>↗</span></button><button class="btn btn--ghost" @click="emit('navigate-dlp')">Open DLP safe output</button><button class="text-btn" @click="emit('navigate-history')">View processed documents</button></div><div class="overview-cta__signature">THE MODEL REASONS. <span>TRAMAI GOVERNS.</span></div></section>
   </div>
 </template>
 

@@ -131,6 +131,19 @@ object DemoResponses {
         """,
     )
 
+    val dlpDocumentAnalysis: ModelResponse = json(
+        """
+        {
+          "documentId": "KTCONF-DLP-001",
+          "company": "Example Conference Services BV",
+          "amount": "EUR 4,280.00",
+          "summary": "Payment for conference venue services.",
+          "contactEmail": "finance@example-confidential.eu",
+          "paymentIban": "NL91ABNA0417164300"
+        }
+        """,
+    )
+
     private fun json(content: String): ModelResponse =
         ModelResponse(content = content, finishReason = FinishReason.STOP)
 }

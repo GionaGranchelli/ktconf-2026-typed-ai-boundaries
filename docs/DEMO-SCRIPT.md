@@ -50,6 +50,7 @@ Then run, in order:
 ./scripts/demo restricted       # RESTRICTED KTCONF-001 → local route (200)
 ./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, cloud delta 0
 ./scripts/demo invalid          # PUBLIC KTCONF-INVALID → 422, 0 side effects
+./scripts/demo dlp              # CONFIDENTIAL KTCONF-DLP-001 → 200, DLP proof
 ./scripts/demo payment          # 202 AWAITING_APPROVAL — request is finished
 ./scripts/demo workflow-payment # explicit six-step workflow, rationale + email + 202
 ./scripts/demo approve <id>     # workflow resumes, payment 0 → 1
@@ -88,6 +89,8 @@ Trust zones are operator assertions — never inferred from URLs.
 - `restricted`: HTTP 200, `selectedRoute=LOCAL`, same typed shape
 - `restricted-cloud`: HTTP 403 `{"code":"classification-routing-blocked",...}` plus a printed cloud invocation delta of 0 (before/after counts)
 - `invalid`: HTTP 422 `{"code":"structured-output-rejected",...}`, payment 0
+- `dlp`: HTTP 200, document `KTCONF-DLP-001`, classification `CONFIDENTIAL`,
+  `email=[EMAIL_REDACTED]`, `iban=[IBAN_REDACTED]`, `redactions=2`
 - `payment`: HTTP 202 `{"status":"AWAITING_APPROVAL","approvalId":...,"workflowRunId":...,"toolName":"schedule-payment","rationale":...}` — no token
 - `workflow-payment`: HTTP 202 with the typed pre-assessment, real AI rationale,
   `approvalGate=amount-above-5000-eur`, approval ID, and
@@ -103,3 +106,12 @@ Trust zones are operator assertions — never inferred from URLs.
 See [FAILURE-RECOVERY.md](FAILURE-RECOVERY.md). In short:
 `./scripts/stage-down && ./scripts/stage-up`, re-run `./scripts/preflight`,
 or rebuild with `./gradlew :app:bootJar`.
+
+## DLP presentation note
+
+For the DLP story, keep the wording precise:
+
+- **Supported claim:** TramAI DLP sanitizes model output before downstream
+  application consumption.
+- **Non-claim:** this demo does not perform automatic document classification
+  or generic prompt/input PII scanning.

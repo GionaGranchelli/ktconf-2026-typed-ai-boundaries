@@ -10,6 +10,7 @@ It currently binds to:
 
 - `GET /governance/healthz`
 - `GET /governance/stats`
+- `POST /documents/dlp/analyze`
 - `POST /invoices/analyze-pdf`
 - `POST /approvals/{approvalId}/approve`
 - `POST /approvals/{approvalId}/deny`
@@ -44,6 +45,9 @@ Generated assets are ignored by git. Build the UI before packaging the Spring Bo
 - No credential or provider secret belongs in the frontend.
 - No classification or route result may be invented in browser state and presented as TramAI evidence.
 - The UI may visualize the expected policy matrix from trusted metadata, but the backend-selected route and provider counters remain the proof.
+- The DLP page must never receive or display raw model output containing the
+  synthetic email or IBAN. Only safe labels and the sanitized typed result may
+  cross into browser state.
 - Legacy `LOCAL` / `CLOUD` routes are shown explicitly until task-006 completes the three-NVIDIA-boundary PDF flow.
 
 ## Toolchain

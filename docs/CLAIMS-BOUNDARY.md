@@ -13,6 +13,14 @@ What this demo proves — and what it deliberately does **not** claim.
 
 - TramAI structured output turns a valid model response into a typed
   `InvoiceAssessment` — no manual JSON mapping in application code.
+- TramAI DLP can sanitize model output before it crosses into downstream
+  application code. The deterministic `KTCONF-DLP-001` fixture proves the
+  provider response itself contains the synthetic email
+  `finance@example-confidential.eu` and IBAN `NL91ABNA0417164300`, while the
+  typed `DocumentAnalysis` returned by the same authoritative runtime contains
+  only `[EMAIL_REDACTED]` and `[IBAN_REDACTED]`. The HTTP response, frontend
+  page, DLP audit metadata, logs, and OpenTelemetry spans all exclude the raw
+  values.
 - TramAI's classification-aware provider policy enforcement **denies** a `RESTRICTED`
   document on a `GLOBAL_CLOUD` provider BEFORE provider invocation (HTTP 403,
   `reasonCode=classification-routing-blocked`, cloud invocation **delta** 0 —
@@ -69,6 +77,10 @@ What this demo proves — and what it deliberately does **not** claim.
   caller from saying PUBLIC; the demo shows what TramAI does with a wrong
   route once the classification is set, not how to trust a self-classifying
   external user.
+- **No generic prompt/input scanning claim.** The KTConf DLP demo proves
+  model-output sanitization on one synthetic confidential PDF. It does not
+  claim automatic input classification, generic prompt scanning, or blanket
+  PII discovery across arbitrary uploaded content.
 - **Synthetic PDF metadata is not a signature.** The contest PDF path reads
   the required classification/residency properties locally and rejects
   contradictory combinations before analysis. The embedded properties are a
