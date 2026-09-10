@@ -1,18 +1,13 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { analyzeDlpDocument } from '../api.js'
-import { providerIdentity, routeToBoundary } from '../model.js'
 
 const file = ref(null)
 const busy = ref(false)
 const error = ref('')
 const result = ref(null)
 
-const boundary = computed(() => {
-  const route = result.value?.selectedRoute
-  const boundaryId = routeToBoundary(route)
-  return boundaryId ? providerIdentity[boundaryId] : null
-})
+const runtime = computed(() => result.value?.runtime ?? null)
 
 function selectFile(event) {
   const next = event.target.files?.[0]
@@ -109,7 +104,8 @@ const verdicts = computed(() => {
             <div><dt>Classification</dt><dd>{{ result.metadata.classification }}</dd></div>
             <div><dt>Residency</dt><dd>{{ result.metadata.residency }}</dd></div>
             <div><dt>Operation</dt><dd>{{ result.operation }}</dd></div>
-            <div><dt>Provider</dt><dd>{{ boundary?.provider ?? '—' }}</dd></div>
+            <div><dt>Provider</dt><dd>{{ runtime?.provider ?? '—' }}</dd></div>
+            <div><dt>Model</dt><dd>{{ runtime?.model ?? '—' }}</dd></div>
             <div><dt>Boundary</dt><dd>{{ result.selectedRoute }}</dd></div>
           </dl>
           <div class="model-proof">
@@ -130,7 +126,7 @@ const verdicts = computed(() => {
             <div v-for="entry in result.dlp.audit" :key="entry.ruleId" class="audit-row">
               <strong>{{ entry.ruleId }}</strong>
               <span>{{ entry.decision }}</span>
-              <small>replacementCount={{ entry.replacementCount }}</small>
+              <small>{{ entry.enforcementPoint }} · replacementCount={{ entry.replacementCount }}</small>
             </div>
           </div>
         </article>

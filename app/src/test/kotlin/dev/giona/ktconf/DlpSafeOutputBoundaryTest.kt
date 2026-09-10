@@ -2,7 +2,6 @@ package dev.giona.ktconf
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import dev.giona.ktconf.observability.DlpRedactionEvidenceStore
 import dev.tramai.security.audit.AuditStore
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
@@ -61,9 +60,6 @@ class DlpSafeOutputBoundaryTest {
     lateinit var spans: InMemorySpanExporter
 
     @Autowired
-    lateinit var dlpEvidence: DlpRedactionEvidenceStore
-
-    @Autowired
     lateinit var auditStore: AuditStore
 
     @Test
@@ -76,20 +72,24 @@ class DlpSafeOutputBoundaryTest {
         assertEquals("EU_ONLY", response["metadata"]["residency"].asText())
         assertEquals("EU_CLOUD", response["selectedRoute"].asText())
         assertEquals("analyzeDocument", response["operation"].asText())
+        assertEquals("eu-scaleway-provider", response["runtime"]["provider"].asText())
+        assertEquals("eu-scaleway-invoice-model", response["runtime"]["model"].asText())
+        assertEquals("MODEL_OUTPUT", response["runtime"]["contentType"].asText())
         assertEquals("[EMAIL_REDACTED]", response["analysis"]["contactEmail"].asText())
         assertEquals("[IBAN_REDACTED]", response["analysis"]["paymentIban"].asText())
         assertEquals(2, response["dlp"]["replacementCount"].asInt())
         assertEquals(listOf("email", "iban"), response["dlp"]["ruleIds"].map { it.asText() })
+        assertEquals("DLP_MODEL_OUTPUT", response["dlp"]["audit"][0]["enforcementPoint"].asText())
+        assertEquals("REDACTED", response["dlp"]["audit"][0]["decision"].asText())
         assertFalse(body.contains("finance@example-confidential.eu"))
         assertFalse(body.contains("NL91ABNA0417164300"))
     }
 
     @Test
     fun `audit evidence records safe rule level redactions only`() {
-        analyze()
+        val response = analyze()
 
-        val summary = dlpEvidence.summarySince(0, "analyzeDocument")
-        val events = runBlocking { auditStore.readStream(summary.correlationId) }
+        val events = runBlocking { auditStore.readStream(response["runtime"]["correlationId"].asText()) }
         val dlpEvents = events.filter { it.enforcementPoint == "DLP_MODEL_OUTPUT" }
 
         assertEquals(2, dlpEvents.size)

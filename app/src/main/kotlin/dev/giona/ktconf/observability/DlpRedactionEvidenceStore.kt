@@ -1,26 +1,33 @@
 package dev.giona.ktconf.observability
 
+import dev.tramai.core.policy.ClassificationSource
+import dev.tramai.core.policy.DataClassification
 import dev.tramai.core.security.DlpContentType
 import dev.tramai.core.security.DlpContext
 import dev.tramai.core.security.DlpRedaction
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import java.util.UUID
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
 
 @Component
 class DlpRedactionEvidenceStore {
     private val sequence = AtomicLong(0)
-    private val records = CopyOnWriteArrayList<DlpRedactionRecord>()
-
-    fun checkpoint(): Long = sequence.get()
+    private val captures = ConcurrentHashMap<String, CopyOnWriteArrayList<DlpRedactionRecord>>()
+    private val currentCaptureId = ThreadLocal<String?>()
 
     fun record(
         context: DlpContext,
         redactions: List<DlpRedaction>,
     ) {
+        val captureId = currentCaptureId.get() ?: return
+        val bucket = captures.computeIfAbsent(captureId) { CopyOnWriteArrayList() }
         redactions.forEach { redaction ->
-            records += DlpRedactionRecord(
+            bucket += DlpRedactionRecord(
                 sequence = sequence.incrementAndGet(),
                 recordedAt = Instant.now(),
                 context = context,
@@ -30,25 +37,31 @@ class DlpRedactionEvidenceStore {
         }
     }
 
-    fun summarySince(
-        checkpoint: Long,
-        operationMethod: String,
+    suspend fun <T> capture(
+        block: suspend () -> T,
+    ): CapturedDlpExecution<T> {
+        val captureId = UUID.randomUUID().toString()
+        return try {
+            val value = withContext(currentCaptureId.asContextElement(captureId)) { block() }
+            val matching = captures.remove(captureId).orEmpty()
+            CapturedDlpExecution(value = value, summary = summarize(matching))
+        } finally {
+            captures.remove(captureId)
+        }
+    }
+
+    private fun summarize(
+        records: List<DlpRedactionRecord>,
     ): DlpRedactionSummary {
         val matching = records
-            .filter {
-                it.sequence > checkpoint &&
-                    it.context.contentType == DlpContentType.MODEL_OUTPUT &&
-                    it.context.operationMethod == operationMethod
-            }
+            .filter { it.context.contentType == DlpContentType.MODEL_OUTPUT }
             .sortedBy { it.sequence }
         require(matching.isNotEmpty()) {
-            "No DLP redaction evidence was recorded for $operationMethod"
+            "No captured DLP redaction evidence was recorded"
         }
 
         val first = matching.first()
-        val correlationId = first.context.correlationId
         val grouped = matching
-            .filter { it.context.correlationId == correlationId }
             .groupBy { it.ruleId }
             .toSortedMap()
             .map { (ruleId, entries) ->
@@ -59,23 +72,24 @@ class DlpRedactionEvidenceStore {
             }
 
         return DlpRedactionSummary(
-            correlationId = correlationId,
+            correlationId = first.context.correlationId,
             operationInterface = first.context.operationInterface,
             operationMethod = first.context.operationMethod,
             providerId = first.context.providerId,
             modelName = first.context.modelName,
+            contentType = first.context.contentType,
+            dataClassification = first.context.dataClassification,
+            classificationSource = first.context.classificationSource,
             replacementCount = grouped.sumOf { it.replacementCount },
             appliedRules = grouped,
         )
     }
-
-    fun latestSummary(
-        operationMethod: String,
-    ): DlpRedactionSummary? {
-        val checkpoint = (records.maxOfOrNull { it.sequence } ?: return null) - 100
-        return runCatching { summarySince(checkpoint, operationMethod) }.getOrNull()
-    }
 }
+
+data class CapturedDlpExecution<T>(
+    val value: T,
+    val summary: DlpRedactionSummary,
+)
 
 data class DlpRedactionRecord(
     val sequence: Long,
@@ -91,6 +105,9 @@ data class DlpRedactionSummary(
     val operationMethod: String,
     val providerId: String?,
     val modelName: String?,
+    val contentType: DlpContentType,
+    val dataClassification: DataClassification?,
+    val classificationSource: ClassificationSource?,
     val replacementCount: Int,
     val appliedRules: List<DlpAppliedRule>,
 )

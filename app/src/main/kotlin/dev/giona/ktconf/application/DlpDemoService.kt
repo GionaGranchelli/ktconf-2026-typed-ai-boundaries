@@ -10,6 +10,8 @@ import dev.giona.ktconf.pdf.DlpDemoPdfIngestionService
 import dev.giona.ktconf.pdf.DlpTrustedDocument
 import dev.giona.ktconf.pdf.TrustedPdfMetadata
 import dev.tramai.core.policy.ClassificationSource
+import dev.tramai.security.audit.AuditEvent
+import dev.tramai.security.audit.AuditStore
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.trace.StatusCode
 import org.slf4j.LoggerFactory
@@ -21,6 +23,7 @@ class DlpDemoService(
     private val pdfIngestion: DlpDemoPdfIngestionService,
     private val ai: DocumentAnalysisAi,
     private val dlpEvidence: DlpRedactionEvidenceStore,
+    private val auditStore: AuditStore,
     openTelemetry: OpenTelemetry,
 ) {
     private val tracer = openTelemetry.getTracer("dev.giona.ktconf.dlp")
@@ -31,10 +34,11 @@ class DlpDemoService(
         val scope = span.makeCurrent()
         return try {
             val trusted = traceIngest(file)
+            val route = InvoiceRoute.EU_CLOUD
             span.setAttribute("document.id", trusted.document.documentId)
             span.setAttribute("document.classification", trusted.metadata.classification.name)
             span.setAttribute("document.residency", trusted.metadata.residency.name)
-            span.setAttribute("tramai.route", InvoiceRoute.EU_CLOUD.name)
+            span.setAttribute("tramai.route", route.name)
             span.setAttribute("tramai.operation", "analyzeDocument")
             log.info(
                 "DLP demo document accepted: documentId={}, classification={}",
@@ -42,26 +46,34 @@ class DlpDemoService(
                 trusted.metadata.classification,
             )
 
-            val checkpoint = dlpEvidence.checkpoint()
-            val analysis = ai.analyzeDocument(
-                trusted.document.toClassifiedDocument(ClassificationSource.RULE_BASED),
-            )
+            val captured = dlpEvidence.capture {
+                ai.analyzeDocument(
+                    trusted.document.toClassifiedDocument(ClassificationSource.RULE_BASED),
+                )
+            }
+            val analysis = captured.value
             log.info("AI operation completed: documentId={}", trusted.document.documentId)
 
-            val summary = dlpEvidence.summarySince(checkpoint, "analyzeDocument")
-            validateBoundary(analysis, summary)
+            val summary = captured.summary
+            val auditEvents = auditStore.readStream(summary.correlationId)
+                .filter { it.enforcementPoint == "DLP_MODEL_OUTPUT" }
+            validateBoundary(analysis, summary, auditEvents)
             span.setAttribute("dlp.redacted", true)
             span.setAttribute("dlp.replacement_count", summary.replacementCount.toLong())
+            summary.providerId?.let { span.setAttribute("tramai.provider", it) }
+            summary.modelName?.let { span.setAttribute("tramai.model", it) }
+            span.setAttribute("dlp.correlation_id", summary.correlationId)
             span.setStatus(StatusCode.OK)
 
             DlpDemoResult(
                 document = trusted.document.safeView(),
                 metadata = trusted.metadata,
-                selectedRoute = InvoiceRoute.EU_CLOUD,
+                selectedRoute = route,
                 classificationSource = ClassificationSource.RULE_BASED,
                 operation = "analyzeDocument",
+                runtime = summary.toRuntimeView(route),
                 analysis = analysis,
-                dlp = summary.toView(),
+                dlp = summary.toView(auditEvents),
             )
         } catch (error: Throwable) {
             span.recordException(error)
@@ -98,6 +110,7 @@ class DlpDemoService(
     private fun validateBoundary(
         analysis: DocumentAnalysis,
         summary: DlpRedactionSummary,
+        auditEvents: List<AuditEvent>,
     ) {
         require(analysis.contactEmail == "[EMAIL_REDACTED]") {
             "DLP demo expected contactEmail to be redacted by TramAI"
@@ -105,9 +118,20 @@ class DlpDemoService(
         require(analysis.paymentIban == "[IBAN_REDACTED]") {
             "DLP demo expected paymentIban to be redacted by TramAI"
         }
+        require(auditEvents.isNotEmpty()) {
+            "DLP demo expected real audit evidence from the AuditStore"
+        }
         val rules = summary.appliedRules.associate { it.ruleId to it.replacementCount }
         require(rules == mapOf("email" to 1, "iban" to 1)) {
             "DLP demo expected one email and one iban redaction"
+        }
+        val auditedRules = auditEvents.associate { event ->
+            val ruleId = requireNotNull(event.metadata["ruleId"]) { "DLP audit event missing ruleId" }
+            val replacementCount = requireNotNull(event.metadata["replacementCount"]) { "DLP audit event missing replacementCount" }
+            ruleId to replacementCount.toInt()
+        }
+        require(auditedRules == mapOf("email" to 1, "iban" to 1)) {
+            "DLP demo expected matching audit evidence for email and iban redactions"
         }
         require(summary.replacementCount == 2) {
             "DLP demo expected exactly two redactions"
@@ -121,6 +145,7 @@ data class DlpDemoResult(
     val selectedRoute: InvoiceRoute,
     val classificationSource: ClassificationSource,
     val operation: String,
+    val runtime: DlpRuntimeView,
     val analysis: DocumentAnalysis,
     val dlp: DlpView,
 )
@@ -141,9 +166,18 @@ data class DlpView(
 )
 
 data class DlpAuditView(
+    val enforcementPoint: String,
     val decision: String,
     val ruleId: String,
     val replacementCount: Int,
+)
+
+data class DlpRuntimeView(
+    val route: InvoiceRoute,
+    val provider: String,
+    val model: String,
+    val contentType: String,
+    val correlationId: String,
 )
 
 private fun ConfidentialDocument.safeView(): DlpDocumentView = DlpDocumentView(
@@ -154,15 +188,32 @@ private fun ConfidentialDocument.safeView(): DlpDocumentView = DlpDocumentView(
     sensitiveSignals = listOf("EMAIL DETECTED", "IBAN DETECTED"),
 )
 
-private fun DlpRedactionSummary.toView(): DlpView = DlpView(
-    redacted = true,
-    replacementCount = replacementCount,
-    ruleIds = appliedRules.map { it.ruleId },
-    audit = appliedRules.map { rule ->
+private fun DlpRedactionSummary.toView(
+    auditEvents: List<AuditEvent>,
+): DlpView = DlpView(
+    redacted = auditEvents.isNotEmpty(),
+    replacementCount = auditEvents.sumOf {
+        requireNotNull(it.metadata["replacementCount"]) { "DLP audit event missing replacementCount" }.toInt()
+    },
+    ruleIds = auditEvents.map {
+        requireNotNull(it.metadata["ruleId"]) { "DLP audit event missing ruleId" }
+    }.distinct().sorted(),
+    audit = auditEvents.map { event ->
         DlpAuditView(
-            decision = "REDACTED",
-            ruleId = rule.ruleId,
-            replacementCount = rule.replacementCount,
+            enforcementPoint = event.enforcementPoint,
+            decision = event.decision,
+            ruleId = requireNotNull(event.metadata["ruleId"]) { "DLP audit event missing ruleId" },
+            replacementCount = requireNotNull(event.metadata["replacementCount"]) { "DLP audit event missing replacementCount" }.toInt(),
         )
     },
+)
+
+private fun DlpRedactionSummary.toRuntimeView(
+    route: InvoiceRoute,
+): DlpRuntimeView = DlpRuntimeView(
+    route = route,
+    provider = requireNotNull(providerId) { "DLP redaction summary missing providerId" },
+    model = requireNotNull(modelName) { "DLP redaction summary missing modelName" },
+    contentType = contentType.name,
+    correlationId = correlationId,
 )

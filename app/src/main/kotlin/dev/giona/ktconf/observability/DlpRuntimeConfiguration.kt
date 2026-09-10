@@ -1,5 +1,6 @@
 package dev.giona.ktconf.observability
 
+import dev.tramai.core.security.DlpContentType
 import dev.tramai.core.security.DlpContext
 import dev.tramai.core.security.DlpInterceptor
 import dev.tramai.core.security.DlpRedaction
@@ -28,11 +29,13 @@ class DlpRuntimeConfiguration {
                     id = "email",
                     pattern = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
                     replacement = "[EMAIL_REDACTED]",
+                    enabledFor = setOf(DlpContentType.MODEL_OUTPUT),
                 ),
                 DlpRule(
                     id = "iban",
                     pattern = "\\b[A-Z]{2}\\d{2}[A-Z0-9]{4}\\d{10}\\b",
                     replacement = "[IBAN_REDACTED]",
+                    enabledFor = setOf(DlpContentType.MODEL_OUTPUT),
                 ),
             ),
         ),
