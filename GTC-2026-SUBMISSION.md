@@ -205,11 +205,10 @@ The branch is not submission-ready until all P0 proofs below are real and repeat
 
 Agents should read these before implementation:
 
-1. [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md) — milestones, dependencies and acceptance criteria.
-2. [`docs/gtc/ARCHITECTURE.md`](docs/gtc/ARCHITECTURE.md) — target runtime and security architecture.
-3. [`docs/gtc/NVIDIA-NEBIUS.md`](docs/gtc/NVIDIA-NEBIUS.md) — historical Nebius/NIM investigation and fallback record.
-4. [`docs/gtc/AGENT-GUIDE.md`](docs/gtc/AGENT-GUIDE.md) — working rules, task ownership and evidence expectations.
-5. [`docs/gtc/SUBMISSION-CHECKLIST.md`](docs/gtc/SUBMISSION-CHECKLIST.md) — freeze, recording and publication gates.
+1. [`docs/gtc/ARCHITECTURE.md`](docs/gtc/ARCHITECTURE.md) — target runtime and security architecture.
+2. [`docs/gtc/NVIDIA-NEBIUS.md`](docs/gtc/NVIDIA-NEBIUS.md) — historical Nebius/NIM investigation and fallback record.
+3. [`docs/gtc/AGENT-GUIDE.md`](docs/gtc/AGENT-GUIDE.md) — working rules, task ownership and evidence expectations.
+4. [`docs/gtc/SUBMISSION-CHECKLIST.md`](docs/gtc/SUBMISSION-CHECKLIST.md) — freeze, recording and publication gates.
 
 ## Definition of done
 

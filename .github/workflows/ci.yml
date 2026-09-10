@@ -38,5 +38,9 @@ jobs:
           grep -q 'classification-routing-blocked' /tmp/restricted-cloud.out
           grep -q 'cloud invocation delta   = 0' /tmp/restricted-cloud.out
           ./scripts/demo invalid          | grep -q 'structured-output-rejected'
+          ./scripts/demo dlp              | tee /tmp/dlp.out
+          grep -q '\[EMAIL_REDACTED\]' /tmp/dlp.out
+          grep -q '\[IBAN_REDACTED\]' /tmp/dlp.out
+          grep -q 'redactions     = 2' /tmp/dlp.out
           ./scripts/demo healthz          | grep -q '"status":"ok"'
           ./scripts/stage-down

@@ -39,6 +39,9 @@ but it cannot authorize its own data movement or consequential side effects.
    approval, executes exactly once, and rejects replay.
 3. Every governed workflow leaves readable, hash-chained evidence and appears
    in the dashboard's document history.
+4. A confidential synthetic PDF can produce a structurally valid model response
+   containing an email and IBAN, and TramAI redacts those values before the
+   typed result reaches the frontend.
 
 The live topology is deliberately truthful: GLOBAL uses Build.NVIDIA.com and
 hosted Nemotron; LOCAL uses an NVIDIA RTX with Qwen for the stable action flow;
@@ -50,10 +53,10 @@ Start here:
 - [GTC submission plan](GTC-2026-SUBMISSION.md)
 - [GTC architecture](docs/gtc/ARCHITECTURE.md)
 - [claims boundary](docs/CLAIMS-BOUNDARY.md)
-- [60-second demo plan](docs/gtc/tasks/task-009.md)
+- [demo script](docs/DEMO-SCRIPT.md)
 
 > [!IMPORTANT]
-> **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL NVIDIA, temporary Scaleway/Mistral EU, and GLOBAL NVIDIA execution boundaries. Mistral is not NVIDIA/Nemotron/NIM. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md) and [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
+> **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL NVIDIA, temporary Scaleway/Mistral EU, and GLOBAL NVIDIA execution boundaries. Mistral is not NVIDIA/Nemotron/NIM. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
 
 # KTConf 2026 — Typed AI Boundaries
 
@@ -148,6 +151,7 @@ Then, on the stage:
 ./scripts/demo restricted       # RESTRICTED KTCONF-001 → local route → 200 typed
 ./scripts/demo restricted-cloud # RESTRICTED forced cloud → 403, delta 0
 ./scripts/demo invalid          # PUBLIC  KTCONF-INVALID → 422, no side effects
+./scripts/demo dlp              # CONFIDENTIAL KTCONF-DLP-001 → 200, redacted typed result
 ./scripts/demo payment          # RESTRICTED KTCONF-PAY → 202, awaiting approval
 ./scripts/demo workflow-payment # explicit workflow → AI rationale + approval email + 202
 ./scripts/demo approve <id>     # resume → payment executed exactly once
@@ -201,6 +205,11 @@ span with the fake-email channel, recipient, tool, and `RECORDED` status; email
 body content and approval tokens are never traced. The stack is loopback-only:
 the app exports OTLP/HTTP to Jaeger at `localhost:4318`. Stop both with
 `./scripts/stage-observe-down`.
+
+The DLP proof also emits application-owned `document.dlp.analyze`,
+`document.ingest`, and `dlp.redaction` spans. They expose trusted
+classification/residency metadata plus safe rule/count evidence only; no raw
+email, IBAN, prompt, or model-output secret appears in the trace.
 
 The observability rehearsal runs both the app and Jaeger in Docker. Watch the
 application's structured logs with:

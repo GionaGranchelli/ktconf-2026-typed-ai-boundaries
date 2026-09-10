@@ -17,4 +17,12 @@ class AiConfiguration {
         log.info("Creating typed InvoiceAnalysisService proxy from SovereignTramaiRuntime")
         return runtime.create(InvoiceAnalysisService::class)
     }
+
+    @Bean
+    fun documentAnalysisAi(
+        runtime: SovereignTramaiRuntime,
+    ): DocumentAnalysisAi {
+        log.info("Creating typed DocumentAnalysisAi proxy from SovereignTramaiRuntime")
+        return runtime.create(DocumentAnalysisAi::class)
+    }
 }

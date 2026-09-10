@@ -56,6 +56,7 @@ class DeterministicProvider(
     companion object {
         /** Longest ids first so prefix-ish matches resolve deterministically. */
         val KNOWN_INVOICE_IDS = listOf(
+            "KTCONF-DLP-001",
             "KTCONF-PAY-001",
             "KTCONF-PAY-002",
             "KTCONF-PUBLIC-HIGH",
@@ -139,6 +140,8 @@ private fun isAutoPaymentOperation(request: ModelRequest): Boolean =
  */
 fun cloudScript(invoiceId: String, toolResultPresent: Boolean, request: ModelRequest): ModelResponse = when {
     invoiceId == "KTCONF-INVALID-001" -> DemoResponses.invalidOutput
+    invoiceId == "KTCONF-DLP-001" && request.operationMethod == "analyzeDocument" ->
+        DemoResponses.dlpDocumentAnalysis
     isAutoPaymentOperation(request) && !toolResultPresent ->
         DemoResponses.autoPaymentToolCall(invoiceId, requestAmount(request, invoiceId))
     isAutoPaymentOperation(request) ->

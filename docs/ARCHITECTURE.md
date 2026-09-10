@@ -127,6 +127,36 @@ Business code does **not** parse model JSON, select provider SDKs, perform
 prompt extraction, evaluate security rules, or implement approval state
 machines. All of that happens inside TramAI, behind the typed boundary.
 
+## Model-output DLP boundary
+
+The repository now also includes one small safe-output proof for a synthetic
+confidential PDF:
+
+```text
+trusted PDF
+  -> local metadata + field extraction
+  -> typed AI operation (provider may return raw synthetic email + IBAN)
+  -> TramAI RuleBasedDlpInterceptor (MODEL_OUTPUT)
+  -> structured parse
+  -> typed DocumentAnalysis with redacted values
+  -> HTTP / frontend
+```
+
+The important constraint is that the application never rewrites the returned
+`DocumentAnalysis`. The authoritative `SovereignTramai` runtime is configured
+with:
+
+- `RuleBasedDlpInterceptor` for `MODEL_OUTPUT`
+- `email -> [EMAIL_REDACTED]`
+- `iban  -> [IBAN_REDACTED]`
+- `AuditEngineDlpRedactionAuditEmitter` for rule/count evidence
+
+That means the provider can still return a structurally valid JSON object with
+sensitive values, and TramAI sanitizes the raw model response before the typed
+object reaches application code. The UI may show safe labels such as
+`EMAIL DETECTED` or `IBAN DETECTED`, but it never receives the raw model output
+for a before/after comparison.
+
 New to TramAI? [TRAMAI-PRIMER.md](TRAMAI-PRIMER.md) explains the concepts
 behind these files in ten minutes.
 

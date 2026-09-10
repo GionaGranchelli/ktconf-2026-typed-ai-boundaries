@@ -45,6 +45,15 @@ export function analyzePdf(file, forceRoute = null) {
   })
 }
 
+export function analyzeDlpDocument(file) {
+  const data = new FormData()
+  data.append('file', file)
+  return request('/documents/dlp/analyze', {
+    method: 'POST',
+    body: data,
+  })
+}
+
 export function approve(approvalId) {
   return request(`/approvals/${encodeURIComponent(approvalId)}/approve`, { method: 'POST' })
 }

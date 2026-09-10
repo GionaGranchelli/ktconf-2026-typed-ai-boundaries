@@ -9,6 +9,7 @@ build/
 .env
 .env.local
 .env.*.local
+.pi/
 
 # GTC Vue/Vite console
 frontend/node_modules/
@@ -22,4 +23,3 @@ docs/gtc/CURRENT-STATE.md
 docs/gtc/ROADMAP.md
 docs/gtc/tasks/
 docs/gtc/evidence/
-

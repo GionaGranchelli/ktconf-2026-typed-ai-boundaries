@@ -4,6 +4,8 @@ import dev.tramai.core.model.ModelRegistry
 import dev.tramai.core.model.TramaiTool
 import dev.tramai.core.observation.OperationObserver
 import dev.tramai.core.provider.ModelProvider
+import dev.tramai.core.security.DlpInterceptor
+import dev.tramai.core.security.DlpRedactionAuditEmitter
 import dev.tramai.observability.OpenTelemetryOperationObserver
 import dev.tramai.observability.OpenTelemetryWorkflowObserver
 import dev.tramai.orchestration.WorkflowObserver
@@ -99,6 +101,8 @@ class TramaiObservabilityConfiguration {
         properties: SovereignTramaiProperties,
         infrastructure: SovereignTramaiInfrastructure,
         operationObserver: OperationObserver,
+        dlpInterceptor: ObjectProvider<DlpInterceptor>,
+        dlpRedactionAuditEmitter: ObjectProvider<DlpRedactionAuditEmitter>,
     ): SovereignTramai {
         val builder = SovereignTramai.builder()
             .profile(profile)
@@ -111,6 +115,8 @@ class TramaiObservabilityConfiguration {
 
         infrastructure.suspendedInvocationStore?.let { builder.suspendedInvocationStore(it) }
         infrastructure.toolArgumentsDigester?.let { builder.toolArgumentsDigester(it) }
+        dlpInterceptor.ifAvailable?.let(builder::dlp)
+        dlpRedactionAuditEmitter.ifAvailable?.let(builder::dlpRedactionAudit)
         modelProviders.orderedStream().forEach { builder.provider(it, name = it.providerId()) }
         builder.tools(toolProviders.orderedStream().toList())
         properties.models.forEach { (modelName, providerName) -> builder.model(modelName, providerName) }

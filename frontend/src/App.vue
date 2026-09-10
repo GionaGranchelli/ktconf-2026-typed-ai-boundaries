@@ -13,6 +13,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getStats, health } from './api.js'
 import OverviewPage      from './views/OverviewPage.vue'
 import DocumentFlowPage  from './views/DocumentFlowPage.vue'
+import DlpSafeOutputPage from './views/DlpSafeOutputPage.vue'
 import PolicyMatrixPage  from './views/PolicyMatrixPage.vue'
 import EvidencePage      from './views/EvidencePage.vue'
 import HistoryPage       from './views/HistoryPage.vue'
@@ -20,6 +21,7 @@ import HistoryPage       from './views/HistoryPage.vue'
 // ── Navigation ─────────────────────────────────────────────────
 const views = [
   { id: 'overview',        label: 'Overview',        icon: 'grid' },
+  { id: 'dlp-safe-output', label: 'DLP / Safe Output', icon: 'shield' },
   { id: 'policy-matrix',   label: 'Governance',      icon: 'shield' },
   { id: 'live-governance', label: 'Live Demo',       icon: 'play' },
   { id: 'evidence',        label: 'Evidence',         icon: 'chain' },
@@ -34,6 +36,10 @@ const pageTitle  = computed(() => views.find(v => v.id === activeView.value)?.la
 function openLiveDemo(focus = null) {
   demoFocus.value = focus
   activeView.value = 'live-governance'
+}
+
+function openDlpDemo() {
+  activeView.value = 'dlp-safe-output'
 }
 
 // ── Backend health ──────────────────────────────────────────────
@@ -184,6 +190,11 @@ function onStatsUpdated(stats) {
           :stats="globalStats"
           @navigate-history="activeView = 'history'"
           @navigate-live="openLiveDemo"
+          @navigate-dlp="openDlpDemo"
+        />
+
+        <DlpSafeOutputPage
+          v-else-if="activeView === 'dlp-safe-output'"
         />
 
         <PolicyMatrixPage
