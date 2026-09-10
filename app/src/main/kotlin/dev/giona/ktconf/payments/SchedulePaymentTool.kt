@@ -2,7 +2,6 @@ package dev.giona.ktconf.payments
 
 import dev.giona.ktconf.domain.SchedulePaymentInput
 import dev.giona.ktconf.domain.SchedulePaymentResult
-import dev.tramai.core.annotations.AiTool
 import dev.tramai.core.model.SideEffectLevel
 import dev.tramai.core.model.ToolExecutionContext
 import dev.tramai.core.model.TramaiTool

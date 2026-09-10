@@ -109,7 +109,7 @@ const verdicts = computed(() => {
             <div><dt>Boundary</dt><dd>{{ result.selectedRoute }}</dd></div>
           </dl>
           <div class="model-proof">
-            <strong>Sensitive data present in model output contract</strong>
+            <strong>Sensitive data detected in model output</strong>
             <span>EMAIL DETECTED</span>
             <span>IBAN DETECTED</span>
           </div>

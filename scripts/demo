@@ -97,7 +97,7 @@ print()
 print("✓ valid output")
 if safe and contact == "[EMAIL_REDACTED]" and iban == "[IBAN_REDACTED]":
     print("✓ sensitive values removed")
-    print("✓ application never received raw sensitive values")
+    print("✓ downstream typed result contains only redacted values")
 PY
     rm -f "$tmp"
     trap - EXIT
