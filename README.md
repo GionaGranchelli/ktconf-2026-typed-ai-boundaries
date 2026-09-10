@@ -53,10 +53,10 @@ Start here:
 - [GTC submission plan](GTC-2026-SUBMISSION.md)
 - [GTC architecture](docs/gtc/ARCHITECTURE.md)
 - [claims boundary](docs/CLAIMS-BOUNDARY.md)
-- [60-second demo plan](docs/gtc/tasks/task-009.md)
+- [demo script](docs/DEMO-SCRIPT.md)
 
 > [!IMPORTANT]
-> **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL NVIDIA, temporary Scaleway/Mistral EU, and GLOBAL NVIDIA execution boundaries. Mistral is not NVIDIA/Nemotron/NIM. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md) and [`docs/gtc/ROADMAP.md`](docs/gtc/ROADMAP.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
+> **NVIDIA GTC Golden Ticket workstream:** this branch is being adapted into **The Model Is Not the Authority** — a real-document demo with LOCAL NVIDIA, temporary Scaleway/Mistral EU, and GLOBAL NVIDIA execution boundaries. Mistral is not NVIDIA/Nemotron/NIM. Start with [`GTC-2026-SUBMISSION.md`](GTC-2026-SUBMISSION.md). The KTConf baseline below remains the deterministic foundation and must not be weakened.
 
 # KTConf 2026 — Typed AI Boundaries
 
